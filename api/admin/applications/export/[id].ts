@@ -1,31 +1,30 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../../_middleware.js';
+import jwt from 'jsonwebtoken';
 import { getRowById } from '../../../src/lib/sheets.js';
-import React from 'react';
-import { renderToStream } from '@react-pdf/renderer';
-import { MyPdfDocument } from '../../../src/lib/pdf';
-import { Applicant } from '../../../src/types';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const email = requireAuth(req, res);
-  if (!email) return;
-
-  if (req.method !== 'GET') return res.status(405).end();
-
-  const { id } = req.query as { id: string };
-
-  try {
-    const applicant = await getRowById(id) as Applicant;
-    if (!applicant) return res.status(404).json({ error: 'Data pelamar tidak ditemukan.' });
-
-    const stream = await renderToStream(
-      React.createElement(MyPdfDocument, { applicant })
+function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
+  let token = null;
+  if (req.headers.cookie) {
+    const cookies = Object.fromEntries(
+      req.headers.cookie.split(';').map((c: string) => {
+        const parts = c.trim().split('=');
+        return [parts[0], parts.slice(1).join('=')];
+      })
     );
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="pelamar-${id}.pdf"`);
-    stream.pipe(res);
-  } catch (error) {
-    return res.status(500).json({ error: 'Gagal generate PDF.' });
+    token = cookies['luzie_session'];
+  }
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    res.status(401).json({ error: 'Akses ditolak.' });
+    return null;
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    return decoded.email;
+  } catch {
+    res.status(401).json({ error: 'Sesi login telah kedaluwarsa.' });
+    return null;
   }
 }
