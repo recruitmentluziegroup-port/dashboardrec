@@ -1,3 +1,5 @@
-import app from '../server';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default app;
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  res.json({ message: 'Luzie Group Recruitment API' });
+}
