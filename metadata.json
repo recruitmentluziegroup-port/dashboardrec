@@ -1,0 +1,6 @@
+{
+  "name": "Recruitment Form Portal",
+  "description": "A job application portal for Luzie Group with an 8-step Indonesia Data Personal form, automatic Google Sheets synchronization, and an admin management dashboard with PDF export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
