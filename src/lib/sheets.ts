@@ -1,4 +1,6 @@
 import { google } from 'googleapis';
+import fs from 'fs';
+import path from 'path';
 import { Applicant, ApplicationStatus } from '../types';
 
 // Columns mapping mapping to Google Sheets. Total 62 columns.
@@ -417,6 +419,140 @@ export async function updateRow(id: string, updatedFields: Partial<Applicant>): 
     return true;
   } catch (error) {
     console.error(`Error updating row for ID ${id}:`, error);
+    return false;
+  }
+}
+
+// ─── Vacancy Storage ─────────────────────────────────────────────────────────
+// Vacancies are stored in a dedicated "Vacancies" tab in the same Google Sheet.
+// Falls back to src/data/vacancies.json for local dev if Sheets env vars aren't set.
+
+export interface Vacancy {
+  title: string;
+  category: string;
+  location: string;
+  salary: string;
+  description: string;
+  requirements: string[];
+  archived?: boolean;
+}
+
+const VACANCY_TAB = 'Vacancies';
+const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived'];
+
+function readLocalVacancies(): Vacancy[] {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/vacancies.json');
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch {
+    return [];
+  }
+}
+
+async function ensureVacancyTab(sheets: any, spreadsheetId: string): Promise<void> {
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const exists = (meta.data.sheets ?? []).some(
+      (s: any) => s.properties?.title === VACANCY_TAB
+    );
+    if (!exists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: [{ addSheet: { properties: { title: VACANCY_TAB } } }] }
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${VACANCY_TAB}!A1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [VACANCY_HEADERS] }
+      });
+    }
+  } catch (error) {
+    console.error('Error ensuring Vacancies tab:', error);
+  }
+}
+
+export async function getVacancies(): Promise<Vacancy[]> {
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  // Local dev fallback
+  if (!sheets || !spreadsheetId) return readLocalVacancies();
+
+  try {
+    await ensureVacancyTab(sheets, spreadsheetId);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${VACANCY_TAB}!A2:G`
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      // Tab is empty on first deploy — seed from the committed JSON file
+      const local = readLocalVacancies();
+      if (local.length > 0) await saveVacancies(local);
+      return local;
+    }
+
+    return rows.map((row: any[]) => ({
+      title: row[0] || '',
+      category: row[1] || '',
+      location: row[2] || '',
+      salary: row[3] || '',
+      description: row[4] || '',
+      requirements: parseJsonSafe<string[]>(row[5], []),
+      archived: row[6] === 'true'
+    }));
+  } catch (error) {
+    console.error('Error reading vacancies from Sheets:', error);
+    return readLocalVacancies();
+  }
+}
+
+export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  // Local dev fallback — write directly to the JSON file
+  if (!sheets || !spreadsheetId) {
+    try {
+      const filePath = path.join(process.cwd(), 'src/data/vacancies.json');
+      fs.writeFileSync(filePath, JSON.stringify(vacancies, null, 2), 'utf-8');
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  try {
+    await ensureVacancyTab(sheets, spreadsheetId);
+
+    const rows = vacancies.map(v => [
+      v.title,
+      v.category,
+      v.location,
+      v.salary,
+      v.description,
+      JSON.stringify(v.requirements || []),
+      v.archived ? 'true' : 'false'
+    ]);
+
+    // Clear all data rows (preserve header in row 1) then rewrite
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${VACANCY_TAB}!A2:G`
+    });
+    if (rows.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${VACANCY_TAB}!A2`,
+        valueInputOption: 'RAW',
+        requestBody: { values: rows }
+      });
+    }
+    return true;
+  } catch (error) {
+    console.error('Error saving vacancies to Sheets:', error);
     return false;
   }
 }

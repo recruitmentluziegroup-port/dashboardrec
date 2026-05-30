@@ -10,7 +10,7 @@ import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow } from './src/lib/sheets';
+import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant } from './src/types';
 
@@ -118,34 +118,37 @@ app.use(express.json({ limit: '10mb' }));
   // -------------------------------------------------------------
 
   // 0. VACANCIES MANAGEMENT ENDPOINTS
+
+  // PUBLIC: active (non-archived) vacancies only — what candidates see
   app.get('/api/vacancies', async (req, res) => {
     try {
-      const vacanciesPath = path.join(process.cwd(), 'src/data/vacancies.json');
-      if (!fs.existsSync(vacanciesPath)) {
-        return res.json([]);
-      }
-      const data = await fs.promises.readFile(vacanciesPath, 'utf8');
-      res.json(JSON.parse(data));
+      const all = await getVacancies();
+      res.json(all.filter((v: any) => v.archived !== true));
     } catch (error) {
-      console.error('Error reading vacancies file:', error);
+      console.error('Error reading vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil data lowongan pekerjaan.' });
     }
   });
 
-  app.post('/api/vacancies', authMiddleware, async (req, res) => {
+  // ADMIN: all vacancies including archived — protected
+  app.get('/api/admin/vacancies', authMiddleware, async (req, res) => {
+    try {
+      res.json(await getVacancies());
+    } catch (error) {
+      console.error('Error reading all vacancies:', error);
+      res.status(500).json({ error: 'Gagal mengambil semua data lowongan.' });
+    }
+  });
+
+  // ADMIN: persist vacancy changes (archived flag included) — protected
+  app.post('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
       const vacancies = req.body;
       if (!Array.isArray(vacancies)) {
-        return res.status(400).json({ error: 'Data lowongan harus berupa list array.' });
+        return res.status(400).json({ error: 'Data lowongan harus berupa array.' });
       }
-
-      const vacanciesPath = path.join(process.cwd(), 'src/data/vacancies.json');
-      const dirPath = path.dirname(vacanciesPath);
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
-
-      await fs.promises.writeFile(vacanciesPath, JSON.stringify(vacancies, null, 2), 'utf8');
+      const ok = await saveVacancies(vacancies);
+      if (!ok) return res.status(500).json({ error: 'Gagal menyimpan perubahan lowongan.' });
       res.json({ success: true, message: 'Lowongan pekerjaan berhasil disimpan.' });
     } catch (error) {
       console.error('Error saving vacancies:', error);

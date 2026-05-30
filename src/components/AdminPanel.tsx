@@ -43,7 +43,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     setVacanciesLoading(true);
     setVacanciesError(null);
     try {
-      const res = await fetch('/api/vacancies');
+      const token = localStorage.getItem('luzie_admin_token');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      // Use the protected admin endpoint — returns ALL vacancies including archived
+      const res = await fetch('/api/admin/vacancies', { headers });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setVacancies(data);
@@ -68,7 +72,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const res = await fetch('/api/vacancies', {
+      // Use the protected admin endpoint — persists to Google Sheets
+      const res = await fetch('/api/admin/vacancies', {
         method: 'POST',
         headers,
         body: JSON.stringify(updatedVacancies)
