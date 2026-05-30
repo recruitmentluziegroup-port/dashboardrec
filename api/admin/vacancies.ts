@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { getVacancies, saveVacancies } from '../../src/lib/sheets';
+import { getVacancies, saveVacancies } from '../../src/_lib/sheets';
 
 function requireAuth(req: VercelRequest, res: VercelResponse): boolean {
   let token: string | null = null;
