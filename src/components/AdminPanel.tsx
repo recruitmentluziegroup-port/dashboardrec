@@ -51,6 +51,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setVacancies(data);
+      } else if (!res.ok) {
+        setVacanciesError(data?.error || 'Gagal memuat daftar lowongan pekerjaan dari server.');
+      } else {
+        // Response ok but not array — unexpected server response
+        setVacanciesError('Respons server tidak valid. Silakan coba refresh.');
       }
     } catch (err) {
       setVacanciesError('Gagal memuat daftar lowongan pekerjaan dari server.');

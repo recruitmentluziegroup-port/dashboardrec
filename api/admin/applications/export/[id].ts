@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import { getRowById } from '../../../src/lib/sheets.js';
+import { getRowById } from '../../../../src/lib/sheets.js';
 
 function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
   let token = null;

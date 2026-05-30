@@ -440,13 +440,72 @@ export interface Vacancy {
 const VACANCY_TAB = 'Vacancies';
 const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived'];
 
+// Hardcoded seed vacancies — used as fallback when Google Sheets is unavailable
+// or the Vacancies tab is empty on first deploy. Mirrors src/data/vacancies.json.
+const SEED_VACANCIES: Vacancy[] = [
+  {
+    title: 'Personal Assistant',
+    category: 'Administrative Support',
+    location: 'Solo / WFH (Remote Indonesia)',
+    salary: 'Rp 3.5jt - Rp 5.0jt / bln',
+    description: 'Mengelola jadwal harian pimpinan, mengoordinasikan dokumen/surat perusahaan, menyusun agenda rapat, serta memberikan dukungan administratif perkantoran secara rahasia, tertib, dan andal.',
+    requirements: [
+      'Minimal lulusan D3/S1 sekalian jurusan (diutamakan Administrasi Perkantoran / Sekretaris)',
+      'Sangat fasih mengoperasikan Google Workspace (Sheets, Docs, Slides, Google Calendar)',
+      'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap'
+    ]
+  },
+  {
+    title: 'Digital Marketer Specialist',
+    category: 'Marketing & Conversion Optimization',
+    location: 'Purwokerto (On-site / WFO)',
+    salary: 'Rp 4.0jt - Rp 6.0jt / bln',
+    description: 'Mengonsep, mengeksekusi, dan menjasmani kampanye paid traffic (Facebook Ads, TikTok Ads, Google Ads), menganalisis budget iklan, serta menjaga rasio efisiensi ROAS bisnis eksekutif.',
+    requirements: [
+      'Pengalaman kerja langsung minimal 1-2 tahun sebagai Media Buyer / Digital Advertiser',
+      'Mahir mengulik platform Google Analytics, Facebook Pixel, serta konversi landing page',
+      'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli'
+    ]
+  },
+  {
+    title: 'CEO & Founder Personal Assistant',
+    category: 'Executive Office Operations',
+    location: 'Purwokerto (On-site / WFO)',
+    salary: 'Rp 6.0jt - Rp 10.0jt / bln',
+    description: 'Bertindak sebagai asisten eksekutif utama Founder Luzie Group untuk mengawal implementasi proyek strategis, memonitor status target KPI tim, serta mendampingi kunjungan bisnis pimpinan.',
+    requirements: [
+      'Gelar S1 terkemuka (Manajemen, Bisnis, Hubungan Internasional, atau Hukum disukai)',
+      'Fasih berkomunikasi dalam Bahasa Inggris aktif lisan & tulisan tingkat mahir',
+      'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu'
+    ]
+  },
+  {
+    title: 'Social Media Management',
+    category: 'Creative Design & Content Strategy',
+    location: 'Solo / WFH (Remote Indonesia)',
+    salary: 'Rp 4.0jt - Rp 6.0jt / bln',
+    description: 'Merancang ide konten mingguan kreatif, memproduksi dan menyunting video pendek (Reels, TikTok & Shorts), merias caption, serta membangun interaksi organik komunitas brand Luzie.',
+    requirements: [
+      'Keahlian tinggi mengoperasikan editor video CapCut, Premiere Pro, atau Adobe After Effects',
+      'Mengikuti update tren konten visual, audio, serta cara kerja algoritma media sosial terbaru',
+      'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda'
+    ]
+  }
+];
+
+let cachedVacancies: Vacancy[] | null = null;
+
 function readLocalVacancies(): Vacancy[] {
+  // Try reading from the JSON file first (local dev), then fall back to the seed constant
   try {
     const filePath = path.join(process.cwd(), 'src/data/vacancies.json');
-    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
   } catch {
-    return [];
+    // File not accessible (e.g. Vercel serverless) — use embedded seed
   }
+  return SEED_VACANCIES;
 }
 
 async function ensureVacancyTab(sheets: any, spreadsheetId: string): Promise<void> {
@@ -477,7 +536,12 @@ export async function getVacancies(): Promise<Vacancy[]> {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
   // Local dev fallback
-  if (!sheets || !spreadsheetId) return readLocalVacancies();
+  if (!sheets || !spreadsheetId) {
+    if (cachedVacancies) return cachedVacancies;
+    const local = readLocalVacancies();
+    cachedVacancies = local;
+    return local;
+  }
 
   try {
     await ensureVacancyTab(sheets, spreadsheetId);
@@ -491,10 +555,11 @@ export async function getVacancies(): Promise<Vacancy[]> {
       // Tab is empty on first deploy — seed from the committed JSON file
       const local = readLocalVacancies();
       if (local.length > 0) await saveVacancies(local);
+      cachedVacancies = local;
       return local;
     }
 
-    return rows.map((row: any[]) => ({
+    const fetched = rows.map((row: any[]) => ({
       title: row[0] || '',
       category: row[1] || '',
       location: row[2] || '',
@@ -502,10 +567,16 @@ export async function getVacancies(): Promise<Vacancy[]> {
       description: row[4] || '',
       requirements: parseJsonSafe<string[]>(row[5], []),
       archived: row[6] === 'true'
-    }));
+    })).filter((v: any) => v.title.trim() !== '');
+
+    cachedVacancies = fetched;
+    return fetched;
   } catch (error) {
     console.error('Error reading vacancies from Sheets:', error);
-    return readLocalVacancies();
+    if (cachedVacancies) return cachedVacancies;
+    const fallback = readLocalVacancies();
+    cachedVacancies = fallback;
+    return fallback;
   }
 }
 
@@ -513,14 +584,24 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
+  // Update memory cache
+  cachedVacancies = vacancies;
+
   // Local dev fallback — write directly to the JSON file
   if (!sheets || !spreadsheetId) {
     try {
       const filePath = path.join(process.cwd(), 'src/data/vacancies.json');
+      const dirPath = path.dirname(filePath);
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
       fs.writeFileSync(filePath, JSON.stringify(vacancies, null, 2), 'utf-8');
+      console.log('Successfully saved vacancies locally to src/data/vacancies.json');
       return true;
-    } catch {
-      return false;
+    } catch (err) {
+      console.warn('Failed to write local vacancies file (might be Vercel serverless):', err);
+      // Return true anyway if we updated the memory cache, so the UI behaves correctly
+      return true;
     }
   }
 

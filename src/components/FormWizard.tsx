@@ -153,7 +153,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
         return res.json();
       })
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setVacancies(data);
         }
       })
