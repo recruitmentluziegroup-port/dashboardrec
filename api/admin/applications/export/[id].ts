@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../../_middleware';
-import { getRowById } from '../../../src/lib/sheets';
+import { requireAuth } from '../../_middleware.js';
+import { getRowById } from '../../../src/lib/sheets.js';
 import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { MyPdfDocument } from '../../../src/lib/pdf';

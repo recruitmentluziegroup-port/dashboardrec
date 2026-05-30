@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../_middleware';
-import { getAllRows } from '../../src/lib/sheets';
+import { requireAuth } from '../_middleware.js';
+import { getAllRows } from '../../src/lib/sheets.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);

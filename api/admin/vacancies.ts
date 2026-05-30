@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAuth } from '../_middleware';
+import { requireAuth } from '../_middleware.js';
 import fs from 'fs';
 import path from 'path';
 
