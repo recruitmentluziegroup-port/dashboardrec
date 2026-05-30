@@ -584,8 +584,8 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
-  // Update memory cache
-  cachedVacancies = vacancies;
+  // Update memory cache — reset first to force re-fetch on next getVacancies() call
+  cachedVacancies = null;
 
   // Local dev fallback — write directly to the JSON file
   if (!sheets || !spreadsheetId) {

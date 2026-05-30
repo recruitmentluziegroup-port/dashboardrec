@@ -44,17 +44,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // POST — persist vacancy changes (including archived flag) to Google Sheets
-  if (req.method === 'POST') {
-    const vacancies = req.body;
-    if (!Array.isArray(vacancies)) {
-      return res.status(400).json({ error: 'Data lowongan harus berupa array.' });
-    }
+  if (req.method === 'GET') {
     try {
-      const ok = await saveVacancies(vacancies);
-      if (!ok) return res.status(500).json({ error: 'Gagal menyimpan perubahan lowongan.' });
-      return res.json({ success: true, message: 'Lowongan pekerjaan berhasil disimpan.' });
-    } catch {
-      return res.status(500).json({ error: 'Terjadi kesalahan saat menyimpan lowongan.' });
+      const all = await getVacancies();
+      if (!Array.isArray(all)) {
+        return res.status(500).json({ error: 'Data lowongan tidak valid dari server.' });
+      }
+      return res.json(all);
+    } catch (err: any) {
+      console.error('[GET /api/admin/vacancies] Error:', err?.message || err);
+      return res.status(500).json({ error: `Gagal mengambil data lowongan: ${err?.message || 'Unknown error'}` });
     }
   }
 
