@@ -28,3 +28,30 @@ function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
     return null;
   }
 }
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const email = requireAuth(req, res);
+  if (!email) return;
+
+  const { id } = req.query as { id: string };
+
+  if (req.method === 'GET') {
+    try {
+      const row = await getRowById(id);
+      return res.json({ data: row });
+    } catch {
+      return res.status(500).json({ error: 'Gagal mengambil data.' });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      await updateRow(id, req.body);
+      return res.json({ success: true });
+    } catch {
+      return res.status(500).json({ error: 'Gagal update data.' });
+    }
+  }
+
+  return res.status(405).end();
+}
