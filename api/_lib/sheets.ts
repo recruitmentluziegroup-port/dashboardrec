@@ -1,7 +1,7 @@
 import { google } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
-import { Applicant, ApplicationStatus } from '../types';
+import { Applicant, ApplicationStatus } from '../../src/types';
 
 // Columns mapping mapping to Google Sheets. Total 62 columns.
 const HEADERS = [

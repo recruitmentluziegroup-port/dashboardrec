@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getVacancies } from '../src/_lib/sheets';
+import { getVacancies } from '../src/lib/sheets.js';
 
 // PUBLIC endpoint — returns only active (non-archived) vacancies.
 // Archived vacancies are never sent to the candidate portal.
