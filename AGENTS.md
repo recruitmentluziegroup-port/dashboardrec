@@ -30,11 +30,9 @@ Copy `.env.example` to `.env` and fill in:
 - `GEMINI_API_KEY` — for Gemini AI features
 - `DISABLE_HMR` — when `"true"`, Vite disables HMR and file watching (used by AI Studio during agent edits to prevent flickering)
 
-## Duplicated sheets.ts
+## Vercel serverless import quirk
 
-`src/lib/sheets.ts` and `api/_lib/sheets.ts` are **identical copies**. Both must be kept in sync.
-
-When editing Google Sheets logic, update **both files**. Vercel serverless functions import from `../../src/lib/sheets.js` but `api/_lib/sheets.ts` exists as a fallback/backup.
+Serverless functions under `api/` import from `../../src/lib/sheets.js` (with `.js` extension despite being `.ts` source). This is required by Vercel's Node.js module resolution at runtime. Do not remove the `.js` extension.
 
 ## Vercel serverless import quirk
 
@@ -63,7 +61,7 @@ Serverless functions under `api/` import from `../../src/lib/sheets.js` (with `.
 | `src/lib/` | Shared libraries: `sheets.ts` (Google Sheets CRUD), `pdf.tsx` (React-PDF document) |
 | `src/data/` | `vacancies.json` — local fallback vacancy data |
 | `api/` | Vercel serverless API routes |
-| `api/_lib/` | Duplicate of `src/lib/sheets.ts` |
+
 | `api/auth/` | Login, logout, session check |
 | `api/admin/` | Protected admin endpoints (applications CRUD, vacancies, PDF export) |
 
