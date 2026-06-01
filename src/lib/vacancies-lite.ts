@@ -1,4 +1,4 @@
-import { JWT } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 
 export interface Vacancy {
   title: string;
@@ -66,59 +66,79 @@ const SEED_VACANCIES: Vacancy[] = [
 ];
 
 let cachedVacancies: Vacancy[] | null = null;
-let _authClient: JWT | null = null;
+let cachedAccessToken: string | null = null;
+let tokenExpiry: number = 0;
 
-function getAuthClient(): JWT | null {
-  if (_authClient) return _authClient;
-
-  const keyEnv = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!keyEnv) return null;
-
+function parseCredentials(): { client_email: string; private_key: string } | null {
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (!raw) return null;
   try {
-    let decoded = keyEnv.trim();
+    let decoded = raw.trim();
     if (!decoded.startsWith('{')) {
       try {
-        const potential = Buffer.from(decoded, 'base64').toString('utf8').trim();
-        if (potential.startsWith('{')) decoded = potential;
+        const b64 = Buffer.from(decoded, 'base64').toString('utf8').trim();
+        if (b64.startsWith('{')) decoded = b64;
       } catch { /* not base64 */ }
     }
-
-    const credentials = JSON.parse(decoded);
-    if (!credentials.client_email || !credentials.private_key) {
-      console.error('Service account key missing client_email or private_key');
-      return null;
-    }
-
-    _authClient = new JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-    });
-    return _authClient;
-  } catch (err) {
-    console.error('Failed to create auth client:', err);
+    const creds = JSON.parse(decoded);
+    if (creds.client_email && creds.private_key) return creds;
+    return null;
+  } catch {
     return null;
   }
 }
 
-async function sheetsRequest<T = any>(
+async function getAccessToken(): Promise<string | null> {
+  if (cachedAccessToken && Date.now() < tokenExpiry) return cachedAccessToken;
+
+  const creds = parseCredentials();
+  if (!creds) return null;
+
+  const now = Math.floor(Date.now() / 1000);
+  const assertion = jwt.sign(
+    {
+      iss: creds.client_email,
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      aud: 'https://oauth2.googleapis.com/token',
+      exp: now + 3600,
+      iat: now,
+    },
+    creds.private_key,
+    { algorithm: 'RS256' },
+  );
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${encodeURIComponent(assertion)}`,
+  });
+
+  if (!res.ok) {
+    console.error('Token exchange failed:', res.status);
+    return null;
+  }
+
+  const data = await res.json() as { access_token: string; expires_in: number };
+  cachedAccessToken = data.access_token;
+  tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return cachedAccessToken;
+}
+
+async function sheetsFetch<T = any>(
   pathAndQuery: string,
   init: RequestInit = {},
 ): Promise<T> {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   if (!spreadsheetId) throw new Error('GOOGLE_SHEET_ID not set');
 
-  const client = getAuthClient();
-  if (!client) throw new Error('Google auth not configured');
-
-  const tokenRes = await client.getAccessToken();
-  if (!tokenRes.token) throw new Error('Failed to obtain access token');
+  const token = await getAccessToken();
+  if (!token) throw new Error('Failed to get access token');
 
   const url = `${SHEETS_API}/${spreadsheetId}${pathAndQuery}`;
   const res = await fetch(url, {
     ...init,
     headers: {
-      Authorization: `Bearer ${tokenRes.token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
       ...(init.headers as Record<string, string> | undefined),
     },
@@ -136,7 +156,7 @@ async function sheetsRequest<T = any>(
 
 async function ensureVacancyTab(): Promise<void> {
   try {
-    const meta = await sheetsRequest<{
+    const meta = await sheetsFetch<{
       sheets?: { properties?: { title?: string } }[];
     }>('');
 
@@ -145,14 +165,14 @@ async function ensureVacancyTab(): Promise<void> {
     );
     if (exists) return;
 
-    await sheetsRequest(':batchUpdate', {
+    await sheetsFetch(':batchUpdate', {
       method: 'POST',
       body: JSON.stringify({
         requests: [{ addSheet: { properties: { title: VACANCY_TAB } } }],
       }),
     });
 
-    await sheetsRequest(`/values/${encodeURIComponent(VACANCY_TAB + '!A1')}`, {
+    await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A1')}`, {
       method: 'PUT',
       body: JSON.stringify({ values: [VACANCY_HEADERS] }),
     });
@@ -176,9 +196,9 @@ function readLocalVacancies(): Vacancy[] {
 
 export async function getVacancies(): Promise<Vacancy[]> {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  const client = getAuthClient();
+  const creds = parseCredentials();
 
-  if (!client || !spreadsheetId) {
+  if (!creds || !spreadsheetId) {
     if (cachedVacancies) return cachedVacancies;
     cachedVacancies = readLocalVacancies();
     return cachedVacancies;
@@ -187,9 +207,9 @@ export async function getVacancies(): Promise<Vacancy[]> {
   try {
     await ensureVacancyTab();
 
-    const data = await sheetsRequest<{
-      values?: string[][];
-    }>(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:G')}`);
+    const data = await sheetsFetch<{ values?: string[][] }>(
+      `/values/${encodeURIComponent(VACANCY_TAB + '!A2:G')}`,
+    );
 
     const rows = data.values;
     if (!rows || rows.length === 0) {
@@ -223,11 +243,11 @@ export async function getVacancies(): Promise<Vacancy[]> {
 
 export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  const client = getAuthClient();
+  const creds = parseCredentials();
 
   cachedVacancies = null;
 
-  if (!client || !spreadsheetId) {
+  if (!creds || !spreadsheetId) {
     cachedVacancies = vacancies;
     return true;
   }
@@ -245,13 +265,13 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
       v.archived ? 'true' : 'false',
     ]);
 
-    await sheetsRequest(
+    await sheetsFetch(
       `/values/${encodeURIComponent(VACANCY_TAB + '!A2:G')}:clear`,
       { method: 'POST' },
     );
 
     if (rows.length > 0) {
-      await sheetsRequest(
+      await sheetsFetch(
         `/values/${encodeURIComponent(VACANCY_TAB + '!A2')}?valueInputOption=RAW`,
         {
           method: 'PUT',

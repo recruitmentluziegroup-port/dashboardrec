@@ -34,7 +34,7 @@ Copy `.env.example` to `.env` and fill in:
 
 Serverless functions under `api/` that import from `src/lib/` must use the `.js` extension (e.g. `../../src/lib/sheets.js`). This is required by Vercel's Node.js module resolution at runtime.
 
-Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) import from `api/_lib/vacancies` — a self-contained module that uses `google-auth-library` + `fetch` instead of the heavy `googleapis` to avoid cold-start timeouts.
+Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) import from `src/lib/vacancies-lite.js` — a self-contained module that uses `jsonwebtoken` + `fetch` instead of the heavy `googleapis` to avoid cold-start timeouts.
 
 ## TypeScript
 
@@ -59,7 +59,6 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) import
 | `src/lib/` | Shared libraries: `sheets.ts` (Google Sheets CRUD, server.ts only), `pdf.tsx` (React-PDF document) |
 | `src/data/` | `vacancies.json` — local fallback vacancy data |
 | `api/` | Vercel serverless API routes |
-| `api/_lib/` | Shared helpers for Vercel functions (`vacancies.ts` — lightweight Sheets REST client) |
 | `api/auth/` | Login, logout, session check |
 | `api/admin/` | Protected admin endpoints (applications CRUD, vacancies, PDF export) |
 
