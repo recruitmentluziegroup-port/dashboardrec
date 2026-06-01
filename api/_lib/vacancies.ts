@@ -24,8 +24,8 @@ const SEED_VACANCIES: Vacancy[] = [
     requirements: [
       'Minimal lulusan D3/S1 sekalian jurusan (diutamakan Administrasi Perkantoran / Sekretaris)',
       'Sangat fasih mengoperasikan Google Workspace (Sheets, Docs, Slides, Google Calendar)',
-      'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap'
-    ]
+      'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap',
+    ],
   },
   {
     title: 'Digital Marketer Specialist',
@@ -36,8 +36,8 @@ const SEED_VACANCIES: Vacancy[] = [
     requirements: [
       'Pengalaman kerja langsung minimal 1-2 tahun sebagai Media Buyer / Digital Advertiser',
       'Mahir mengulik platform Google Analytics, Facebook Pixel, serta konversi landing page',
-      'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli'
-    ]
+      'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli',
+    ],
   },
   {
     title: 'CEO & Founder Personal Assistant',
@@ -48,8 +48,8 @@ const SEED_VACANCIES: Vacancy[] = [
     requirements: [
       'Gelar S1 terkemuka (Manajemen, Bisnis, Hubungan Internasional, atau Hukum disukai)',
       'Fasih berkomunikasi dalam Bahasa Inggris aktif lisan & tulisan tingkat mahir',
-      'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu'
-    ]
+      'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu',
+    ],
   },
   {
     title: 'Social Media Management',
@@ -60,9 +60,9 @@ const SEED_VACANCIES: Vacancy[] = [
     requirements: [
       'Keahlian tinggi mengoperasikan editor video CapCut, Premiere Pro, atau Adobe After Effects',
       'Mengikuti update tren konten visual, audio, serta cara kerja algoritma media sosial terbaru',
-      'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda'
-    ]
-  }
+      'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda',
+    ],
+  },
 ];
 
 let cachedVacancies: Vacancy[] | null = null;

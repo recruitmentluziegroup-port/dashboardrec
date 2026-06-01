@@ -32,11 +32,9 @@ Copy `.env.example` to `.env` and fill in:
 
 ## Vercel serverless import quirk
 
-Serverless functions under `api/` import from `../../src/lib/sheets.js` (with `.js` extension despite being `.ts` source). This is required by Vercel's Node.js module resolution at runtime. Do not remove the `.js` extension.
+Serverless functions under `api/` that import from `src/lib/` must use the `.js` extension (e.g. `../../src/lib/sheets.js`). This is required by Vercel's Node.js module resolution at runtime.
 
-## Vercel serverless import quirk
-
-Serverless functions under `api/` import from `../../src/lib/sheets.js` (with `.js` extension despite being `.ts` source). This is required by Vercel's Node.js module resolution at runtime. Do not remove the `.js` extension.
+Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) import from `api/_lib/vacancies` — a self-contained module that uses `google-auth-library` + `fetch` instead of the heavy `googleapis` to avoid cold-start timeouts.
 
 ## TypeScript
 
@@ -58,10 +56,10 @@ Serverless functions under `api/` import from `../../src/lib/sheets.js` (with `.
 |-----------|---------|
 | `src/` | React frontend (Vite + React 19 + Tailwind v4) |
 | `src/components/` | Page/feature components: `FormWizard`, `AdminPanel`, `AdminDashboard`, `VacancyManager` |
-| `src/lib/` | Shared libraries: `sheets.ts` (Google Sheets CRUD), `pdf.tsx` (React-PDF document) |
+| `src/lib/` | Shared libraries: `sheets.ts` (Google Sheets CRUD, server.ts only), `pdf.tsx` (React-PDF document) |
 | `src/data/` | `vacancies.json` — local fallback vacancy data |
 | `api/` | Vercel serverless API routes |
-
+| `api/_lib/` | Shared helpers for Vercel functions (`vacancies.ts` — lightweight Sheets REST client) |
 | `api/auth/` | Login, logout, session check |
 | `api/admin/` | Protected admin endpoints (applications CRUD, vacancies, PDF export) |
 
