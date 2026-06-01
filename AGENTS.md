@@ -34,7 +34,7 @@ Copy `.env.example` to `.env` and fill in:
 
 Serverless functions under `api/` that import from `src/lib/` must use the `.js` extension (e.g. `../../src/lib/sheets.js`). This is required by Vercel's Node.js module resolution at runtime.
 
-Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) import from `src/lib/vacancies-lite.js` — a self-contained module that uses `jsonwebtoken` + `fetch` instead of the heavy `googleapis` to avoid cold-start timeouts.
+Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are self-contained — all Google Sheets REST logic is inlined using `jsonwebtoken` + `fetch` with no imports from `src/lib/`.
 
 ## TypeScript
 
