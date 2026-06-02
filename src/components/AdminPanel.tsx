@@ -335,63 +335,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-stone-900" id="admin-panel-master">
-      {/* Top Navbar styled after recruit mockup */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-stone-100 shadow-xs h-16 flex items-center justify-between px-6">
+    <div className="min-h-screen bg-editorial-cream text-editorial-charcoal" id="admin-panel-master">
+      {/* Top Navbar */}
+      <nav className="sticky top-0 z-50 bg-white border-b border-editorial-stone h-16 flex items-center justify-between px-6">
         {/* Left Side: Brand Logo */}
         <div className="flex items-center space-x-8">
           <div className="flex items-center space-x-2 select-none">
-            <div className="h-8 w-8 rounded-lg bg-stone-900 flex items-center justify-center text-white">
+            <div className="h-8 w-8 rounded-[--radius-editorial] bg-editorial-navy flex items-center justify-center text-white">
               <svg className="h-4 w-4 fill-current text-white" viewBox="0 0 24 24">
                 <path d="M12 2L2 22h20zM12 6l7.5 13h-15z" />
               </svg>
             </div>
-            <span className="font-sans font-extrabold text-lg text-stone-950 tracking-tight">Luzie Group</span>
+            <span className="font-serif font-black text-xl tracking-tight text-editorial-navy">Luzie Group</span>
           </div>
 
-          {/* Navigation Tabs based on Mockup */}
+          {/* Navigation Tabs */}
           <div className="hidden lg:flex items-center space-x-1">
             <button
               onClick={() => handleNavTabClick('dashboard')}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${
                 viewMode === 'dashboard' && !selectedId
-                  ? 'bg-[#EEF2F6] text-indigo-650'
-                  : 'text-stone-500 hover:text-stone-900'
+                  ? 'text-brand-600 border-b-2 border-brand-500'
+                  : 'text-stone-400 hover:text-editorial-charcoal'
               }`}
             >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Home</span>
+              <LayoutDashboard className="h-4 w-4 inline-block mr-1.5" />
+              Home
             </button>
             <button
               onClick={() => handleNavTabClick('list')}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${
                 (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies')
-                  ? 'bg-[#EEF2F6] text-indigo-650'
-                  : 'text-stone-500 hover:text-stone-900'
+                  ? 'text-brand-600 border-b-2 border-brand-500'
+                  : 'text-stone-400 hover:text-editorial-charcoal'
               }`}
             >
-              <ListFilter className="h-4 w-4" />
-              <span>Daftar Pelamar</span>
+              <ListFilter className="h-4 w-4 inline-block mr-1.5" />
+              Daftar Pelamar
             </button>
             <button
               onClick={() => handleNavTabClick('vacancies')}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+              className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all cursor-pointer ${
                 viewMode === 'vacancies'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
-                  : 'text-stone-500 hover:text-stone-900'
+                  ? 'text-brand-600 border-b-2 border-brand-500'
+                  : 'text-stone-400 hover:text-editorial-charcoal'
               }`}
             >
-              <Briefcase className="h-4 w-4" />
-              <span>Kelola Lowongan</span>
+              <Briefcase className="h-4 w-4 inline-block mr-1.5" />
+              Kelola Lowongan
             </button>
           </div>
         </div>
 
         {/* Center/Right: Interactive Search and Utilities */}
         <div className="flex items-center space-x-6 flex-1 justify-end max-w-4xl">
-          {/* Mockup styled rounded search box */}
-          <div className="relative w-full max-w-xs hidden sm:block">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-stone-400" />
+          {/* Search bar */}
+          <div className="relative w-72 hidden sm:block">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
             <input
               type="text"
               placeholder="Search here..."
@@ -400,21 +400,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 setSearchQuery(e.target.value);
                 if (viewMode !== 'list') setViewMode('list');
               }}
-              className="w-full bg-[#F4F6F9] border-0 rounded-full pl-10 pr-4 py-2 text-xs transition-all outline-hidden focus:ring-2 focus:ring-indigo-100"
+              className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] pl-9 pr-4 py-2 text-xs text-editorial-charcoal outline-hidden focus:border-brand-400 transition-all"
             />
           </div>
 
-          {/* Status Indicators & Action Icons */}
+          {/* Notification Bell */}
           <div className="flex items-center space-x-3.5 text-stone-500 relative">
-            {/* Interactive Notifications Dial */}
             <button 
               onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className={`h-9 w-9 rounded-full transition-all flex items-center justify-center relative cursor-pointer ${
-                isNotifOpen ? 'bg-indigo-50 text-indigo-650' : 'hover:bg-stone-100'
+              className={`transition-colors cursor-pointer ${
+                isNotifOpen ? 'text-brand-600' : 'text-stone-400 hover:text-editorial-charcoal'
               }`} 
               title="Notifikasi Tindak Lanjut"
             >
-              <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
@@ -430,29 +429,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
             {/* Notifications Dropdown menu */}
             {isNotifOpen && (
-              <div className="absolute right-0 top-11 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-4 z-[99] text-xs font-sans space-y-3.5 text-stone-700 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+              <div className="absolute right-0 top-11 w-80 bg-white rounded-[--radius-editorial] border border-editorial-border shadow-[--shadow-editorial] p-4 z-[99] text-xs space-y-3.5 text-editorial-charcoal animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="flex items-center justify-between border-b border-editorial-stone pb-2">
                   <div className="flex items-center space-x-2">
                     <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-                    <h4 className="font-extrabold text-stone-900">Perlu Tindakan ({notificationList.length})</h4>
+                    <h4 className="font-bold text-editorial-navy">Perlu Tindakan ({notificationList.length})</h4>
                   </div>
                   <button 
                     onClick={() => setIsNotifOpen(false)}
-                    className="p-1 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-700 transition-colors"
+                    className="p-1 hover:bg-editorial-cream rounded-[--radius-editorial] text-stone-400 hover:text-editorial-charcoal transition-colors"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
-                <div className="max-h-64 overflow-y-auto space-y-2.5 divide-y divide-stone-50 pr-1">
+                <div className="max-h-64 overflow-y-auto space-y-2.5 divide-y divide-editorial-stone/50 pr-1">
                   {notificationList.length === 0 ? (
                     <div className="py-8 flex flex-col items-center justify-center text-center space-y-2">
-                      <div className="h-10 w-10 bg-green-50 text-green-600 rounded-full flex items-center justify-center border border-green-100">
+                      <div className="h-10 w-10 bg-emerald-50 text-editorial-green rounded-full flex items-center justify-center border border-emerald-200">
                         <Check className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-bold text-stone-900">Semua Berkas Bersih</p>
-                        <p className="text-[10px] text-stone-405 leading-none mt-1">Sangat bagus! Tidak ada tugas tinjauan pelamar yang tersisa.</p>
+                        <p className="font-bold text-editorial-navy">Semua Berkas Bersih</p>
+                        <p className="text-[10px] text-stone-400 leading-none mt-1">Sangat bagus! Tidak ada tugas tinjauan pelamar yang tersisa.</p>
                       </div>
                     </div>
                   ) : (
@@ -467,20 +466,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               setIsNotifOpen(false);
                             }
                           }}
-                          className="pt-2 flex flex-col text-left space-y-1 hover:bg-stone-50/70 p-2 rounded-xl transition-all cursor-pointer first:pt-0 border-transparent!"
+                          className="pt-2 flex flex-col text-left space-y-1 hover:bg-editorial-cream/40 p-2 rounded-[--radius-editorial] transition-all cursor-pointer first:pt-0 border-transparent!"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-stone-900 text-xs truncate max-w-[140px]">{c.namaLengkap}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            <span className="font-bold text-editorial-charcoal text-xs truncate max-w-[140px]">{c.namaLengkap}</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
                               isPending 
-                                ? 'bg-amber-50 text-amber-700 border border-amber-100' 
-                                : 'bg-indigo-50 text-indigo-700 border border-indigo-150'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                : 'bg-blue-50 text-blue-700 border border-blue-200'
                             }`}>
                               {isPending ? 'Verifikasi' : 'Shortlisted'}
                             </span>
                           </div>
-                          <p className="text-[10px] text-stone-405 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
-                          <span className="text-[9px] text-[#4F46E5] font-bold hover:underline flex items-center space-x-0.5 mt-1">
+                          <p className="text-[10px] text-stone-400 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
+                          <span className="text-[9px] text-brand-600 font-bold hover:underline flex items-center space-x-0.5 mt-1">
                             <span>Lakukan Evaluasi Profil &rarr;</span>
                           </span>
                         </div>
@@ -492,61 +491,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             )}
           </div>
 
-          {/* User Profile Frame with Green Indicator */}
-          <div className="flex items-center space-x-3 pl-3 border-l border-stone-200">
+          {/* User Profile */}
+          <div className="flex items-center space-x-3 pl-3 border-l border-editorial-stone">
             <div className="relative cursor-pointer group">
-              <div className="h-9 w-9 rounded-full bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center border border-indigo-100 shadow-xs">
+              <div className="w-8 h-8 rounded-[--radius-editorial] bg-editorial-navy text-white text-xs font-bold flex items-center justify-center">
                 {adminEmail.substring(0, 2).toUpperCase()}
               </div>
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 border-2 border-white rounded-full"></span>
             </div>
             
             <div className="text-left hidden md:block">
-              <h4 className="text-xs font-bold text-stone-900 leading-tight">Admin Luzie</h4>
+              <h4 className="text-xs font-bold text-editorial-navy leading-tight">Admin Luzie</h4>
               <p className="text-[10px] text-stone-400 font-medium">{adminEmail}</p>
             </div>
 
-            {/* Logout Action */}
+            {/* Logout */}
             <button
               onClick={onLogout}
-              className="p-2 text-stone-400 hover:text-red-500 transition-colors cursor-pointer"
+              className="text-xs font-bold text-stone-400 hover:text-editorial-red transition-colors cursor-pointer"
               title="Keluar / Logout"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 inline-block" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* Main Body */}
-      <main className="max-w-7xl mx-auto py-8 px-6">
+      <main className="max-w-7xl mx-auto py-10 px-6">
         {!selectedId ? (
           <>
             {/* Header Title and Dynamic Filter view selectors */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 space-y-4 md:space-y-0">
               <div className="flex items-center space-x-4 lg:hidden">
                 {/* Responsive View Switches on small viewports */}
-                <div className="flex items-center space-x-1 bg-stone-200/50 p-1.5 rounded-xl">
+                <div className="flex items-center space-x-1 bg-white border border-editorial-border p-1 rounded-[--radius-editorial]">
                   <button
                     onClick={() => setViewMode('dashboard')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'dashboard' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                    className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all ${
+                      viewMode === 'dashboard' ? 'bg-editorial-navy text-white' : 'text-stone-400 hover:text-editorial-charcoal'
                     }`}
                   >
                     Ikhtisar
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'list' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                    className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all ${
+                      viewMode === 'list' ? 'bg-editorial-navy text-white' : 'text-stone-400 hover:text-editorial-charcoal'
                     }`}
                   >
                     Daftar ({candidates.length})
                   </button>
                   <button
                     onClick={() => setViewMode('vacancies')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'vacancies' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                    className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all ${
+                      viewMode === 'vacancies' ? 'bg-editorial-navy text-white' : 'text-stone-400 hover:text-editorial-charcoal'
                     }`}
                   >
                     Lowongan ({vacancies.length})
@@ -556,16 +555,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             </div>
 
             {loading ? (
-              <div className="py-24 flex flex-col items-center justify-center space-y-3">
-                <RefreshCw className="h-10 w-10 text-brand-500 animate-spin" />
-                <p className="text-sm text-stone-500 font-medium">Menghubungi Google Sheets API...</p>
+              <div className="flex items-center justify-center py-16 text-stone-400 text-sm font-medium">
+                <RefreshCw className="h-5 w-5 mr-2 animate-spin" />
+                Menghubungi Google Sheets API...
               </div>
             ) : error ? (
-              <div className="py-12 px-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl flex flex-col items-center space-y-3">
-                <p className="font-semibold">{error}</p>
+              <div className="bg-red-50 border border-red-200 text-state-error p-4 rounded-[--radius-editorial] text-xs font-semibold flex items-center space-x-2">
+                <p>{error}</p>
                 <button
                   onClick={fetchApplicants}
-                  className="px-4 py-2 text-xs font-bold bg-white text-red-700 hover:bg-red-100 rounded-xl shadow-xs border border-red-200 transition-all cursor-pointer"
+                  className="ml-auto px-3 py-1.5 text-xs font-bold bg-white text-state-error hover:bg-red-100 rounded-[--radius-editorial] border border-red-200 transition-all cursor-pointer"
                 >
                   Coba Sinkron Ulang
                 </button>
@@ -589,18 +588,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             ) : (
               // Filter and Listing Space
               <div className="space-y-6">
-                <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="bg-white p-5 rounded-[--radius-editorial] border border-editorial-border shadow-[--shadow-editorial] grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                   {/* Search query field */}
                   <div className="md:col-span-1 space-y-2">
                     <label className="text-xs font-bold uppercase tracking-wide text-stone-500">Cari Pelamar</label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-stone-400" />
                       <input
                         type="text"
                         placeholder="Cari nama, no. hp, atau ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl pl-9 pr-4 py-2 text-xs transition-all outline-hidden"
+                        className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] pl-9 pr-4 py-2.5 text-xs text-editorial-charcoal outline-hidden focus:border-brand-400 transition-all"
                       />
                     </div>
                   </div>
@@ -611,7 +610,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-white border border-editorial-border rounded-[--radius-editorial] px-3 py-2.5 text-xs font-semibold text-editorial-charcoal outline-hidden cursor-pointer transition-all"
                     >
                       <option value="">Semua Status ({candidates.length})</option>
                       <option value="Pending">Belum Direview ({candidates.filter(c => c.status === 'Pending').length})</option>
@@ -627,7 +626,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={positionFilter}
                       onChange={(e) => setPositionFilter(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-white border border-editorial-border rounded-[--radius-editorial] px-3 py-2.5 text-xs font-semibold text-editorial-charcoal outline-hidden cursor-pointer transition-all"
                     >
                       <option value="">Semua Posisi</option>
                       {dynamicPositions.map((pos) => (
@@ -642,7 +641,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-white border border-editorial-border rounded-[--radius-editorial] px-3 py-2.5 text-xs font-semibold text-editorial-charcoal outline-hidden cursor-pointer transition-all"
                     >
                       <option value="newest">Terbaru Mendaftar</option>
                       <option value="oldest">Terlama Mendaftar</option>
@@ -652,63 +651,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 </div>
 
                 {/* Candidate List Data Table */}
-                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-[--radius-editorial] border border-editorial-border overflow-hidden shadow-[--shadow-editorial]">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-stone-200 text-xs font-bold uppercase text-stone-600 bg-stone-50">
-                          <th className="py-4 px-5">ID Pelamar</th>
-                          <th className="py-4 px-5">Nama Pelamar</th>
-                          <th className="py-4 px-5">Jabatan Lengkap</th>
-                          <th className="py-4 px-5">Kontak</th>
-                          <th className="py-4 px-5">Tanggal Daftar</th>
-                          <th className="py-4 px-5">Status</th>
-                          <th className="py-4 px-5 text-center">Aksi</th>
+                        <tr className="bg-editorial-cream border-b border-editorial-stone">
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">ID Pelamar</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">Nama Pelamar</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">Jabatan Lengkap</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">Kontak</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">Tanggal Daftar</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-left">Status</th>
+                          <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3.5 px-4 text-center">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-150 text-xs text-stone-700">
+                      <tbody>
                         {filteredCandidates.length > 0 ? (
                           filteredCandidates.map((c, idx) => (
-                            <tr key={c.id || idx} className="hover:bg-brand-50 transition-colors">
-                              <td className="py-4 px-5 font-mono font-medium text-stone-500">{c.id}</td>
-                              <td className="py-4 px-5 font-bold text-stone-900">{c.namaLengkap}</td>
-                              <td className="py-4 px-5 font-semibold text-stone-700">{getOfficialPositionName(c.jabatanDituju)}</td>
-                              <td className="py-4 px-5">
+                            <tr key={c.id || idx} className="border-b border-editorial-stone last:border-b-0 hover:bg-editorial-cream/40 transition-colors cursor-pointer">
+                              <td className="py-3.5 px-4 text-sm text-editorial-charcoal font-medium">
+                                <span className="font-mono text-xs text-stone-500">{c.id}</span>
+                              </td>
+                              <td className="py-3.5 px-4 text-sm text-editorial-charcoal font-medium">
+                                <span className="font-bold text-editorial-charcoal">{c.namaLengkap}</span>
+                              </td>
+                              <td className="py-3.5 px-4 text-sm text-editorial-charcoal font-medium">{getOfficialPositionName(c.jabatanDituju)}</td>
+                              <td className="py-3.5 px-4 text-sm text-editorial-charcoal font-medium">
                                 <span className="block">{c.emailPribadi}</span>
                                 <span className="block text-stone-500 text-[10px] mt-0.5">{c.noTelp}</span>
                               </td>
-                              <td className="py-4 px-5 text-stone-500">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
-                              <td className="py-4 px-5">
-                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold ${
-                                  c.status === 'Accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                  c.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
-                                  c.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                  'bg-amber-100 text-amber-700 border border-amber-200'
+                              <td className="py-3.5 px-4 text-sm text-editorial-charcoal font-medium text-stone-500">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
+                              <td className="py-3.5 px-4">
+                                <span className={`inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                  c.status === 'Accepted' ? 'bg-emerald-50 text-editorial-green border border-emerald-200' :
+                                  c.status === 'Rejected' ? 'bg-red-50 text-editorial-red border border-red-200' :
+                                  c.status === 'Reviewed' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                  'bg-amber-50 text-amber-700 border border-amber-200'
                                 }`}>
                                   {c.status === 'Pending' ? 'Belum Direview' : c.status}
                                 </span>
                               </td>
-                              <td className="py-4 px-5 text-center flex items-center justify-center space-x-1">
-                                <button
-                                  onClick={() => setSelectedId(c.id)}
-                                  className="flex items-center space-x-1 border border-stone-200 hover:border-brand-500 hover:text-brand-500 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  <span>Tinjau</span>
-                                </button>
-                                <button
-                                  onClick={() => handleTriggerPdfDownload(c.id)}
-                                  className="flex items-center text-stone-500 hover:text-brand-600 border border-stone-200 hover:border-brand-500 p-1.5 rounded-lg transition-all cursor-pointer"
-                                  title="Download PDF"
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                </button>
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-center justify-center space-x-3">
+                                  <button
+                                    onClick={() => setSelectedId(c.id)}
+                                    className="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors cursor-pointer inline-flex items-center space-x-1"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    <span>Tinjau</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleTriggerPdfDownload(c.id)}
+                                    className="text-xs font-bold text-brand-600 hover:text-brand-700 transition-colors cursor-pointer inline-flex items-center space-x-1"
+                                    title="Download PDF"
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                    <span>PDF</span>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="py-12 text-center text-stone-500 font-medium">
+                            <td colSpan={7} className="text-center py-16 text-stone-400 text-sm font-medium">
                               Tidak ada data pelamar yang cocok dengan kriteria pencarian / filter Anda.
                             </td>
                           </tr>
@@ -724,10 +730,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           // DETAILED CANDIDATE LAYOUT VIEW
           <div className="space-y-6">
             {/* Top Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 pb-4 border-b border-stone-200">
+            <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 pb-4 border-b border-editorial-stone">
               <button
                 onClick={() => setSelectedId(null)}
-                className="flex items-center space-x-2 text-stone-600 hover:text-stone-900 border border-stone-200 bg-white rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition-all cursor-pointer self-start"
+                className="inline-flex items-center space-x-2 text-xs font-bold text-stone-400 hover:text-editorial-charcoal transition-colors cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Kembali ke Daftar</span>
@@ -736,31 +742,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setIsEditing(!isEditing)}
-                  className={`flex items-center space-x-2 border text-xs font-bold rounded-xl px-4 py-2.5 shadow-xs transition-all cursor-pointer ${
+                  className={`px-4 py-2 rounded-[--radius-editorial] text-xs font-bold transition-all cursor-pointer ${
                     isEditing
-                      ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'bg-white text-stone-700 border-stone-200 hover:border-brand-500 hover:text-brand-500'
+                      ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+                      : 'bg-editorial-navy text-white hover:bg-black'
                   }`}
                 >
-                  <Edit2 className="h-4 w-4" />
-                  <span>{isEditing ? 'Batal Edit' : 'Edit Formulir'}</span>
+                  <Edit2 className="h-4 w-4 inline-block mr-1.5" />
+                  {isEditing ? 'Batal Edit' : 'Edit Formulir'}
                 </button>
                 <button
                   onClick={() => handleTriggerPdfDownload(selectedId)}
-                  className="flex items-center space-x-2 bg-brand-500 text-white hover:bg-brand-600 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-[--radius-editorial] text-xs font-bold transition-all cursor-pointer border border-editorial-border text-editorial-charcoal hover:bg-editorial-cream"
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Cetak PDF</span>
+                  <Download className="h-4 w-4 inline-block mr-1.5" />
+                  Cetak PDF
                 </button>
               </div>
             </div>
 
             {/* Main Info Card Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left detail area: all sections */}
               <div className="lg:col-span-2 space-y-6">
-                {/* 8-Steps section tabs nested navigation inside detail panel */}
-                <div className="flex border-b border-stone-200 overflow-x-auto bg-white p-2 rounded-t-2xl space-x-1">
+                {/* 8-Steps section tabs */}
+                <div className="flex space-x-1 border-b border-editorial-stone mb-6">
                   {[1, 2, 3, 4, 5, 6, 7, 8].map((stepNum) => {
                     const stepNames = [
                       'Identitas Pribadi',
@@ -776,10 +782,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       <button
                         key={stepNum}
                         onClick={() => setActiveDetailTab(stepNum)}
-                        className={`whitespace-nowrap px-4 py-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        className={`px-3 py-2 text-[10px] font-bold uppercase tracking-widest transition-all cursor-pointer ${
                           activeDetailTab === stepNum
-                            ? 'bg-brand-500 text-white shadow-xs'
-                            : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                            ? 'text-brand-600 border-b-2 border-brand-500'
+                            : 'text-stone-400 hover:text-editorial-charcoal'
                         }`}
                       >
                         {stepNum}. {stepNames[stepNum - 1]}
@@ -788,118 +794,118 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   })}
                 </div>
 
-                <div className="bg-white p-6 rounded-b-2xl border-x border-b border-stone-200 shadow-sm space-y-6">
+                <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-6 space-y-4">
                   {editedRecord ? (
                     <>
                       {/* Step 1: Identitas Pribadi */}
                       {activeDetailTab === 1 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">1. Identitas Pribadi</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">1. Identitas Pribadi</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Lengkap</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nama Lengkap</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.namaLengkap} onChange={(e) => editField('namaLengkap', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.namaLengkap} onChange={(e) => editField('namaLengkap', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm font-semibold text-stone-900">{editedRecord.namaLengkap}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.namaLengkap}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nomor KTP (16 Digit)</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nomor KTP (16 Digit)</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.nomorKtp} onChange={(e) => editField('nomorKtp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.nomorKtp} onChange={(e) => editField('nomorKtp', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm font-semibold text-stone-900">{editedRecord.nomorKtp}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.nomorKtp}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Tempat Lahir</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Tempat Lahir</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.tempatLahir} onChange={(e) => editField('tempatLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.tempatLahir} onChange={(e) => editField('tempatLahir', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800">{editedRecord.tempatLahir}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.tempatLahir}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Tanggal Lahir</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Tanggal Lahir</label>
                               {isEditing ? (
-                                <input type="date" value={editedRecord.tanggalLahir} onChange={(e) => editField('tanggalLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="date" value={editedRecord.tanggalLahir} onChange={(e) => editField('tanggalLahir', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800">{editedRecord.tanggalLahir}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.tanggalLahir}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Email Pribadi</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Email Pribadi</label>
                               {isEditing ? (
-                                <input type="email" value={editedRecord.emailPribadi} onChange={(e) => editField('emailPribadi', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="email" value={editedRecord.emailPribadi} onChange={(e) => editField('emailPribadi', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800 font-mono">{editedRecord.emailPribadi}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium font-mono">{editedRecord.emailPribadi}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nomor HP / Telp</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nomor HP / Telp</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.noTelp} onChange={(e) => editField('noTelp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.noTelp} onChange={(e) => editField('noTelp', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800 font-semibold">{editedRecord.noTelp}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium font-semibold">{editedRecord.noTelp}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Jenis Kelamin</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Jenis Kelamin</label>
                               {isEditing ? (
-                                <select value={editedRecord.jenisKelamin} onChange={(e) => editField('jenisKelamin', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
+                                <select value={editedRecord.jenisKelamin} onChange={(e) => editField('jenisKelamin', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal outline-hidden cursor-pointer">
                                   <option value="Laki-laki">Laki-laki</option>
                                   <option value="Perempuan">Perempuan</option>
                                 </select>
                               ) : (
-                                <p className="text-sm text-stone-800">{editedRecord.jenisKelamin}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.jenisKelamin}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Agama</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Agama</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.agama} onChange={(e) => editField('agama', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.agama} onChange={(e) => editField('agama', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800">{editedRecord.agama}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.agama}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Status Pernikahan</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Status Pernikahan</label>
                               {isEditing ? (
-                                <select value={editedRecord.statusPernikahan} onChange={(e) => editField('statusPernikahan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
+                                <select value={editedRecord.statusPernikahan} onChange={(e) => editField('statusPernikahan', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal outline-hidden cursor-pointer">
                                   <option value="Single">Single</option>
                                   <option value="Tunangan">Tunangan</option>
                                   <option value="Menikah">Menikah</option>
                                   <option value="Bercerai">Bercerai</option>
                                 </select>
                               ) : (
-                                <p className="text-sm text-stone-800">
+                                <p className="text-sm text-editorial-charcoal font-medium">
                                   {editedRecord.statusPernikahan} {editedRecord.tanggalStatusPernikahan ? `(${editedRecord.tanggalStatusPernikahan})` : ''}
                                 </p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Golongan Darah</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Golongan Darah</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.golonganDarah} onChange={(e) => editField('golonganDarah', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.golonganDarah} onChange={(e) => editField('golonganDarah', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800">{editedRecord.golonganDarah || '-'}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.golonganDarah || '-'}</p>
                               )}
                             </div>
                             <div className="md:col-span-2 space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Tempat Tinggal</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Alamat Tempat Tinggal</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alamatTinggal} onChange={(e) => editField('alamatTinggal', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.alamatTinggal} onChange={(e) => editField('alamatTinggal', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatTinggal}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.alamatTinggal}</p>
                               )}
                             </div>
                             <div className="md:col-span-2 space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Sesuai KTP</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Alamat Sesuai KTP</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alamatKtp} onChange={(e) => editField('alamatKtp', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.alamatKtp} onChange={(e) => editField('alamatKtp', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatKtp}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.alamatKtp}</p>
                               )}
                             </div>
                           </div>
@@ -909,26 +915,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 2: Keluarga & Lingkungan */}
                       {activeDetailTab === 2 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">2. Keluarga & Lingkungan</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">2. Keluarga & Lingkungan</h3>
 
                           {/* Pasangan (If Married or Divorced) */}
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Data Pasangan</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Suami / Istri</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nama Suami / Istri</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.namaPasangan || ''} onChange={(e) => editField('namaPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input type="text" value={editedRecord.namaPasangan || ''} onChange={(e) => editField('namaPasangan', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                                 ) : (
-                                  <p className="text-sm text-stone-800">{editedRecord.namaPasangan || '-'}</p>
+                                  <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.namaPasangan || '-'}</p>
                                 )}
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">TTL Pasangan</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">TTL Pasangan</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.ttlPasangan || ''} onChange={(e) => editField('ttlPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input type="text" value={editedRecord.ttlPasangan || ''} onChange={(e) => editField('ttlPasangan', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                                 ) : (
-                                  <p className="text-sm text-stone-800">{editedRecord.ttlPasangan || '-'}</p>
+                                  <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.ttlPasangan || '-'}</p>
                                 )}
                               </div>
                             </div>
@@ -947,11 +953,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.anak || []).map((ch, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                    <input type="text" placeholder="Nama Anak" disabled={!isEditing} value={ch.nama} onChange={(e) => handleEditNested('anak', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="TTL Anak" disabled={!isEditing} value={ch.ttl} onChange={(e) => handleEditNested('anak', idx, 'ttl', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Pendidikan Anak" disabled={!isEditing} value={ch.pendidikan} onChange={(e) => handleEditNested('anak', idx, 'pendidikan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Nama Anak" disabled={!isEditing} value={ch.nama} onChange={(e) => handleEditNested('anak', idx, 'nama', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="TTL Anak" disabled={!isEditing} value={ch.ttl} onChange={(e) => handleEditNested('anak', idx, 'ttl', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Pendidikan Anak" disabled={!isEditing} value={ch.pendidikan} onChange={(e) => handleEditNested('anak', idx, 'pendidikan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('anak', idx)} className="text-red-500 p-1">
@@ -967,38 +973,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           </div>
 
                           {/* Parents */}
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                          <div className="space-y-4 pt-4 border-t border-editorial-stone">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Data Orang Tua / Wali</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Ayah / Ibu / Wali</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Nama Ayah / Ibu / Wali</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.namaOrtu} onChange={(e) => editField('namaOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input type="text" value={editedRecord.namaOrtu} onChange={(e) => editField('namaOrtu', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                                 ) : (
-                                  <p className="text-sm font-semibold text-stone-900">{editedRecord.namaOrtu}</p>
+                                  <p className="text-sm text-editorial-charcoal font-medium font-semibold">{editedRecord.namaOrtu}</p>
                                 )}
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Pekerjaan Orang Tua</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Pekerjaan Orang Tua</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.pekerjaanOrtu} onChange={(e) => editField('pekerjaanOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input type="text" value={editedRecord.pekerjaanOrtu} onChange={(e) => editField('pekerjaanOrtu', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                                 ) : (
-                                  <p className="text-sm text-stone-800">{editedRecord.pekerjaanOrtu}</p>
+                                  <p className="text-sm text-editorial-charcoal font-medium">{editedRecord.pekerjaanOrtu}</p>
                                 )}
                               </div>
                               <div className="md:col-span-2 space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Orang Tua</label>
+                                <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Alamat Orang Tua</label>
                                 {isEditing ? (
-                                  <textarea value={editedRecord.alamatOrtu} onChange={(e) => editField('alamatOrtu', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <textarea value={editedRecord.alamatOrtu} onChange={(e) => editField('alamatOrtu', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                                 ) : (
-                                  <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatOrtu}</p>
+                                  <p className="text-sm text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.alamatOrtu}</p>
                                 )}
                               </div>
                             </div>
                           </div>
 
                           {/* Siblings */}
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                          <div className="space-y-4 pt-4 border-t border-editorial-stone">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Saudara Kandung</h4>
                               {isEditing && (
@@ -1010,16 +1016,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.saudara || []).map((sd, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input type="text" placeholder="Nama Saudara" disabled={!isEditing} value={sd.nama} onChange={(e) => handleEditNested('saudara', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <select disabled={!isEditing} value={sd.kakakAdik} onChange={(e) => handleEditNested('saudara', idx, 'kakakAdik', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg">
+                                    <input type="text" placeholder="Nama Saudara" disabled={!isEditing} value={sd.nama} onChange={(e) => handleEditNested('saudara', idx, 'nama', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <select disabled={!isEditing} value={sd.kakakAdik} onChange={(e) => handleEditNested('saudara', idx, 'kakakAdik', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]">
                                       <option value="">Status</option>
                                       <option value="Kakak">Kakak</option>
                                       <option value="Adik">Adik</option>
                                     </select>
-                                    <input type="text" placeholder="Usia" disabled={!isEditing} value={sd.usia} onChange={(e) => handleEditNested('saudara', idx, 'usia', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Pendidikan / Pekerjaan" disabled={!isEditing} value={sd.pendidikanPekerjaan} onChange={(e) => handleEditNested('saudara', idx, 'pendidikanPekerjaan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Usia" disabled={!isEditing} value={sd.usia} onChange={(e) => handleEditNested('saudara', idx, 'usia', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Pendidikan / Pekerjaan" disabled={!isEditing} value={sd.pendidikanPekerjaan} onChange={(e) => handleEditNested('saudara', idx, 'pendidikanPekerjaan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('saudara', idx)} className="text-red-500 p-1">
@@ -1039,34 +1045,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 3: Riwayat Pendidikan */}
                       {activeDetailTab === 3 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">3. Riwayat Pendidikan</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">3. Riwayat Pendidikan</h3>
 
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Pendidikan Formal (Terakhir)</h4>
                             <div className="space-y-3">
                               {(editedRecord.pendidikanFormal || []).map((pf, idx) => (
-                                <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div key={idx} className="p-4 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border grid grid-cols-1 md:grid-cols-4 gap-3">
                                   <div className="space-y-1">
                                     <label className="text-[10px] text-stone-500 font-semibold">Tahun</label>
                                     <div className="flex items-center space-x-1">
-                                      <input type="text" placeholder="Dari" disabled={!isEditing} value={pf.dari} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'dari', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
-                                      <input type="text" placeholder="Sampai" disabled={!isEditing} value={pf.sampai} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'sampai', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" placeholder="Dari" disabled={!isEditing} value={pf.dari} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'dari', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                      <input type="text" placeholder="Sampai" disabled={!isEditing} value={pf.sampai} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'sampai', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                   </div>
                                   <div className="space-y-1">
                                     <label className="text-[10px] text-stone-500 font-semibold">Sekolah / Universitas</label>
-                                    <input type="text" disabled={!isEditing} value={pf.sekolah} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'sekolah', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" disabled={!isEditing} value={pf.sekolah} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'sekolah', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   <div className="space-y-1">
                                     <label className="text-[10px] text-stone-500 font-semibold">Jurusan / Kota</label>
                                     <div className="flex items-center space-x-1">
-                                      <input type="text" placeholder="Jurusan" disabled={!isEditing} value={pf.jurusan} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'jurusan', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
-                                      <input type="text" placeholder="Kota" disabled={!isEditing} value={pf.kota} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'kota', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" placeholder="Jurusan" disabled={!isEditing} value={pf.jurusan} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'jurusan', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                      <input type="text" placeholder="Kota" disabled={!isEditing} value={pf.kota} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'kota', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                   </div>
                                   <div className="space-y-1">
                                     <label className="text-[10px] text-stone-500 font-semibold">Kepemilikan Ijazah</label>
-                                    <select disabled={!isEditing} value={pf.ijazah} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'ijazah', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg outline-hidden cursor-pointer">
+                                    <select disabled={!isEditing} value={pf.ijazah} onChange={(e) => handleEditNested('pendidikanFormal', idx, 'ijazah', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial] outline-hidden cursor-pointer">
                                       <option value="">Pilih</option>
                                       <option value="Ya">Ya (Lulus)</option>
                                       <option value="Tidak">Tidak</option>
@@ -1078,7 +1084,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             </div>
                           </div>
 
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                          <div className="space-y-4 pt-4 border-t border-editorial-stone">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Kursus & Pelatihan</h4>
                               {isEditing && (
@@ -1090,11 +1096,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.kursus || []).map((ks, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                    <input type="text" placeholder="Bidang Kursus" disabled={!isEditing} value={ks.bidang} onChange={(e) => handleEditNested('kursus', idx, 'bidang', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Lamanya (Durasi)" disabled={!isEditing} value={ks.lamanya} onChange={(e) => handleEditNested('kursus', idx, 'lamanya', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Tempat / Penyelenggara" disabled={!isEditing} value={ks.tempat} onChange={(e) => handleEditNested('kursus', idx, 'tempat', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Bidang Kursus" disabled={!isEditing} value={ks.bidang} onChange={(e) => handleEditNested('kursus', idx, 'bidang', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Lamanya (Durasi)" disabled={!isEditing} value={ks.lamanya} onChange={(e) => handleEditNested('kursus', idx, 'lamanya', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Tempat / Penyelenggara" disabled={!isEditing} value={ks.tempat} onChange={(e) => handleEditNested('kursus', idx, 'tempat', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('kursus', idx)} className="text-red-500 p-1">
@@ -1114,7 +1120,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 4: Riwayat Pekerjaan */}
                       {activeDetailTab === 4 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">4. Pengalaman Kerja</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">4. Pengalaman Kerja</h3>
 
                           <div className="space-y-4">
                             <div className="flex justify-between items-center">
@@ -1128,30 +1134,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.pengalamanKerja || []).map((pk, idx) => (
-                                <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex space-x-4 items-start">
+                                <div key={idx} className="p-4 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex space-x-4 items-start">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div className="space-y-0.5">
                                       <span className="text-[9px] text-stone-500 font-bold uppercase">Perusahaan</span>
-                                      <input type="text" disabled={!isEditing} value={pk.perusahaan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'perusahaan', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" disabled={!isEditing} value={pk.perusahaan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'perusahaan', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                     <div className="space-y-0.5">
                                       <span className="text-[9px] text-stone-500 font-bold uppercase">Periode</span>
                                       <div className="flex space-x-1">
-                                        <input type="text" placeholder="Dari" disabled={!isEditing} value={pk.dari} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'dari', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
-                                        <input type="text" placeholder="Hingga" disabled={!isEditing} value={pk.sampai} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'sampai', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
+                                        <input type="text" placeholder="Dari" disabled={!isEditing} value={pk.dari} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'dari', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                        <input type="text" placeholder="Hingga" disabled={!isEditing} value={pk.sampai} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'sampai', e.target.value)} className="w-1/2 bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                       </div>
                                     </div>
                                     <div className="space-y-0.5">
                                       <span className="text-[9px] text-stone-500 font-bold uppercase">Jabatan Dituju</span>
-                                      <input type="text" disabled={!isEditing} value={pk.jabatan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'jabatan', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" disabled={!isEditing} value={pk.jabatan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'jabatan', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                     <div className="space-y-0.5">
                                       <span className="text-[9px] text-stone-500 font-bold uppercase">Gaji Akhir</span>
-                                      <input type="text" disabled={!isEditing} value={pk.gaji} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'gaji', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" disabled={!isEditing} value={pk.gaji} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'gaji', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                     <div className="md:col-span-2 space-y-0.5">
                                       <span className="text-[9px] text-stone-500 font-bold uppercase">Alasan Mengundurkan Diri</span>
-                                      <input type="text" disabled={!isEditing} value={pk.alasanPindah} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'alasanPindah', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
+                                      <input type="text" disabled={!isEditing} value={pk.alasanPindah} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'alasanPindah', e.target.value)} className="w-full bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                     </div>
                                   </div>
                                   {isEditing && (
@@ -1165,16 +1171,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-stone-500 uppercase">Uraian Jobdesk Terakhir</label>
+                            <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Uraian Jobdesk Terakhir</label>
                             {isEditing ? (
-                              <textarea value={editedRecord.jobdeskTerakhir} onChange={(e) => editField('jobdeskTerakhir', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                              <textarea value={editedRecord.jobdeskTerakhir} onChange={(e) => editField('jobdeskTerakhir', e.target.value)} rows={3} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                             ) : (
-                              <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.jobdeskTerakhir || '-'}</p>
+                              <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.jobdeskTerakhir || '-'}</p>
                             )}
                           </div>
 
                           {/* Reference company */}
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                          <div className="space-y-4 pt-4 border-t border-editorial-stone">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Referensi Atasan / Perusahaan Sebelumnya</h4>
                               {isEditing && (
@@ -1186,12 +1192,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.referensiPerusahaan || []).map((rf, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input type="text" placeholder="Perusahaan" disabled={!isEditing} value={rf.perusahaan} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'perusahaan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Nama Atasan" disabled={!isEditing} value={rf.kontak} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'kontak', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="No HP" disabled={!isEditing} value={rf.telp} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'telp', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Hubungan Kerja" disabled={!isEditing} value={rf.hubungan} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'hubungan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Perusahaan" disabled={!isEditing} value={rf.perusahaan} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'perusahaan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Nama Atasan" disabled={!isEditing} value={rf.kontak} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'kontak', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="No HP" disabled={!isEditing} value={rf.telp} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'telp', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Hubungan Kerja" disabled={!isEditing} value={rf.hubungan} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'hubungan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('referensiPerusahaan', idx)} className="text-red-500 p-1">
@@ -1208,60 +1214,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 5: Minat & Konsep Diri */}
                       {activeDetailTab === 5 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">5. Minat & Konsep Diri</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">5. Minat & Konsep Diri</h3>
 
                           <div className="space-y-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Jabatan yang Dituju</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Jabatan yang Dituju</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.jabatanDituju} onChange={(e) => editField('jabatanDituju', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.jabatanDituju} onChange={(e) => editField('jabatanDituju', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm font-bold text-brand-650">{getOfficialPositionName(editedRecord.jabatanDituju) || '-'}</p>
+                                <p className="text-sm font-bold text-brand-600">{getOfficialPositionName(editedRecord.jabatanDituju) || '-'}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alasan melamar jabatan tersebut</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Alasan melamar jabatan tersebut</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alasanJabatan} onChange={(e) => editField('alasanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.alasanJabatan} onChange={(e) => editField('alasanJabatan', e.target.value)} rows={3} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.alasanJabatan}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.alasanJabatan}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mengerti tugas dan tanggung jawab jabatan tersebut?</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Mengerti tugas dan tanggung jawab jabatan tersebut?</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.pengetahuanJabatan} onChange={(e) => editField('pengetahuanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.pengetahuanJabatan} onChange={(e) => editField('pengetahuanJabatan', e.target.value)} rows={3} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.pengetahuanJabatan}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.pengetahuanJabatan}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Lingkungan kerja yang disenangi dan sebabnya</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Lingkungan kerja yang disenangi dan sebabnya</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.lingkunganKerja} onChange={(e) => editField('lingkunganKerja', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.lingkunganKerja} onChange={(e) => editField('lingkunganKerja', e.target.value)} rows={3} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.lingkunganKerja}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.lingkunganKerja}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Cita-Cita Hidup</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Cita-Cita Hidup</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.citaCita} onChange={(e) => editField('citaCita', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.citaCita} onChange={(e) => editField('citaCita', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.citaCita}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.citaCita}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Hal paling sulit untuk mengambil keputusan</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Hal paling sulit untuk mengambil keputusan</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kesulitanKeputusan} onChange={(e) => editField('kesulitanKeputusan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.kesulitanKeputusan} onChange={(e) => editField('kesulitanKeputusan', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.kesulitanKeputusan}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.kesulitanKeputusan}</p>
                               )}
                             </div>
                           </div>
@@ -1271,44 +1277,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 6: Sosial & Kegiatan */}
                       {activeDetailTab === 6 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">6. Kegiatan Sosial & Organisasi</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">6. Kegiatan Sosial & Organisasi</h3>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kekuatan Diri</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Kekuatan Diri</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kekuatanDiri} onChange={(e) => editField('kekuatanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.kekuatanDiri} onChange={(e) => editField('kekuatanDiri', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-850 whitespace-pre-wrap">{editedRecord.kekuatanDiri}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.kekuatanDiri}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kelemahan Diri</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Kelemahan Diri</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kelemahanDiri} onChange={(e) => editField('kelemahanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.kelemahanDiri} onChange={(e) => editField('kelemahanDiri', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-855 whitespace-pre-wrap">{editedRecord.kelemahanDiri}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.kelemahanDiri}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Hobby</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Hobby</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.hobby} onChange={(e) => editField('hobby', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.hobby} onChange={(e) => editField('hobby', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-850">{editedRecord.hobby}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium">{editedRecord.hobby}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mengisi Waktu Luang</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Mengisi Waktu Luang</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.waktuLuang} onChange={(e) => editField('waktuLuang', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.waktuLuang} onChange={(e) => editField('waktuLuang', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-850">{editedRecord.waktuLuang}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium">{editedRecord.waktuLuang}</p>
                               )}
                             </div>
                           </div>
 
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
+                          <div className="space-y-4 pt-4 border-t border-editorial-stone">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Organisasi yang Pernah Diikuti</h4>
                               {isEditing && (
@@ -1320,12 +1326,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.organisasi || []).map((or, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input type="text" placeholder="Nama Organisasi" disabled={!isEditing} value={or.nama} onChange={(e) => handleEditNested('organisasi', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Periode" disabled={!isEditing} value={or.periode} onChange={(e) => handleEditNested('organisasi', idx, 'periode', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Jabatan" disabled={!isEditing} value={or.jabatan} onChange={(e) => handleEditNested('organisasi', idx, 'jabatan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Keterangan" disabled={!isEditing} value={or.keterangan} onChange={(e) => handleEditNested('organisasi', idx, 'keterangan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Nama Organisasi" disabled={!isEditing} value={or.nama} onChange={(e) => handleEditNested('organisasi', idx, 'nama', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Periode" disabled={!isEditing} value={or.periode} onChange={(e) => handleEditNested('organisasi', idx, 'periode', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Jabatan" disabled={!isEditing} value={or.jabatan} onChange={(e) => handleEditNested('organisasi', idx, 'jabatan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Keterangan" disabled={!isEditing} value={or.keterangan} onChange={(e) => handleEditNested('organisasi', idx, 'keterangan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('organisasi', idx)} className="text-red-500 p-1">
@@ -1342,51 +1348,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 7: Ekspektasi & Kesehatan */}
                       {activeDetailTab === 7 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">7. Ekspektasi & Kesehatan</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">7. Ekspektasi & Kesehatan</h3>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Gaji yang Diinginkan</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Gaji yang Diinginkan</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.gajiDiinginkan} onChange={(e) => editField('gajiDiinginkan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.gajiDiinginkan} onChange={(e) => editField('gajiDiinginkan', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-sm font-semibold text-stone-850">Rp {editedRecord.gajiDiinginkan}</p>
+                                <p className="text-sm text-editorial-charcoal font-medium">Rp {editedRecord.gajiDiinginkan}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mulai Bisa Bekerja</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Mulai Bisa Bekerja</label>
                               {isEditing ? (
-                                <input type="date" value={editedRecord.dapatMulaiBekerja} onChange={(e) => editField('dapatMulaiBekerja', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="date" value={editedRecord.dapatMulaiBekerja} onChange={(e) => editField('dapatMulaiBekerja', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-850 font-medium">{editedRecord.dapatMulaiBekerja}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium">{editedRecord.dapatMulaiBekerja}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Fasilitas yang Diharapkan</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Fasilitas yang Diharapkan</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.fasilitasDiharapkan} onChange={(e) => editField('fasilitasDiharapkan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea value={editedRecord.fasilitasDiharapkan} onChange={(e) => editField('fasilitasDiharapkan', e.target.value)} rows={2} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.fasilitasDiharapkan || '-'}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium whitespace-pre-wrap">{editedRecord.fasilitasDiharapkan || '-'}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kendaraan yang Dimiliki</label>
+                              <label className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Kendaraan yang Dimiliki</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.kendaraanDimiliki} onChange={(e) => editField('kendaraanDimiliki', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input type="text" value={editedRecord.kendaraanDimiliki} onChange={(e) => editField('kendaraanDimiliki', e.target.value)} className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] p-2 text-xs text-editorial-charcoal" />
                               ) : (
-                                <p className="text-xs text-stone-800">{editedRecord.kendaraanDimiliki || '-'}</p>
+                                <p className="text-xs text-editorial-charcoal font-medium">{editedRecord.kendaraanDimiliki || '-'}</p>
                               )}
                             </div>
-                            <div className="md:col-span-2 space-y-2 border-t border-stone-100 pt-3">
+                            <div className="md:col-span-2 space-y-2 border-t border-editorial-stone pt-3">
                               <label className="text-xs font-bold text-stone-600 block">Kondisi Medis</label>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                   <label className="text-[9px] text-stone-500 font-bold uppercase block">Pernah Sakit Keras / Lama?</label>
-                                  <p className="text-xs font-medium text-stone-800">{editedRecord.pernahSakitKeras === 'Ya' ? `Ya (${editedRecord.detailSakitKeras})` : 'Tidak'}</p>
+                                  <p className="text-xs font-medium text-editorial-charcoal">{editedRecord.pernahSakitKeras === 'Ya' ? `Ya (${editedRecord.detailSakitKeras})` : 'Tidak'}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <label className="text-[9px] text-stone-500 font-bold uppercase block">Kesehatan Keluarga Baik?</label>
-                                  <p className="text-xs font-medium text-stone-800">{editedRecord.kesehatanKeluargaBaik === 'Tidak' ? `Tidak (${editedRecord.detailKesehatanKeluarga})` : 'Ya'}</p>
+                                  <p className="text-xs font-medium text-editorial-charcoal">{editedRecord.kesehatanKeluargaBaik === 'Tidak' ? `Tidak (${editedRecord.detailKesehatanKeluarga})` : 'Ya'}</p>
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
                                   <label className="text-[9px] text-stone-500 font-bold uppercase block">Alamat Media Sosial</label>
@@ -1401,27 +1407,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 8: Referensi Darurat */}
                       {activeDetailTab === 8 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">8. Referensi</h3>
+                          <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy border-b border-editorial-stone pb-3">8. Referensi</h3>
 
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">3 Kontak Darurat Terkait (Wajib)</h4>
                             <div className="space-y-3">
                               {(editedRecord.referensiKontak || []).map((co, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-editorial-cream rounded-[--radius-editorial] border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                    <input type="text" placeholder="Nama Lengkap" disabled={!isEditing} value={co.nama} onChange={(e) => handleEditNested('referensiKontak', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Hubungan" disabled={!isEditing} value={co.hubungan} onChange={(e) => handleEditNested('referensiKontak', idx, 'hubungan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Nomor HP" disabled={!isEditing} value={co.telp} onChange={(e) => handleEditNested('referensiKontak', idx, 'telp', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
+                                    <input type="text" placeholder="Nama Lengkap" disabled={!isEditing} value={co.nama} onChange={(e) => handleEditNested('referensiKontak', idx, 'nama', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Hubungan" disabled={!isEditing} value={co.hubungan} onChange={(e) => handleEditNested('referensiKontak', idx, 'hubungan', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
+                                    <input type="text" placeholder="Nomor HP" disabled={!isEditing} value={co.telp} onChange={(e) => handleEditNested('referensiKontak', idx, 'telp', e.target.value)} className="bg-white border border-editorial-border text-xs p-1.5 rounded-[--radius-editorial]" />
                                   </div>
                                 </div>
                               ))}
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-stone-150 flex flex-col items-end">
+                          <div className="pt-4 border-t border-editorial-stone flex flex-col items-end">
                             <span className="text-xs text-stone-500">Mengesahkan Pernyataan Diatas Sebenar-benarnya:</span>
                             <span className="text-[10px] text-stone-400 mt-1">Dibuat di: {editedRecord.kotaTgl}</span>
-                            <span className="text-sm font-bold text-stone-900 mt-4">{editedRecord.namaTerang}</span>
+                            <span className="text-sm font-bold text-editorial-charcoal mt-4">{editedRecord.namaTerang}</span>
                             <span className="text-[10px] text-stone-500 italic mt-0.5">(Tandatangan Digital Pelamar)</span>
                           </div>
                         </div>
@@ -1429,11 +1435,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                       {/* Save Changes button explicitly */}
                       {isEditing && (
-                        <div className="flex justify-end pt-4 border-t border-stone-100">
+                        <div className="flex justify-end pt-4 border-t border-editorial-stone">
                           <button
                             onClick={handleSaveEditedForm}
                             disabled={saving}
-                            className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl px-5 py-3 transition-all cursor-pointer flex items-center space-x-1.5"
+                            className="bg-editorial-green hover:bg-green-800 text-white font-bold text-xs rounded-[--radius-editorial] px-5 py-3 transition-all cursor-pointer inline-flex items-center space-x-1.5"
                           >
                             {saving ? (
                               <>
@@ -1451,7 +1457,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       )}
                     </>
                   ) : (
-                    <div className="p-12 text-center text-stone-500">Menghubungkan visual data...</div>
+                    <div className="text-center py-16 text-stone-400 text-sm font-medium">Menghubungkan visual data...</div>
                   )}
                 </div>
               </div>
@@ -1459,30 +1465,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               {/* Right sidebar: Actions details */}
               <div className="space-y-6">
                 {/* Recruitment Status card workflow */}
-                <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-                  <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest leading-none">Status Rekrutmen</h4>
+                <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-6 space-y-4">
+                  <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Status Rekrutmen</h4>
 
                   {selectedCandidate && (
                     <div className="space-y-4">
                       {/* Active Status Badge */}
                       <div className="flex items-center space-x-2">
-                        <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold ${
-                          selectedCandidate.status === 'Accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
-                          selectedCandidate.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
-                          selectedCandidate.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                          'bg-amber-100 text-amber-700 border border-amber-200'
+                        <span className={`inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                          selectedCandidate.status === 'Accepted' ? 'bg-emerald-50 text-editorial-green border border-emerald-200' :
+                          selectedCandidate.status === 'Rejected' ? 'bg-red-50 text-editorial-red border border-red-200' :
+                          selectedCandidate.status === 'Reviewed' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          'bg-amber-50 text-amber-700 border border-amber-200'
                         }`}>
                           {selectedCandidate.status === 'Pending' ? 'Belum Direview' : selectedCandidate.status}
                         </span>
                       </div>
 
                       {/* Manage status select box */}
-                      <div className="space-y-1.5 pt-2 border-t border-stone-100">
+                      <div className="space-y-1.5 pt-2 border-t border-editorial-stone">
                         <label className="text-[10px] font-bold uppercase text-stone-500">Ubah Tahapan Pelamar</label>
                         <select
                           value={selectedCandidate.status}
                           onChange={(e) => handleStatusChange(selectedCandidate.id, e.target.value as ApplicationStatus)}
-                          className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 rounded-lg p-2.5 text-xs font-medium cursor-pointer"
+                          className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] px-3 py-2.5 text-xs font-semibold cursor-pointer"
                         >
                           <option value="Pending">Belum Direview (Pending)</option>
                           <option value="Reviewed">Sedang Tahap Review (Reviewed)</option>
@@ -1499,28 +1505,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                 {/* Meta details card */}
                 {selectedCandidate && (
-                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-                    <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest leading-none">Berkas Administrasi</h4>
-                    <div className="space-y-2 text-xs divide-y divide-stone-100 pt-1">
-                      <div className="py-2 flex justify-between">
-                        <span className="text-stone-500">ID Berkas</span>
-                        <span className="font-mono font-bold text-stone-850">{selectedCandidate.id}</span>
+                  <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-6 space-y-4">
+                    <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest">Berkas Administrasi</h4>
+                    <div className="pt-1">
+                      <div className="flex justify-between py-2 border-b border-editorial-stone last:border-b-0">
+                        <span className="text-xs text-stone-400">ID Berkas</span>
+                        <span className="text-xs font-semibold text-editorial-charcoal">{selectedCandidate.id}</span>
                       </div>
-                      <div className="py-3 flex justify-between">
-                        <span className="text-stone-500">Tanggal Pengajuan</span>
-                        <span className="text-stone-850 font-semibold">
+                      <div className="flex justify-between py-2 border-b border-editorial-stone last:border-b-0">
+                        <span className="text-xs text-stone-400">Tanggal Pengajuan</span>
+                        <span className="text-xs font-semibold text-editorial-charcoal">
                           {new Date(selectedCandidate.submissionDate).toLocaleString('id-ID')}
                         </span>
                       </div>
-                      <div className="py-3 flex justify-between">
-                        <span className="text-stone-500">Terakhir Diupdate</span>
-                        <span className="text-stone-850 font-mono">
+                      <div className="flex justify-between py-2 border-b border-editorial-stone last:border-b-0">
+                        <span className="text-xs text-stone-400">Terakhir Diupdate</span>
+                        <span className="text-xs font-semibold text-editorial-charcoal">
                           {selectedCandidate.lastUpdated ? new Date(selectedCandidate.lastUpdated).toLocaleString('id-ID') : '-'}
                         </span>
                       </div>
-                      <div className="py-3 flex justify-between">
-                        <span className="text-stone-500">Posisi Lowongan</span>
-                        <span className="text-brand-600 font-bold">{getOfficialPositionName(selectedCandidate.jabatanDituju) || '-'}</span>
+                      <div className="flex justify-between py-2 border-b border-editorial-stone last:border-b-0">
+                        <span className="text-xs text-stone-400">Posisi Lowongan</span>
+                        <span className="text-xs font-semibold text-brand-600">{getOfficialPositionName(selectedCandidate.jabatanDituju) || '-'}</span>
                       </div>
                     </div>
                   </div>

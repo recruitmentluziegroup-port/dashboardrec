@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { 
   Sliders, 
   MapPin, 
@@ -151,10 +151,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
       let pctChange = 0;
       if (previousMonthCount > 0) {
-        pctChange = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 105; // Slightly scaled relative change to make sample datasets feel alive, or standard pct if real
+        pctChange = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 105;
         pctChange = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 100;
       } else if (currentMonthCount > 0) {
-        pctChange = 100; // 100% scale up from zero
+        pctChange = 100;
       }
 
       return {
@@ -204,8 +204,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
     const femalePercent = total > 0 ? Math.round((female / total) * 100) : 50;
 
     return [
-      { name: 'Laki-laki', value: male, percent: malePercent, color: '#0ea5e9' },
-      { name: 'Perempuan', value: female, percent: femalePercent, color: '#ec4899' }
+      { name: 'Laki-laki', value: male, percent: malePercent, color: '#1A1F2E' },
+      { name: 'Perempuan', value: female, percent: femalePercent, color: '#78716C' }
     ];
   }, [filteredApplicants, applicants]);
 
@@ -275,7 +275,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           title: `Tinjau berkas baru: ${app.namaLengkap} (${getOfficialPositionName(app.jabatanDituju)})`,
           applicantId: app.id,
           isLive: true,
-          color: 'bg-amber-50/85 hover:bg-amber-100/95 text-amber-900 border-l-4 border-amber-500 cursor-pointer transition-all'
+          color: 'border-l-amber-500 bg-amber-50/80'
         });
       }
     });
@@ -289,7 +289,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           title: `Jadwal wawancara: ${app.namaLengkap} - ${getOfficialPositionName(app.jabatanDituju)}`,
           applicantId: app.id,
           isLive: true,
-          color: 'bg-indigo-50/85 hover:bg-indigo-100/95 text-indigo-950 border-l-4 border-indigo-500 cursor-pointer transition-all'
+          color: 'border-l-blue-400 bg-blue-50/80'
         });
       }
     });
@@ -301,14 +301,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         time: 'Penyelarasan Rutin',
         title: 'Sinkronisasi berkas dengan Google Sheets Rekrutmen',
         isLive: false,
-        color: 'bg-stone-50 text-stone-600 border-l-4 border-stone-400 font-medium'
+        color: 'border-l-stone-400 bg-stone-50/80'
       });
       list.push({
         id: 'sys-2',
         time: 'Job Board Maintenance',
         title: 'Review kesesuaian formasi jabatan yang sedang dibuka',
         isLive: false,
-        color: 'bg-stone-50 text-stone-600 border-l-4 border-stone-400 font-medium'
+        color: 'border-l-stone-400 bg-stone-50/80'
       });
     }
 
@@ -316,19 +316,19 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
   }, [applicants]);
 
   return (
-    <div className="space-y-8 select-none font-sans" id="admin-dashboard-container">
+    <div className="max-w-7xl mx-auto space-y-10 font-sans" id="admin-dashboard-container">
       {/* 1. Header Area with Single Customize Trigger with popup modal */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
         <div>
-          <h1 className="font-sans font-extrabold text-2xl text-stone-900 tracking-tight">Overview Dashboard</h1>
-          <p className="text-xs text-stone-400 mt-1">Live recruitment metrics integrated with candidate application sheets.</p>
+          <h1 className="font-serif font-black text-3xl tracking-tight text-editorial-navy">Overview Dashboard</h1>
+          <p className="text-sm text-stone-500 mt-1 font-medium">Live recruitment data integrated with candidate application sheets.</p>
         </div>
         
-        <div className="flex items-center space-x-3 mt-4 sm:mt-0 font-sans text-xs relative">
+        <div className="flex items-center space-x-3 mt-4 sm:mt-0 text-xs relative">
           {/* Active Preset indicator */}
           {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
-            <span className="text-[11px] font-bold text-indigo-650 bg-indigo-50 border border-indigo-150 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 animate-pulse">
-              <span>Filter Aktif</span>
+            <span className="text-[10px] font-bold text-brand-600 bg-brand-50 border border-brand-200 px-2 py-1 rounded-[--radius-editorial]">
+              Filter Aktif
             </span>
           )}
 
@@ -336,10 +336,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           <div className="relative">
             <button 
               onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
-              className={`flex items-center space-x-2 px-4 py-2.5 border rounded-xl hover:bg-[#F8FAFC] transition-all font-bold cursor-pointer shadow-xs ${
+              className={`inline-flex items-center space-x-2 px-4 py-2.5 rounded-[--radius-editorial] border border-editorial-border bg-white text-xs font-bold text-editorial-charcoal hover:bg-editorial-cream transition-all cursor-pointer ${
                 isCustomizeOpen || selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all'
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-stone-200 text-stone-700'
+                  ? 'bg-editorial-cream border-editorial-stone'
+                  : ''
               }`}
             >
               <Sliders className="h-4 w-4" />
@@ -349,10 +349,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
             {/* Dropdown Card */}
             {isCustomizeOpen && (
-              <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-5 z-50 space-y-4 text-xs animate-in fade-in slide-in-from-top-3 duration-200">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                  <h4 className="font-bold text-stone-900 flex items-center space-x-1.5">
-                    <Filter className="h-3.5 w-3.5 text-indigo-500" />
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-[--radius-editorial] border border-editorial-border shadow-lg p-6 z-50 space-y-4">
+                <div className="flex items-center justify-between border-b border-editorial-stone pb-2">
+                  <h4 className="font-bold text-editorial-charcoal flex items-center space-x-1.5">
+                    <Filter className="h-3.5 w-3.5 text-brand-500" />
                     <span>Konfigurasi Filter</span>
                   </h4>
                   {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
@@ -362,7 +362,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                         setSelectedJob('all');
                         setSelectedStatus('all');
                       }}
-                      className="text-[10px] font-black text-red-500 hover:underline"
+                      className="text-[10px] font-bold text-editorial-red hover:underline"
                     >
                       Reset Filter
                     </button>
@@ -371,11 +371,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
                 {/* A. Month Filter inside Popover */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Sesuai Bulan</label>
+                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest">Filter Sesuai Bulan</label>
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                    className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] px-3 py-2 text-xs font-semibold text-editorial-charcoal"
                   >
                     <option value="all">Semua Bulan (Tahun 2026)</option>
                     {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((mName, idx) => (
@@ -386,11 +386,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
                 {/* B. Job Position Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Jabatan Posisi</label>
+                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest">Filter Jabatan Posisi</label>
                   <select
                     value={selectedJob}
                     onChange={(e) => setSelectedJob(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                    className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] px-3 py-2 text-xs font-semibold text-editorial-charcoal"
                   >
                     <option value="all">Semua Formasi Jabatan</option>
                     {dynamicJobs.map((job, idx) => (
@@ -401,11 +401,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
                 {/* C. Status Filter */}
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Status Pelamar</label>
+                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest">Filter Status Pelamar</label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                    className="w-full bg-editorial-cream border border-editorial-border rounded-[--radius-editorial] px-3 py-2 text-xs font-semibold text-editorial-charcoal"
                   >
                     <option value="all">Semua Status Pelamar</option>
                     <option value="Pending">Pending Review (Belum Review)</option>
@@ -415,14 +415,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                   </select>
                 </div>
 
-                <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
+                <div className="pt-3 border-t border-editorial-stone flex items-center justify-between">
                   <span className="text-[10px] text-stone-400 font-bold">
-                    Ditemukan: <strong className="text-stone-700 font-extrabold">{filteredApplicants.length} Pelamar</strong>
+                    Ditemukan: <strong className="text-editorial-charcoal font-extrabold">{filteredApplicants.length} Pelamar</strong>
                   </span>
                   
                   <button
                     onClick={() => setIsCustomizeOpen(false)}
-                    className="bg-indigo-650 hover:bg-indigo-700 transition-colors text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-xs"
+                    className="bg-brand-500 hover:bg-brand-600 transition-colors text-white font-bold px-3 py-1.5 rounded-[--radius-editorial] text-[10px] cursor-pointer"
                   >
                     Tutup & Terapkan
                   </button>
@@ -433,167 +433,122 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
       </div>
 
-      {/* 2. Pure Synchronized Row of Stats Cards (5 Columns) without unrequested placeholders */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* 2. Pure Synchronized Row of Stats Cards (5 Columns) */}
+      <div className="grid grid-cols-5 gap-4">
         {/* Total Application Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Total Application</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.totalApps.toLocaleString('id-ID')}
-              </span>
-              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.total.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-              }`}>
-                {kpiStats.total.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
-                {Math.abs(kpiStats.total.pct).toFixed(1)}%
-              </span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
-              {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% from last month
+        <div className="pt-4 border-t-2 border-brand-500">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Total Application</span>
+          <div className="flex items-baseline space-x-2 mt-1.5">
+            <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
+              {stats.totalApps.toLocaleString('id-ID')}
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
+            <span className={`text-[10px] font-bold flex items-center ${
+              kpiStats.total.pct >= 0 ? 'text-emerald-600' : 'text-editorial-red'
+            }`}>
+              {kpiStats.total.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+              {Math.abs(kpiStats.total.pct).toFixed(1)}%
+            </span>
           </div>
         </div>
 
         {/* Pending Review Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Pending Review</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.pending.toLocaleString('id-ID')}
-              </span>
-              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'
-              }`}>
-                {kpiStats.pending.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
-                {Math.abs(kpiStats.pending.pct).toFixed(1)}%
-              </span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
-              {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% from last month
+        <div className="pt-4 border-t-2 border-editorial-stone">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Pending Review</span>
+          <div className="flex items-baseline space-x-2 mt-1.5">
+            <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
+              {stats.pending.toLocaleString('id-ID')}
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
+            <span className={`text-[10px] font-bold flex items-center ${
+              kpiStats.pending.pct >= 0 ? 'text-amber-600' : 'text-emerald-600'
+            }`}>
+              {kpiStats.pending.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+              {Math.abs(kpiStats.pending.pct).toFixed(1)}%
+            </span>
           </div>
         </div>
 
         {/* Shortlisted Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Total Shortlisted</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.shortlisted.toLocaleString('id-ID')}
-              </span>
-              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.shortlisted.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-              }`}>
-                {kpiStats.shortlisted.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
-                {Math.abs(kpiStats.shortlisted.pct).toFixed(1)}%
-              </span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
-              {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% from last month
+        <div className="pt-4 border-t-2 border-editorial-stone">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Total Shortlisted</span>
+          <div className="flex items-baseline space-x-2 mt-1.5">
+            <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
+              {stats.shortlisted.toLocaleString('id-ID')}
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
+            <span className={`text-[10px] font-bold flex items-center ${
+              kpiStats.shortlisted.pct >= 0 ? 'text-emerald-600' : 'text-editorial-red'
+            }`}>
+              {kpiStats.shortlisted.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+              {Math.abs(kpiStats.shortlisted.pct).toFixed(1)}%
+            </span>
           </div>
         </div>
 
         {/* Hired / Accepted Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Hired / Accepted</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.hired.toLocaleString('id-ID')}
-              </span>
-              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.hired.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-              }`}>
-                {kpiStats.hired.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
-                {Math.abs(kpiStats.hired.pct).toFixed(1)}%
-              </span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
-              {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% from last month
+        <div className="pt-4 border-t-2 border-editorial-stone">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Hired / Accepted</span>
+          <div className="flex items-baseline space-x-2 mt-1.5">
+            <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
+              {stats.hired.toLocaleString('id-ID')}
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
+            <span className={`text-[10px] font-bold flex items-center ${
+              kpiStats.hired.pct >= 0 ? 'text-emerald-600' : 'text-editorial-red'
+            }`}>
+              {kpiStats.hired.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+              {Math.abs(kpiStats.hired.pct).toFixed(1)}%
+            </span>
           </div>
         </div>
 
         {/* Rejected Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Rejected Candidates</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.rejected.toLocaleString('id-ID')}
-              </span>
-              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.rejected.pct >= 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
-              }`}>
-                {kpiStats.rejected.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
-                {Math.abs(kpiStats.rejected.pct).toFixed(1)}%
-              </span>
-            </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
-              {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% from last month
+        <div className="pt-4 border-t-2 border-editorial-stone">
+          <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Rejected Candidates</span>
+          <div className="flex items-baseline space-x-2 mt-1.5">
+            <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
+              {stats.rejected.toLocaleString('id-ID')}
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
+            <span className={`text-[10px] font-bold flex items-center ${
+              kpiStats.rejected.pct >= 0 ? 'text-editorial-red' : 'text-emerald-600'
+            }`}>
+              {kpiStats.rejected.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+              {Math.abs(kpiStats.rejected.pct).toFixed(1)}%
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 3. Main Split Widgets Section - Swapped Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
-        {/* Left Column: Application Chart & Upgraded New Applications Table Panel (Col-Span-2) */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* 3. Main Split Widgets Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Application Chart & New Applications Table Panel (Col-Span-2) */}
+        <div className="lg:col-span-2 space-y-8">
           {/* Widget 1: Application Received Time Trend AreaChart */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
+          <div className="p-6 bg-white rounded-[--radius-editorial] border border-editorial-border">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Application Received Time</h3>
+                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">Application Received Time</h3>
               </div>
               
-              {/* Range select tabs styled after mockup */}
-              <div className="flex bg-[#F1F5F9] p-1 rounded-lg mt-3 sm:mt-0">
+              {/* Range select tabs */}
+              <div className="flex space-x-1 mt-3 sm:mt-0">
                 <button
                   onClick={() => setTimeRange('12m')}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '12m' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all cursor-pointer ${
+                    timeRange === '12m' ? 'bg-editorial-navy text-white' : 'bg-editorial-cream text-stone-500 hover:bg-editorial-stone'
                   }`}
                 >
                   12 months
                 </button>
                 <button
                   onClick={() => setTimeRange('30d')}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '30d' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all cursor-pointer ${
+                    timeRange === '30d' ? 'bg-editorial-navy text-white' : 'bg-editorial-cream text-stone-500 hover:bg-editorial-stone'
                   }`}
                 >
                   30 days
                 </button>
                 <button
                   onClick={() => setTimeRange('7l')}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '7l' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                  className={`px-3 py-1.5 text-xs font-bold rounded-[--radius-editorial] transition-all cursor-pointer ${
+                    timeRange === '7l' ? 'bg-editorial-navy text-white' : 'bg-editorial-cream text-stone-500 hover:bg-editorial-stone'
                   }`}
                 >
                   7 Days
@@ -601,23 +556,22 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               </div>
             </div>
 
-            {/* Recharts Curved Area design with glow gradient */}
+            {/* Recharts Curved Area design */}
             <div className="h-64 antialiased">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="glorystatGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.24}/>
-                      <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0}/>
+                      <stop offset="5%" stopColor="#F97316" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#F97316" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                  <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" fontSize={11} stroke="#A8A29E" axisLine={false} tickLine={false} />
+                  <YAxis fontSize={11} stroke="#A8A29E" axisLine={false} tickLine={false} />
                   <Tooltip 
                     contentStyle={{ 
                       borderRadius: '12px', 
-                      backgroundColor: '#1E293B', 
+                      backgroundColor: '#1A1F2E', 
                       border: 'none', 
                       boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                       color: '#FFFFFF'
@@ -627,8 +581,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                   <Area 
                     type="monotone" 
                     dataKey="application" 
-                    stroke="#4F46E5" 
-                    strokeWidth={3} 
+                    stroke="#F97316" 
+                    strokeWidth={2.5} 
                     fillOpacity={1} 
                     fill="url(#glorystatGradient)" 
                   />
@@ -637,18 +591,18 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
             </div>
           </div>
 
-          {/* Widget 2: NEW APPLICATIONS (Swapped here from bottom-right as prominent table widget!) */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
-            <div className="flex justify-between items-center pb-2">
+          {/* Widget 2: New Applications Table */}
+          <div className="bg-white rounded-[--radius-editorial] border border-editorial-border overflow-hidden">
+            <div className="flex justify-between items-center px-4 pt-4 pb-2">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">New Applications Feed</h3>
-                <p className="text-[10px] text-stone-400 font-medium leading-none mt-1">
-                  Dynamic recruitment database sync. Filtered view matches your custom parameters.
+                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">New Applications Feed</h3>
+                <p className="text-xs text-stone-400 font-medium mt-1">
+                  Latest applicants matching your filter criteria.
                 </p>
               </div>
               <button 
                 onClick={onViewAll} 
-                className="text-xs font-bold text-indigo-650 hover:text-indigo-800 transition-colors cursor-pointer flex items-center space-x-1"
+                className="text-xs font-bold text-editorial-navy hover:underline transition-colors cursor-pointer flex items-center space-x-1"
               >
                 <span>View All</span>
                 <ArrowRight className="h-3 w-3" />
@@ -656,7 +610,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
             </div>
 
             {latestApplicants.length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center space-y-2 border border-dashed border-stone-200 rounded-xl bg-stone-50/50">
+              <div className="py-12 mx-4 mb-4 flex flex-col items-center justify-center space-y-2 border border-dashed border-editorial-stone rounded-[--radius-editorial] bg-editorial-cream/50">
                 <Users className="h-8 w-8 text-stone-300" />
                 <p className="text-xs text-stone-500 font-bold">Tidak ada pelamar yang cocok dengan kriteria filter.</p>
                 <button 
@@ -665,83 +619,66 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                     setSelectedJob('all');
                     setSelectedStatus('all');
                   }}
-                  className="text-[11px] font-black text-indigo-600 hover:underline"
+                  className="text-[11px] font-bold text-brand-500 hover:underline"
                 >
                   Bersihkan semua filter
                 </button>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left font-sans text-xs">
+                <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-stone-100 text-[10px] font-bold text-stone-400 uppercase pb-2">
-                      <th className="pb-3 text-stone-500 font-bold">Nama Pelamar</th>
-                      <th className="pb-3 text-stone-500 font-bold">Posisi Jabatan</th>
-                      <th className="pb-3 text-stone-500 font-bold">Tanggal Kirim</th>
-                      <th className="pb-3 text-stone-500 font-bold">Status</th>
-                      <th className="pb-3 text-center text-stone-500 font-bold">Detail</th>
+                    <tr className="bg-editorial-cream border-b border-editorial-stone">
+                      <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3 px-4 text-left">Nama Pelamar</th>
+                      <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3 px-4 text-left">Posisi Jabatan</th>
+                      <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3 px-4 text-left">Tanggal Kirim</th>
+                      <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3 px-4 text-left">Status</th>
+                      <th className="text-[10px] font-bold text-stone-500 uppercase tracking-widest py-3 px-4 text-left">Detail</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-150 text-stone-700">
+                  <tbody>
                     {latestApplicants.map((app, idx) => {
-                      const bgColors = [
-                        'bg-amber-100 text-amber-700', 
-                        'bg-blue-100 text-blue-700', 
-                        'bg-purple-100 text-purple-700', 
-                        'bg-emerald-100 text-emerald-700',
-                        'bg-pink-100 text-pink-700'
-                      ];
-                      const initials = (app.namaLengkap || 'PL').substring(0, 2).toUpperCase();
-
                       const formattedDate = app.submissionDate 
                         ? new Date(parseSubmissionDate(app.submissionDate) || "").toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                         : 'Beberapa saat yang lalu';
 
                       // Status styles
-                      let statusBadgeClass = 'bg-stone-100 text-stone-600';
+                      let statusBadgeClass = 'bg-stone-50 text-stone-600 border border-stone-200';
                       let statusLabel = app.status || 'Pending';
                       if (app.status === 'Pending') {
-                        statusBadgeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
+                        statusBadgeClass = 'bg-amber-50 text-amber-700 border border-amber-200';
                         statusLabel = 'Pending Review';
                       } else if (app.status === 'Reviewed') {
-                        statusBadgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+                        statusBadgeClass = 'bg-blue-50 text-blue-700 border border-blue-200';
                         statusLabel = 'Shortlisted';
                       } else if (app.status === 'Accepted') {
-                        statusBadgeClass = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+                        statusBadgeClass = 'bg-emerald-50 text-editorial-green border border-emerald-200';
                         statusLabel = 'Hired';
                       } else if (app.status === 'Rejected') {
-                        statusBadgeClass = 'bg-rose-50 text-rose-600 border border-rose-100';
+                        statusBadgeClass = 'bg-red-50 text-editorial-red border border-red-200';
                         statusLabel = 'Rejected';
                       }
 
                       return (
-                        <tr key={app.id || idx} className="hover:bg-[#F8FAFC]/60 transition-colors">
-                          <td className="py-3 font-bold text-stone-950">
-                            <div className="flex items-center space-x-3">
-                              <div className={`h-8 w-8 rounded-full ${bgColors[idx % 5]} text-[10px] font-extrabold flex items-center justify-center shadow-xs`}>
-                                {initials}
-                              </div>
-                              <div className="text-left">
-                                <span className="block leading-tight font-bold">{app.namaLengkap}</span>
-                                <span className="text-[9px] font-medium text-stone-400 mt-0.5 block">{app.id || 'N/A'}</span>
-                              </div>
-                            </div>
+                        <tr key={app.id || idx} className="border-b border-editorial-stone last:border-b-0 hover:bg-editorial-cream/50 transition-colors cursor-pointer">
+                          <td className="py-3 px-4 text-sm text-editorial-charcoal font-medium">
+                            <span className="font-semibold">{app.namaLengkap}</span>
                           </td>
-                          <td className="py-3 font-semibold text-stone-600">{getOfficialPositionName(app.jabatanDituju)}</td>
-                          <td className="py-3 text-stone-400 font-medium">{formattedDate}</td>
-                          <td className="py-3">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
+                          <td className="py-3 px-4 text-sm text-editorial-charcoal font-medium">{getOfficialPositionName(app.jabatanDituju)}</td>
+                          <td className="py-3 px-4 text-sm text-editorial-charcoal font-medium">{formattedDate}</td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-block px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${statusBadgeClass}`}>
                               {statusLabel}
                             </span>
                           </td>
-                          <td className="py-3 text-center">
+                          <td className="py-3 px-4">
                             <button
                               onClick={() => {
                                 if (app.id && app.id.startsWith('APP-')) {
                                   onSelectApplicant(app.id);
                                 }
                               }}
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-[10px] font-bold rounded-lg inline-flex items-center space-x-1 cursor-pointer"
+                              className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 transition-colors text-white text-[10px] font-bold rounded-[--radius-editorial] inline-flex items-center space-x-1 cursor-pointer"
                             >
                               <User className="h-3 w-3" />
                               <span>Buka Profil</span>
@@ -758,17 +695,17 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Right Column: Today's Schedule (Col-Span-1) */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Widget: Jenis Kelamin (Gender Status Chart) */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-150 shadow-xs space-y-4">
+          <div className="p-6 bg-white rounded-[--radius-editorial] border border-editorial-border space-y-4">
             <div className="flex justify-between items-center pb-1">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Jenis Kelamin Pelamar</h3>
-                <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
-                  Gender comparison feed
+                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">Jenis Kelamin Pelamar</h3>
+                <p className="text-xs text-stone-400 font-medium mt-1">
+                  Gender distribution of applicants
                 </p>
               </div>
-              <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-2 py-0.5 rounded-md">Live</span>
+              <span className="text-[10px] bg-editorial-cream text-stone-500 font-bold px-2 py-0.5 rounded-[--radius-editorial]">Live</span>
             </div>
 
             {/* Donut Chart & Legend layout */}
@@ -780,19 +717,19 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                       data={genderStats}
                       cx="50%"
                       cy="50%"
-                      innerRadius={36}
+                      innerRadius={38}
                       outerRadius={52}
-                      paddingAngle={4}
+                      paddingAngle={3}
                       dataKey="value"
                     >
                       {genderStats.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} />
+                        <Cell key={`cell-${idx}`} fill={idx === 0 ? '#1A1F2E' : '#A8A29E'} />
                       ))}
                     </Pie>
                     <Tooltip
                       contentStyle={{
                         borderRadius: '8px',
-                        backgroundColor: '#1E293B',
+                        backgroundColor: '#1A1F2E',
                         border: 'none',
                         color: '#FFFFFF',
                         fontSize: '11px',
@@ -804,10 +741,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                 </ResponsiveContainer>
                 {/* Total count in center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
-                  <span className="text-lg font-black text-stone-900 leading-none">
+                  <span className="text-lg font-black text-editorial-navy leading-none">
                     {(genderStats[0].value + genderStats[1].value).toLocaleString('id-ID')}
                   </span>
-                  <span className="text-[8px] font-black text-stone-400 mt-0.5 uppercase tracking-wider">Total</span>
+                  <span className="text-[8px] font-bold text-stone-400 mt-0.5 uppercase tracking-wider">Total</span>
                 </div>
               </div>
 
@@ -815,14 +752,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               <div className="flex-1 w-full space-y-2.5">
                 {genderStats.map((item, idx) => {
                   return (
-                    <div key={idx} className="flex items-center justify-between text-xs border-b border-stone-50 pb-1.5 last:border-none last:pb-0">
+                    <div key={idx} className="flex items-center justify-between text-xs border-b border-editorial-stone pb-1.5 last:border-none last:pb-0">
                       <div className="flex items-center space-x-2">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                        <span className="font-bold text-stone-600">{item.name}</span>
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: idx === 0 ? '#1A1F2E' : '#A8A29E' }} />
+                        <span className="font-semibold text-stone-600">{item.name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-black text-stone-900 block">{item.value} Pelamar</span>
-                        <span className="text-[9px] font-bold text-stone-400 block">{item.percent}%</span>
+                        <span className="font-bold text-editorial-charcoal block">{item.value} Pelamar</span>
+                        <span className="text-[9px] font-semibold text-stone-400 block">{item.percent}%</span>
                       </div>
                     </div>
                   );
@@ -832,11 +769,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           </div>
 
           {/* Widget 3: Today's Schedule */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
+          <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-6 space-y-4">
             <div className="flex justify-between items-center pb-1">
               <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Today's Schedule</h3>
-                <span className="h-5 w-5 bg-indigo-500 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center">
+                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">Today's Schedule</h3>
+                <span className="h-5 w-5 bg-editorial-navy text-white font-bold text-[10px] rounded-full flex items-center justify-center">
                   {scheduleList.filter(s => s.isLive).length || scheduleList.length}
                 </span>
               </div>
@@ -855,23 +792,23 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                       onSelectApplicant(sch.applicantId);
                     }
                   }}
-                  className={`p-3 rounded-xl border border-stone-50 flex flex-col space-y-1 ${sch.color}`}
+                  className={`p-4 rounded-[--radius-editorial] border-l-4 transition-all hover:brightness-95 cursor-pointer ${sch.color}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black tracking-normal uppercase whitespace-nowrap block">{sch.time}</span>
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">{sch.time}</span>
                     {sch.applicantId && (
-                      <span className="text-[8px] font-bold bg-[#1E3A8A]/10 text-[#1E3A8A] px-1.5 py-0.5 rounded-md uppercase">Action</span>
+                      <span className="text-[8px] font-bold bg-brand-50 text-brand-600 px-1.5 py-0.5 rounded uppercase">Action</span>
                     )}
                   </div>
-                  <span className="text-[11px] font-bold tracking-tight block leading-normal">{sch.title}</span>
+                  <span className="text-sm font-semibold text-editorial-charcoal block mt-1 leading-snug">{sch.title}</span>
                   {sch.applicantId && (
-                    <span className="text-[9px] opacity-80 font-medium block mt-1 underline">Mulai Tinjau Profil &rarr;</span>
+                    <span className="text-[10px] text-stone-500 font-medium block mt-1.5 underline">Mulai Tinjau Profil &rarr;</span>
                   )}
                 </div>
               ))}
             </div>
 
-            <button className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-650 rounded-xl transition-all cursor-pointer">
+            <button className="w-full text-center py-2.5 hover:bg-editorial-cream border border-dashed border-editorial-stone mt-2 text-xs font-bold text-editorial-navy rounded-[--radius-editorial] transition-all cursor-pointer">
               View Calendar
             </button>
           </div>

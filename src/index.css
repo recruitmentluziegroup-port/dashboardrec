@@ -6,6 +6,7 @@
   --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
   --font-serif: 'Playfair Display', Georgia, serif;
 
+  /* Brand — warm orange (shared) */
   --color-brand-50: #FFF7ED;
   --color-brand-100: #FFEDD5;
   --color-brand-200: #FED7AA;
@@ -15,17 +16,103 @@
   --color-brand-700: #C2410C;
   --color-brand-900: #7C2D12;
 
-  --text-primary: #1C1917;
-  --text-secondary: #44403C;
-  --text-muted: #78716C;
+  /* Bento (candidate side) */
+  --color-bento-cream: #FFF8F0;
+  --color-bento-beige: #F5EDE0;
+  --color-bento-peach: #FFEEE0;
+  --color-bento-sand: #E8DCCC;
 
-  --state-error: #EF4444;
-  --state-success: #22C55E;
-  --state-warning: #F59E0B;
+  /* Editorial (admin side) */
+  --color-editorial-navy: #1A1F2E;
+  --color-editorial-charcoal: #2D2A24;
+  --color-editorial-cream: #F8F6F3;
+  --color-editorial-stone: #E6E0D8;
+  --color-editorial-green: #2D6A4F;
+  --color-editorial-red: #9B2226;
+  --color-editorial-border: #E2DDD6;
+
+  /* State colors */
+  --color-state-error: #EF4444;
+  --color-state-success: #22C55E;
+  --color-state-warning: #F59E0B;
+  --color-state-info: #3B82F6;
+
+  /* Text tokens */
+  --color-text-primary: #1C1917;
+  --color-text-secondary: #44403C;
+  --color-text-muted: #78716C;
+
+  /* Custom radii */
+  --radius-bento: 1.5rem;
+  --radius-editorial: 0.75rem;
+
+  /* Shadows */
+  --shadow-bento: 0 4px 24px -8px rgba(194, 65, 12, 0.12), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  --shadow-editorial: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+
+  /* Animations */
+  --animate-fade-in-up: fade-in-up 0.5s ease-out;
+  --animate-fade-in-up-slow: fade-in-up 0.7s ease-out;
+  --animate-scale-in: scale-in 0.4s ease-out;
+  --animate-bounce-in: bounce-in 0.5s ease-out;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: scale(0.9); }
+  50% { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg); }
+  75% { transform: rotate(4deg); }
 }
 
 body {
   font-family: var(--font-sans);
-  color: var(--text-primary);
-  background-color: var(--color-brand-50);
+  color: var(--color-text-primary);
+  background-color: var(--color-bento-cream);
 }
+
+/* Utility: editorial prose for admin content */
+.editorial-prose h1 {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.editorial-prose h2 {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.editorial-prose .stat-value {
+  font-family: var(--font-serif);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+/* Bento card animation on mount */
+.bento-card {
+  animation: fade-in-up 0.5s ease-out both;
+}
+.bento-card:nth-child(1) { animation-delay: 0.05s; }
+.bento-card:nth-child(2) { animation-delay: 0.1s; }
+.bento-card:nth-child(3) { animation-delay: 0.15s; }
+.bento-card:nth-child(4) { animation-delay: 0.2s; }
+.bento-card:nth-child(5) { animation-delay: 0.25s; }
+.bento-card:nth-child(6) { animation-delay: 0.3s; }
+.bento-card:nth-child(7) { animation-delay: 0.35s; }
+.bento-card:nth-child(8) { animation-delay: 0.4s; }

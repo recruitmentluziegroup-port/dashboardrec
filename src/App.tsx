@@ -102,40 +102,40 @@ const ApplicationSuccess: React.FC = () => {
         </svg>
       </div>
 
-      <div className="w-full max-w-md bg-white rounded-2xl border border-stone-200 shadow-2xl overflow-hidden p-8 text-center space-y-6 relative animate-fade-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
-        <div className="inline-flex p-4 bg-green-50 text-state-success border border-green-200 rounded-full">
+      <div className="w-full max-w-lg bg-white rounded-[--radius-bento] border border-bento-sand shadow-[--shadow-bento] overflow-hidden p-8 sm:p-10 text-center space-y-6 relative animate-bounce-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
+        <div className="inline-flex p-4 bg-green-50 text-state-success border border-green-200 rounded-2xl">
           <CheckCircle2 className="h-12 w-12" />
         </div>
 
         <div className="space-y-2">
           <span className="text-[10px] font-bold text-brand-600 uppercase tracking-widest block">Pengiriman Sukses</span>
-          <h1 className="text-2xl font-black text-stone-900 tracking-tight">Terima Kasih, {name}!</h1>
-          <p className="text-xs text-stone-500 font-medium leading-relaxed px-2">
+          <h1 className="font-serif font-black text-3xl tracking-tight text-editorial-navy">Terima Kasih, {name}!</h1>
+          <p className="text-sm text-stone-500 font-medium leading-relaxed px-2">
             Formulir Data Personal Anda telah berhasil disubmit dan akan dicek langsung oleh Tim Rekrutmen Luzie Group.
           </p>
         </div>
 
         {/* Generated Applicant ID card widget */}
-        <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl space-y-2 relative">
-          <span className="block text-[9px] font-bold text-brand-700 uppercase tracking-wide">Nomor Berkas Administrasi Anda</span>
-          <div className="flex items-center justify-center space-x-2">
-            <span className="font-mono text-lg font-bold text-stone-950">{applicantId}</span>
+        <div className="p-5 bg-bento-cream border border-bento-sand rounded-[--radius-bento] space-y-3 relative">
+          <span className="block text-[9px] font-bold text-brand-600 uppercase tracking-widest">Nomor Berkas Administrasi Anda</span>
+          <div className="flex items-center justify-center space-x-3">
+            <span className="font-serif font-black text-2xl tracking-tight text-editorial-navy">{applicantId}</span>
             <button
               onClick={handleCopy}
-              className="p-1.5 border border-brand-200 hover:border-brand-500 bg-white hover:bg-brand-50 text-brand-600 rounded-lg transition-all cursor-pointer"
+              className="p-2 border border-bento-sand hover:border-brand-400 bg-white hover:bg-brand-50 text-brand-600 rounded-xl transition-all cursor-pointer shadow-[--shadow-bento]"
               title="Salin ID"
             >
-              {copied ? <span className="text-[10px] font-bold text-green-600 px-0.5">Disalin</span> : <Copy className="h-3.5 w-3.5" />}
+              {copied ? <span className="text-[10px] font-bold text-green-600 px-0.5">Disalin</span> : <Copy className="h-4 w-4" />}
             </button>
           </div>
-          <span className="block text-[9px] text-stone-500 leading-none">
+          <span className="block text-[10px] text-stone-500 leading-none font-medium">
             Gunakan ID di atas untuk melakukan koordinasi atau tindak lanjut ke HRD.
           </span>
         </div>
 
         {/* Steps forward */}
-        <div className="text-left bg-stone-50 p-4 border border-stone-200 rounded-xl space-y-2 text-xs text-stone-600 font-medium">
-          <span className="font-bold text-stone-800 block uppercase tracking-wider text-[10px]">Langkah Selanjutnya:</span>
+        <div className="text-left bg-bento-cream p-5 border border-bento-sand rounded-[--radius-bento] space-y-2 text-sm text-stone-600 font-medium">
+          <span className="font-bold text-editorial-navy block uppercase tracking-wider text-[10px]">Langkah Selanjutnya:</span>
           <p className="leading-relaxed">1. Tim HRD kami akan meninjau kelengkapan berkas lamaran Anda.</p>
           <p className="leading-relaxed">2. Silahkan menunggu informasi lebih lanjutnya yang akan di kirimkan via pesan WhatsApp.</p>
         </div>
@@ -145,7 +145,7 @@ const ApplicationSuccess: React.FC = () => {
             sessionStorage.clear();
             navigate('/apply', { replace: true });
           }}
-          className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl py-3 shadow-md transition-all cursor-pointer"
+          className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-[--radius-bento] py-3.5 shadow-[--shadow-bento] transition-all cursor-pointer"
         >
           Isi Formulir Baru
         </button>
@@ -221,44 +221,44 @@ const AdminLogin: React.FC = () => {
         <div className="absolute inset-0 opacity-15 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}></div>
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 shadow-2xl overflow-hidden p-8 text-center space-y-6 relative animate-fade-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
+      <div className="w-full max-w-sm bg-white rounded-[--radius-bento] border border-bento-sand shadow-[--shadow-bento] overflow-hidden p-8 text-center space-y-6 relative animate-bounce-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
         <div className="inline-flex p-4 bg-brand-100 text-brand-600 rounded-2xl shadow-sm">
-          <KeyRound className="h-10 w-10 animate-wiggle" />
+          <KeyRound className="h-10 w-10" />
         </div>
 
         <div className="space-y-1">
-          <span className="text-[9px] font-bold text-stone-500 uppercase tracking-widest block leading-none">Command Center Portal</span>
-          <h1 className="text-xl font-black text-stone-900 tracking-tight">Login Portal Admin</h1>
+          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Command Center Portal</span>
+          <h1 className="font-serif font-black text-2xl tracking-tight text-editorial-navy">Login Portal Admin</h1>
           <p className="text-xs text-stone-400">Verifikasi kredensial peninjau berkas lamaran.</p>
         </div>
 
         {errorError && (
-          <div className="bg-red-50 border border-red-200 text-state-error p-3 rounded-lg text-xs font-semibold">
+          <div className="bg-red-50 border border-red-200 text-state-error p-3 rounded-[--radius-editorial] text-xs font-semibold">
             {errorError}
           </div>
         )}
 
-        <form onSubmit={handleLoginSubmit} className="space-y-4 text-left text-xs font-medium">
+        <form onSubmit={handleLoginSubmit} className="space-y-4 text-left text-sm font-medium">
           <div className="space-y-1.5">
-            <label className="block text-stone-600 font-bold">Email Admin</label>
+            <label className="block text-stone-500 font-bold text-xs">Email Admin</label>
             <input
               type="email"
               placeholder="admin@luzie.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 p-2.5 rounded-lg text-xs outline-hidden"
+              className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm outline-hidden transition-all duration-200"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-stone-600 font-bold">Kata Sandi</label>
+            <label className="block text-stone-500 font-bold text-xs">Kata Sandi</label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 p-2.5 rounded-lg text-xs outline-hidden"
+              className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm outline-hidden transition-all duration-200"
               required
             />
           </div>
@@ -266,7 +266,7 @@ const AdminLogin: React.FC = () => {
           <button
             type="submit"
             disabled={loggingIn}
-            className="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-bold text-xs rounded-xl py-3 shadow-md transition-all cursor-pointer mt-2"
+            className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-[--radius-bento] py-3.5 shadow-[--shadow-bento] transition-all cursor-pointer mt-2"
           >
             {loggingIn ? 'Membuka Kunci...' : 'Masuk Dashboard'}
           </button>
@@ -274,7 +274,7 @@ const AdminLogin: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="w-full border border-stone-200 hover:bg-stone-50 text-stone-600 font-bold text-xs rounded-xl py-2.5 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
+            className="w-full border-2 border-bento-sand hover:border-brand-400 text-stone-600 font-bold text-sm rounded-[--radius-bento] py-3 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Kembali ke Halaman Utama</span>
@@ -321,16 +321,13 @@ const CandidateFormPage: React.FC = () => {
       <div className="relative z-10 space-y-6">
         {/* Dynamic header navbar logo */}
         <div className="w-full max-w-4xl mx-auto flex items-center justify-between px-2 text-white pb-3 sm:pb-0">
-          <div 
-            className="font-serif text-2xl font-black tracking-tight text-white select-none"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+          <div className="font-serif font-black text-2xl tracking-tight text-white select-none">
             Luzie Group
           </div>
 
-          <div className="flex items-center space-x-4 text-[11px] font-bold text-brand-100">
-            <span className="cursor-pointer hover:text-white transition-colors flex items-center space-x-1" onClick={() => window.open('mailto:recruitmentluziegroup@gmail.com')}>
-              <HelpCircle className="h-3.5 w-3.5" />
+          <div className="flex items-center space-x-4 text-xs font-bold text-brand-100">
+            <span className="cursor-pointer hover:text-white transition-colors flex items-center space-x-1.5" onClick={() => window.open('mailto:recruitmentluziegroup@gmail.com')}>
+              <HelpCircle className="h-4 w-4" />
               <span>Butuh Bantuan?</span>
             </span>
           </div>
@@ -367,13 +364,10 @@ const RoleSelectionPage: React.FC = () => {
         </svg>
       </div>
 
-      <div className="w-full max-w-lg bg-white rounded-2xl border border-stone-200 shadow-2xl overflow-hidden p-8 sm:p-10 text-center space-y-8 relative animate-fade-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
+      <div className="w-full max-w-lg bg-white rounded-[--radius-bento] border border-bento-sand shadow-[--shadow-bento] overflow-hidden p-8 sm:p-10 text-center space-y-8 relative animate-bounce-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
         {/* Logo Badge */}
         <div className="flex flex-col items-center space-y-2">
-          <div 
-            className="font-serif text-4xl sm:text-5xl font-black text-stone-950 tracking-tight select-none pb-1"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+          <div className="font-serif text-4xl sm:text-5xl font-black text-editorial-navy tracking-tight select-none pb-1">
             Luzie Group
           </div>
           <span className="text-[10px] font-extrabold text-brand-600 uppercase tracking-widest block">Official Recruitment Form</span>
@@ -383,18 +377,18 @@ const RoleSelectionPage: React.FC = () => {
           Selamat datang di portal pendaftaran dan peninjauan berkas administrasi pelamar kerja Luzie Group. Silakan masuk sesuai dengan kebutuhan Anda.
         </div>
 
-        {/* Roles Grid */}
+        {/* Roles Grid — bento cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
           {/* Candidate Option */}
           <button
             onClick={() => navigate('/apply')}
-            className="group p-5 border border-stone-200 hover:border-brand-500 bg-white hover:bg-brand-50/30 rounded-2xl transition-all duration-300 text-left shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4"
+            className="group p-5 border border-bento-sand hover:border-brand-400 bg-white hover:bg-brand-50/30 rounded-[--radius-bento] transition-all duration-300 text-left shadow-[--shadow-bento] hover:shadow-lg cursor-pointer flex flex-col justify-between space-y-4 bento-card"
           >
             <div className="p-3 bg-brand-50 text-brand-600 rounded-xl w-fit group-hover:scale-110 transition-transform">
               <User className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-extrabold text-stone-900 text-sm group-hover:text-brand-600 transition-colors">
+              <h3 className="font-extrabold text-editorial-navy text-sm group-hover:text-brand-600 transition-colors">
                 Pelamar
               </h3>
               <p className="text-[11px] text-stone-500 leading-normal font-medium">
@@ -406,13 +400,13 @@ const RoleSelectionPage: React.FC = () => {
           {/* Admin Option */}
           <button
             onClick={() => navigate('/admin')}
-            className="group p-5 border border-stone-200 hover:border-brand-500 bg-white hover:bg-brand-50/30 rounded-2xl transition-all duration-300 text-left shadow-xs hover:shadow-md cursor-pointer flex flex-col justify-between space-y-4"
+            className="group p-5 border border-bento-sand hover:border-brand-400 bg-white hover:bg-brand-50/30 rounded-[--radius-bento] transition-all duration-300 text-left shadow-[--shadow-bento] hover:shadow-lg cursor-pointer flex flex-col justify-between space-y-4 bento-card"
           >
             <div className="p-3 bg-brand-100/75 text-brand-700 rounded-xl w-fit group-hover:scale-110 transition-transform">
               <Users className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="font-extrabold text-stone-950 text-sm group-hover:text-brand-600 transition-colors">
+              <h3 className="font-extrabold text-editorial-navy text-sm group-hover:text-brand-600 transition-colors">
                 System Admin
               </h3>
               <p className="text-[11px] text-stone-500 leading-normal font-medium">
@@ -423,7 +417,7 @@ const RoleSelectionPage: React.FC = () => {
         </div>
 
         {/* Footer info */}
-        <div className="pt-2 border-t border-stone-100 flex items-center justify-center space-x-2 text-[10px] text-stone-400 font-bold tracking-wide uppercase">
+        <div className="pt-2 border-t border-bento-sand flex items-center justify-center space-x-2 text-[10px] text-stone-400 font-bold tracking-wide uppercase">
           <span>Recruitment</span>
           <span className="h-1 w-1 rounded-full bg-green-500 animate-pulse"></span>
           <span>Sistem Online</span>
