@@ -221,44 +221,44 @@ const AdminLogin: React.FC = () => {
         <div className="absolute inset-0 opacity-15 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1.5px, transparent 1.5px)', backgroundSize: '32px 32px' }}></div>
       </div>
 
-      <div className="w-full max-w-sm bg-white rounded-[--radius-bento] border border-bento-sand shadow-[--shadow-bento] overflow-hidden p-8 text-center space-y-6 relative animate-bounce-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
+      <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 shadow-2xl overflow-hidden p-8 text-center space-y-6 relative animate-fade-in before:absolute before:top-0 before:left-0 before:right-0 before:h-1.5 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
         <div className="inline-flex p-4 bg-brand-100 text-brand-600 rounded-2xl shadow-sm">
-          <KeyRound className="h-10 w-10" />
+          <KeyRound className="h-10 w-10 animate-wiggle" />
         </div>
 
         <div className="space-y-1">
-          <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest block leading-none">Command Center Portal</span>
-          <h1 className="font-serif font-black text-2xl tracking-tight text-editorial-navy">Login Portal Admin</h1>
+          <span className="text-[9px] font-bold text-stone-500 uppercase tracking-widest block leading-none">Command Center Portal</span>
+          <h1 className="text-xl font-black text-stone-900 tracking-tight">Login Portal Admin</h1>
           <p className="text-xs text-stone-400">Verifikasi kredensial peninjau berkas lamaran.</p>
         </div>
 
         {errorError && (
-          <div className="bg-red-50 border border-red-200 text-state-error p-3 rounded-[--radius-editorial] text-xs font-semibold">
+          <div className="bg-red-50 border border-red-200 text-state-error p-3 rounded-lg text-xs font-semibold">
             {errorError}
           </div>
         )}
 
-        <form onSubmit={handleLoginSubmit} className="space-y-4 text-left text-sm font-medium">
+        <form onSubmit={handleLoginSubmit} className="space-y-4 text-left text-xs font-medium">
           <div className="space-y-1.5">
-            <label className="block text-stone-500 font-bold text-xs">Email Admin</label>
+            <label className="block text-stone-600 font-bold">Email Admin</label>
             <input
               type="email"
               placeholder="admin@luzie.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm outline-hidden transition-all duration-200"
+              className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 p-2.5 rounded-lg text-xs outline-hidden"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-stone-500 font-bold text-xs">Kata Sandi</label>
+            <label className="block text-stone-600 font-bold">Kata Sandi</label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm outline-hidden transition-all duration-200"
+              className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 p-2.5 rounded-lg text-xs outline-hidden"
               required
             />
           </div>
@@ -266,7 +266,7 @@ const AdminLogin: React.FC = () => {
           <button
             type="submit"
             disabled={loggingIn}
-            className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm rounded-[--radius-bento] py-3.5 shadow-[--shadow-bento] transition-all cursor-pointer mt-2"
+            className="w-full bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 text-white font-bold text-xs rounded-xl py-3 shadow-md transition-all cursor-pointer mt-2"
           >
             {loggingIn ? 'Membuka Kunci...' : 'Masuk Dashboard'}
           </button>
@@ -274,7 +274,7 @@ const AdminLogin: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="w-full border-2 border-bento-sand hover:border-brand-400 text-stone-600 font-bold text-sm rounded-[--radius-bento] py-3 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
+            className="w-full border border-stone-200 hover:bg-stone-50 text-stone-600 font-bold text-xs rounded-xl py-2.5 transition-all cursor-pointer flex items-center justify-center space-x-1.5"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Kembali ke Halaman Utama</span>
