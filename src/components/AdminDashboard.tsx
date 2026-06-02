@@ -320,8 +320,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       {/* 1. Header Area with Single Customize Trigger with popup modal */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
         <div>
-          <h1 className="font-serif font-black text-3xl tracking-tight text-editorial-navy">Overview Dashboard</h1>
-          <p className="text-sm text-stone-500 mt-1 font-medium">Live recruitment data integrated with candidate application sheets.</p>
+          <h1 className="font-serif font-black text-3xl tracking-tight text-editorial-navy">Recruitment Dashboard</h1>
+          <p className="text-sm text-stone-500 mt-1 font-medium">Dashboard data terkait rekrutmen.</p>
         </div>
         
         <div className="flex items-center space-x-3 mt-4 sm:mt-0 text-xs relative">
@@ -435,8 +435,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
       {/* 2. Pure Synchronized Row of Stats Cards (5 Columns) */}
       <div className="grid grid-cols-5 gap-4">
-        {/* Total Application Card */}
-        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
+        {/* Total Application Card — highlighted with brand accent */}
+        <div className="bg-brand-50 rounded-[--radius-editorial] border border-brand-200 p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Total Application</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
@@ -524,7 +524,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           <div className="p-6 bg-white rounded-[--radius-editorial] border border-editorial-border">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
               <div>
-                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">Application Received Time</h3>
+                <h3 className="font-serif font-bold text-lg tracking-tight text-editorial-navy">Jumlah Lamaran yang Diterima</h3>
               </div>
               
               {/* Range select tabs */}
