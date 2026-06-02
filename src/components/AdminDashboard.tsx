@@ -436,7 +436,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       {/* 2. Pure Synchronized Row of Stats Cards (5 Columns) */}
       <div className="grid grid-cols-5 gap-4">
         {/* Total Application Card */}
-        <div className="pt-4 border-t-2 border-brand-500">
+        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Total Application</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
@@ -452,7 +452,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Pending Review Card */}
-        <div className="pt-4 border-t-2 border-editorial-stone">
+        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Pending Review</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
@@ -468,7 +468,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Shortlisted Card */}
-        <div className="pt-4 border-t-2 border-editorial-stone">
+        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Total Shortlisted</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
@@ -484,7 +484,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Hired / Accepted Card */}
-        <div className="pt-4 border-t-2 border-editorial-stone">
+        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Hired / Accepted</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
@@ -500,7 +500,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Rejected Card */}
-        <div className="pt-4 border-t-2 border-editorial-stone">
+        <div className="bg-white rounded-[--radius-editorial] border border-editorial-border p-5 shadow-[--shadow-editorial]">
           <span className="text-[11px] font-bold text-stone-400 uppercase tracking-widest">Rejected Candidates</span>
           <div className="flex items-baseline space-x-2 mt-1.5">
             <span className="font-serif font-black text-3xl tracking-tight text-editorial-navy">
