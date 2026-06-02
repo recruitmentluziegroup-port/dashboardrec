@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 import React from 'react';
-import { renderToStream } from '@react-pdf/renderer';
+import { pdf } from '@react-pdf/renderer';
 import { getRowById } from '../../../src/lib/sheets.js';
 import { MyPdfDocument } from '../../../src/lib/pdf.js';
 
@@ -47,14 +47,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Identitas pelamar tidak ditemukan.' });
     }
 
+    const pdfNode = React.createElement(MyPdfDocument, { applicant });
+    const instance = pdf(pdfNode);
+    const stream = await instance.toBuffer();
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="data_personal_${id}_${applicant.namaLengkap.replace(/\s+/g, '_')}.pdf"`
     );
-
-    const pdfNode = React.createElement(MyPdfDocument, { applicant });
-    const stream = await renderToStream(pdfNode);
 
     stream.pipe(res);
   } catch (error: any) {

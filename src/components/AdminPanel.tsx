@@ -259,24 +259,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     }
   };
 
-  // Download PDF using direct fetch to avoid iframe _blank auth redirection issues
   const handleTriggerPdfDownload = async (id: string) => {
     try {
       const token = localStorage.getItem('luzie_admin_token');
-      const url = `/api/admin/export/${id}`;
-      const headers: Record<string, string> = {
-        'Accept': 'application/pdf'
-      };
+      const headers: Record<string, string> = {};
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const res = await fetch(url, { headers });
-      if (!res.ok) {
-        throw new Error('Gagal mengunduh file berkas PDF.');
-      }
+      const res = await fetch(`/api/admin/applications/${id}`, { headers });
+      if (!res.ok) throw new Error('Gagal mengambil data pelamar.');
+      const { data: applicant } = await res.json();
+      if (!applicant) throw new Error('Data pelamar tidak ditemukan.');
 
-      const blob = await res.blob();
+      const { pdf } = await import('@react-pdf/renderer');
+      const { MyPdfDocument } = await import('../lib/pdf');
+      const React = await import('react');
+      const blob = await pdf(React.createElement(MyPdfDocument, { applicant })).toBlob();
+
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
