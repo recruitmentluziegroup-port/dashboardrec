@@ -56,12 +56,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
 
   const handleRequirementsChange = (index: number, requirementsText: string) => {
     const updated = [...localVacancies];
-    // Split by new line, remove empty lines
-    const reqList = requirementsText
-      .split('\n')
-      .map(r => r.trim())
-      .filter(r => r.length > 0);
-    updated[index] = { ...updated[index], requirements: reqList };
+    updated[index] = { ...updated[index], requirements: requirementsText.split('\n') };
     setLocalVacancies(updated);
   };
 
@@ -90,13 +85,16 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   };
 
   const handleSave = async () => {
-    // Validate
     const invalid = localVacancies.some(v => !v.title.trim());
     if (invalid) {
       alert('Nama Posisi / Jabatan tidak boleh kosong.');
       return;
     }
-    await onSave(localVacancies);
+    const cleaned = localVacancies.map(v => ({
+      ...v,
+      requirements: v.requirements.map(r => r.trim()).filter(r => r.length > 0)
+    }));
+    await onSave(cleaned);
     setIsEditingList(false);
   };
 
@@ -411,8 +409,8 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                     />
                   ) : (
                     <ul className="space-y-2 text-left text-xs text-stone-600 font-semibold list-disc pl-4.5 leading-relaxed">
-                      {selectedVacancy.requirements && selectedVacancy.requirements.length > 0 ? (
-                        selectedVacancy.requirements.map((req, rIdx) => (
+                      {selectedVacancy.requirements && selectedVacancy.requirements.filter(r => r.trim()).length > 0 ? (
+                        selectedVacancy.requirements.filter(r => r.trim()).map((req, rIdx) => (
                           <li key={rIdx}>{req}</li>
                         ))
                       ) : (
