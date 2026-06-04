@@ -165,7 +165,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     const match = vacancies.find(
       (v) => v.title && v.title.toLowerCase().trim() === rawTitle.toLowerCase().trim()
     );
-    return match ? match.title : '';
+    return match ? match.title : rawTitle;
   };
 
   // Use vacancies list for position filters instead of form inputs

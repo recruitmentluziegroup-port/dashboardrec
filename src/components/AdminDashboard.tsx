@@ -39,7 +39,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
     const match = vacancies.find(
       (v) => v.title && v.title.toLowerCase().trim() === rawTitle.toLowerCase().trim()
     );
-    return match ? match.title : '';
+    return match ? match.title : rawTitle;
   };
 
   // Multi-filter customizable states
