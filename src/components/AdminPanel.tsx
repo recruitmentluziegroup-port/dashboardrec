@@ -182,7 +182,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         const nameMatch = (c.namaLengkap || '').toLowerCase().includes(query);
         const phoneMatch = (c.noTelp || '').toLowerCase().includes(query);
         const idMatch = (c.id || '').toLowerCase().includes(query);
-        const searchOk = nameMatch || phoneMatch || idMatch;
+        const positionMatch = (c.jabatanDituju || '').toLowerCase().includes(query);
+        const searchOk = nameMatch || phoneMatch || idMatch || positionMatch;
 
         const statusOk = !statusFilter || c.status === statusFilter;
         const cPosition = getOfficialPositionName(c.jabatanDituju);
