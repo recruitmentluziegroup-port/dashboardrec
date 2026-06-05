@@ -20,6 +20,27 @@ npm run lint     # tsc --noEmit only (no ESLint in this repo)
 
 There are **no test scripts**.
 
+## Subagent Workflow
+
+For **every** task (planning, building, editing, or refactoring) without exception:
+
+1. **Explore first** — dispatch the `explore` subagent to map relevant files,
+   existing patterns, and conventions before touching code. This is required
+   even for single-line edits.
+2. **Dispatch specialists** — based on the explore findings, dispatch the
+   appropriate specialty subagents in parallel where possible:
+   - Frontend / React / UI work → `frontend-developer`, `react-specialist`,
+     `ui-designer`, `ui-ux-pro-max`
+   - Backend / API / Sheets work → `backend-developer`, `fullstack-developer`
+   - Database / Sheets schema work → `data-engineer`, `database-administrator`
+   - Deployment / CI work → `deployment-engineer`
+   - Security-sensitive work → `security-engineer`
+3. **Synthesize** — review the subagent outputs, reconcile conflicts, and
+   present a unified plan before executing edits.
+
+Do not skip the explore step, even when the change feels trivial. Skipping
+explore is a process violation.
+
 ## Environment
 
 Copy `.env.example` to `.env` and fill in:
@@ -71,8 +92,33 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 - `@react-pdf/renderer` for server-side PDF generation
 - Auth token stored in `localStorage` as `luzie_admin_token`; session cookie is `luzie_session`
 
-## Additional Informations 
+## Progress Tracking
 
-- Do not make the changes until we shared the sane perception about how this web app we both wanted it
-- Use subagents if you can to minimize the work but the result is must to be as good as possible
-- Use skills that related to the task/discussion
+- A `progress.md` file at the project root is the **single source of truth**
+  for what changed in the project, session by session.
+- The file is **gitignored** (local-only, not committed to the repo).
+- After every change (add, edit, removal) within a session, append a new
+  entry to `progress.md` **before** finishing the task.
+- Format: session-grouped, newest session on top. See the file's header
+  comment for the exact template.
+
+### progress.md template
+
+```md
+# Progress Log
+
+> Append-only session log. Newest session on top. Do not edit past entries.
+
+## Session YYYY-MM-DD
+
+### Added
+- `<file/path>` — short description
+
+### Changed
+- `<file:line>` — short description
+
+### Removed
+- `<file/path>` — short description
+```
+
+

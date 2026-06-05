@@ -8,3 +8,6 @@ coverage/
 !.env.example
 
 .vercel
+
+# Local session progress log (per AGENTS.md)
+progress.md
