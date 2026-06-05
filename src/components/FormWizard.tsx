@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check, Plus, Trash2, Calendar, FileText, Send, User } from 'lucide-react';
 import { Applicant, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
+import { useFormDraft } from '../hooks/useFormDraft';
 
 interface FormWizardProps {
   onSubmitSuccess: (id: string) => void;
@@ -164,6 +165,63 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
   const [form, setForm] = useState<Applicant>(DEFAULT_FORM_STATE);
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // -----------------------------------------------------------------
+  // Auto-save / resume-draft state
+  // -----------------------------------------------------------------
+  const {
+    hasDraft,
+    draftMeta,
+    lastSavedAt,
+    storageAvailable,
+    loadDraft,
+    saveDraft,
+    clearDraft,
+  } = useFormDraft();
+
+  // Guard so the first auto-save effect doesn't write DEFAULT_FORM_STATE
+  // over a valid draft before the user has had a chance to resume.
+  const loadedThisSession = useRef(false);
+
+  // Don't render the resume banner on the very first paint — wait one tick.
+  const [mounted, setMounted] = useState(false);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (hasDraft && draftMeta) {
+      setShowResumeBanner(true);
+    }
+  }, [mounted, hasDraft, draftMeta]);
+
+  // Recompute the "Tersimpan X menit lalu" pill every 30s.
+  const [, setNowTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Debounced auto-save on every form change. Skipped until the user has
+  // either (a) accepted a draft, (b) declined a draft, or (c) picked a
+  // position for the first time. Also skipped if localStorage is dead.
+  useEffect(() => {
+    if (!storageAvailable) return;
+    if (!loadedThisSession.current) return;
+    if (selectedPosition === null) return;
+    saveDraft(form, currentStep, selectedPosition);
+  }, [form, currentStep, selectedPosition, saveDraft, storageAvailable]);
+
+  const formatRelativeSaved = (ts: number): string => {
+    const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSec < 60) return 'baru saja';
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)} menit lalu`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} jam lalu`;
+    return `${Math.floor(diffSec / 86400)} hari lalu`;
+  };
 
   // Field edit handler
   const setField = (key: keyof Applicant, value: any) => {
@@ -339,6 +397,9 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
 
       const json = await res.json();
       if (res.ok && json.success) {
+        // Wipe localStorage draft before navigating away — the unmount-flush
+        // in the hook could otherwise resurrect a stale write.
+        clearDraft();
         // Redirection to success
         onSubmitSuccess(json.id);
       } else {
@@ -354,6 +415,67 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
   if (selectedPosition === null) {
     return (
       <div className="w-full max-w-5xl mx-auto space-y-8 animate-fade-in-up" id="vacancy-portal">
+        {/* ----------------------------------------------------------------
+            RESUME-DRAFT BANNER — only after first mount, only if a draft
+            exists. Matches the bento card language of ApplicationSuccess:
+            white card, bento-sand border, bento shadow, gradient top stripe.
+        ---------------------------------------------------------------- */}
+        {mounted && showResumeBanner && hasDraft && draftMeta && (
+          <div className="animate-fade-in">
+            <div className="bg-white border border-bento-sand rounded-[--radius-bento] shadow-[--shadow-bento] p-5 sm:p-6 relative overflow-hidden before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-amber-400 before:via-brand-500 before:to-brand-700">
+              <div className="flex items-start gap-4 relative z-10">
+                <div className="p-3 bg-brand-50 text-brand-600 rounded-xl border border-brand-100 shrink-0">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-extrabold text-brand-600 uppercase tracking-widest block">
+                    Ditemukan Draf Tersimpan
+                  </span>
+                  <h3 className="font-serif font-black text-lg text-editorial-navy tracking-tight mt-0.5">
+                    Lanjutkan aplikasi Anda sebelumnya?
+                  </h3>
+                  <p className="text-xs text-stone-500 font-medium leading-relaxed mt-1.5">
+                    Kami menemukan formulir Anda yang belum selesai. Draf ini akan otomatis terhapus dalam 30 hari sejak terakhir disimpan
+                    {draftMeta.selectedPosition ? (
+                      <> untuk posisi <strong className="text-stone-700 font-extrabold">{draftMeta.selectedPosition}</strong></>
+                    ) : null}.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const d = loadDraft();
+                        if (d && d.selectedPosition) {
+                          setForm(d.form);
+                          setCurrentStep(d.currentStep);
+                          setSelectedPosition(d.selectedPosition);
+                          loadedThisSession.current = true;
+                        }
+                        setShowResumeBanner(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl px-4 py-2.5 shadow-[--shadow-bento] transition-all cursor-pointer"
+                    >
+                      Lanjutkan dari Bagian {draftMeta.currentStep}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearDraft();
+                        loadedThisSession.current = true;
+                        setShowResumeBanner(false);
+                      }}
+                      className="border border-bento-sand hover:border-brand-400 bg-white text-stone-600 hover:text-brand-600 font-bold text-xs rounded-xl px-4 py-2.5 transition-all cursor-pointer"
+                    >
+                      Mulai dari Awal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Back to Home Button */}
         <div className="flex justify-start">
           <button
@@ -428,6 +550,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                     onClick={() => {
                       setSelectedPosition(vac.title);
                       setForm(prev => ({ ...prev, jabatanDituju: vac.title }));
+                      loadedThisSession.current = true;
                       window.scrollTo({ top: 0, behavior: 'smooth' });
                     }}
                     className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm py-3.5 rounded-xl transition-all shadow-[--shadow-bento] flex items-center justify-center space-x-1.5 cursor-pointer"
@@ -452,6 +575,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
             onClick={() => {
               setSelectedPosition('Lainnya');
               setForm(prev => ({ ...prev, jabatanDituju: '' })); // let applicant type manually
+              loadedThisSession.current = true;
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="px-6 py-2.5 bg-white hover:bg-stone-50 text-brand-600 border border-stone-100 font-bold text-xs rounded-xl transition-all cursor-pointer inline-flex items-center space-x-1.5"
@@ -529,37 +653,65 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
           </button>
         </div>
 
-        {/* Steps Navigation Header — rounded pill indicators */}
+        {/* Steps Navigation Header — rounded pill indicators + saved pill */}
         <div className="border-b border-bento-sand px-6 py-4 bg-bento-beige/30">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  // Only allow navigation back to previous steps or next step if validated
-                  if (s < currentStep) setCurrentStep(s);
-                  else if (s === currentStep) return;
-                  else {
-                    // If skipping ahead, enforce validation step-by-step
-                    for (let i = currentStep; i < s; i++) {
-                      if (!validateStep(i)) return;
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block flex-1" />
+
+            <div className="flex flex-wrap gap-2 justify-center">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    // Only allow navigation back to previous steps or next step if validated
+                    if (s < currentStep) setCurrentStep(s);
+                    else if (s === currentStep) return;
+                    else {
+                      // If skipping ahead, enforce validation step-by-step
+                      for (let i = currentStep; i < s; i++) {
+                        if (!validateStep(i)) return;
+                      }
+                      setCurrentStep(s);
                     }
-                    setCurrentStep(s);
-                  }
-                }}
-                className={`rounded-full px-3 py-1 text-xs font-bold transition-all duration-200 ${
-                  currentStep === s
-                    ? 'bg-brand-500 text-white shadow-sm'
-                    : s < currentStep
-                    ? 'bg-green-500 text-white'
-                    : 'bg-bento-beige/50 text-stone-500 hover:bg-bento-beige'
-                }`}
-              >
-                {s < currentStep ? <Check className="h-3.5 w-3.5" /> : s}
-              </button>
-            ))}
+                  }}
+                  className={`rounded-full px-3 py-1 text-xs font-bold transition-all duration-200 ${
+                    currentStep === s
+                      ? 'bg-brand-500 text-white shadow-sm'
+                      : s < currentStep
+                      ? 'bg-green-500 text-white'
+                      : 'bg-bento-beige/50 text-stone-500 hover:bg-bento-beige'
+                  }`}
+                >
+                  {s < currentStep ? <Check className="h-3.5 w-3.5" /> : s}
+                </button>
+              ))}
+            </div>
+
+            <div className="hidden sm:flex flex-1 justify-end">
+              {lastSavedAt && (
+                <div
+                  className="flex items-center space-x-1.5 bg-green-50 text-green-700 border border-green-200 px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-sm animate-fade-in"
+                  title={`Draf tersimpan ${new Date(lastSavedAt).toLocaleString('id-ID')}`}
+                >
+                  <Check className="h-3 w-3" />
+                  <span>Tersimpan {formatRelativeSaved(lastSavedAt)}</span>
+                </div>
+              )}
+            </div>
           </div>
+
+          {lastSavedAt && (
+            <div className="sm:hidden flex justify-end mt-2.5">
+              <div
+                className="flex items-center space-x-1.5 bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider shadow-sm animate-fade-in"
+                title={`Draf tersimpan ${new Date(lastSavedAt).toLocaleString('id-ID')}`}
+              >
+                <Check className="h-2.5 w-2.5" />
+                <span>Tersimpan {formatRelativeSaved(lastSavedAt)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
