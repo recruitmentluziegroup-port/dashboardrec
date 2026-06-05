@@ -17,6 +17,57 @@ import { Applicant } from './src/types';
 const app = express();
 const PORT = 3000;
 
+// ─── Public status-check rate limiter (in-memory, per-instance) ────────────
+// 5 attempts per 10 minutes per IP. Resets on cold start (acceptable: no PII
+// leaked on failure — only the existence of a valid ID is exposed, which the
+// candidate already knows).
+const statusRateLimit = new Map<string, { count: number; resetAt: number }>();
+const STATUS_RATE_LIMIT_MAX = 5;
+const STATUS_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+
+function getClientIp(req: express.Request): string {
+  const xff = req.headers['x-forwarded-for'];
+  if (typeof xff === 'string' && xff.length > 0) {
+    return xff.split(',')[0].trim();
+  }
+  if (Array.isArray(xff) && xff.length > 0) {
+    return String(xff[0]).split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
+function checkStatusRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
+  const now = Date.now();
+  const entry = statusRateLimit.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    statusRateLimit.set(ip, { count: 1, resetAt: now + STATUS_RATE_LIMIT_WINDOW_MS });
+    return { allowed: true, retryAfter: 0 };
+  }
+  if (entry.count >= STATUS_RATE_LIMIT_MAX) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+  entry.count++;
+  return { allowed: true, retryAfter: 0 };
+}
+
+function statusLabelId(s: string): 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos' {
+  switch (s) {
+    case 'Reviewed':
+      return 'Sedang Ditinjau';
+    case 'Accepted':
+      return 'Diterima';
+    case 'Rejected':
+      return 'Tidak Lolos';
+    default:
+      return 'Belum Direview';
+  }
+}
+
+function normalizeStatus(s: string): 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected' {
+  if (s === 'Reviewed' || s === 'Accepted' || s === 'Rejected') return s;
+  return 'Pending';
+}
+
 // Body parser with 10mb payload limit to handle complex JSON from form submissions
 app.use(express.json({ limit: '10mb' }));
 
@@ -127,6 +178,57 @@ app.use(express.json({ limit: '10mb' }));
     } catch (error) {
       console.error('Error reading vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil data lowongan pekerjaan.' });
+    }
+  });
+
+  // PUBLIC: Status check — candidate verifies with their application ID and the
+  // last 4 digits of their KTP. Returns ONLY sanitized data (no PII).
+  app.get('/api/status', async (req, res) => {
+    // 1. Rate limit
+    const ip = getClientIp(req);
+    const rl = checkStatusRateLimit(ip);
+    if (!rl.allowed) {
+      res.setHeader('Retry-After', String(rl.retryAfter));
+      console.warn(`[status] rate limit exceeded for ip=${ip}`);
+      return res.status(429).json({
+        error: 'Terlalu banyak percobaan. Silakan coba lagi dalam beberapa menit.',
+      });
+    }
+
+    // 2. Validate query params
+    const id = String((req.query as any)?.id ?? '').trim();
+    const last4 = String((req.query as any)?.last4 ?? '').trim();
+    if (!id || !/^APP-[0-9A-F]{8}$/i.test(id)) {
+      return res.status(400).json({ error: 'ID lamaran tidak valid.' });
+    }
+    if (!/^\d{4}$/.test(last4)) {
+      return res.status(400).json({ error: '4 digit terakhir KTP tidak valid.' });
+    }
+
+    // 3. Look up applicant and verify last 4 digits of KTP
+    try {
+      const applicant = await getRowById(id);
+      if (!applicant) {
+        return res.status(404).json({ error: 'Data lamaran tidak ditemukan atau verifikasi tidak cocok.' });
+      }
+      // nomorKtp may be a number in Sheets — coerce safely.
+      const ktpLast4 = String(applicant.nomorKtp ?? '').slice(-4);
+      if (!ktpLast4 || ktpLast4 !== last4) {
+        return res.status(404).json({ error: 'Data lamaran tidak ditemukan atau verifikasi tidak cocok.' });
+      }
+
+      // 4. Sanitized payload — no PII exposed
+      return res.json({
+        id: applicant.id,
+        status: normalizeStatus(applicant.status),
+        statusLabelId: statusLabelId(applicant.status),
+        submissionDate: applicant.submissionDate,
+        lastUpdated: applicant.lastUpdated,
+        jabatanDituju: applicant.jabatanDituju,
+      });
+    } catch (err: any) {
+      console.error('[status] internal error:', err);
+      return res.status(500).json({ error: 'Terjadi kesalahan pada server. Silakan coba lagi.' });
     }
   });
 

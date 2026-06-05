@@ -4,10 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { FormWizard } from './components/FormWizard';
 import { AdminPanel } from './components/AdminPanel';
-import { ShieldAlert, KeyRound, CheckCircle2, Copy, FileText, ExternalLink, HelpCircle, User, Users, ArrowLeft } from 'lucide-react';
+import { StatusLookupPage } from './components/StatusLookupPage';
+import { ShieldAlert, KeyRound, CheckCircle2, Copy, FileText, ExternalLink, HelpCircle, User, Users, ArrowLeft, Search } from 'lucide-react';
 
 // -----------------------------------------------------------------
 // Route Protection Guard
@@ -72,7 +73,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 // -----------------------------------------------------------------
 const ApplicationSuccess: React.FC = () => {
   const navigate = useNavigate();
-  const applicantId = sessionStorage.getItem('luzie_submitted_id') || 'APP-UNKNOWN';
+  const [searchParams] = useSearchParams();
+  const applicantId =
+    searchParams.get('id') || sessionStorage.getItem('luzie_submitted_id') || 'APP-UNKNOWN';
   const name = sessionStorage.getItem('luzie_submitted_name') || 'Pelamar';
   const [copied, setCopied] = useState(false);
 
@@ -149,6 +152,20 @@ const ApplicationSuccess: React.FC = () => {
         >
           Isi Formulir Baru
         </button>
+
+        <button
+          onClick={() => navigate(`/lacak?id=${applicantId}`)}
+          className="w-full bg-white hover:bg-brand-50 text-brand-600 border border-brand-500 font-bold text-sm rounded-[--radius-bento] py-3.5 shadow-[--shadow-bento] transition-all cursor-pointer flex items-center justify-center space-x-1.5"
+        >
+          <Search className="h-4 w-4" />
+          <span>Lacak Status Lamaran</span>
+        </button>
+
+        <p className="text-[10px] text-stone-500 font-medium leading-relaxed pt-1">
+          Bookmark halaman ini atau simpan nomor{' '}
+          <span className="font-mono font-bold text-stone-700">{applicantId}</span>{' '}
+          untuk mengecek status nanti.
+        </p>
       </div>
     </div>
   );
@@ -379,23 +396,38 @@ const RoleSelectionPage: React.FC = () => {
 
         {/* Roles Grid — bento cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-          {/* Candidate Option */}
-          <button
-            onClick={() => navigate('/apply')}
-            className="group p-5 border border-bento-sand hover:border-brand-400 bg-white hover:bg-brand-50/30 rounded-[--radius-bento] transition-all duration-300 text-left shadow-[--shadow-bento] hover:shadow-lg cursor-pointer flex flex-col justify-between space-y-4 bento-card"
-          >
-            <div className="p-3 bg-brand-50 text-brand-600 rounded-xl w-fit group-hover:scale-110 transition-transform">
-              <User className="h-5 w-5" />
+          {/* Candidate Option — primary CTA + secondary "Lacak" action */}
+          <div className="group p-5 border border-bento-sand hover:border-brand-400 bg-white hover:bg-brand-50/30 rounded-[--radius-bento] transition-all duration-300 text-left shadow-[--shadow-bento] hover:shadow-lg bento-card flex flex-col space-y-3">
+            <button
+              type="button"
+              onClick={() => navigate('/apply')}
+              className="cursor-pointer flex flex-col justify-between space-y-4 text-left w-full"
+            >
+              <div className="p-3 bg-brand-50 text-brand-600 rounded-xl w-fit group-hover:scale-110 transition-transform">
+                <User className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-extrabold text-editorial-navy text-sm group-hover:text-brand-600 transition-colors">
+                  Pelamar
+                </h3>
+                <p className="text-[11px] text-stone-500 leading-normal font-medium">
+                  Selesaikan administrasi berkas anda secara lengkap dan detail disini.
+                </p>
+              </div>
+            </button>
+
+            <div className="border-t border-bento-sand pt-2.5">
+              <button
+                type="button"
+                onClick={() => navigate('/lacak')}
+                aria-label="Lacak status lamaran"
+                className="cursor-pointer text-[11px] font-bold text-brand-600 hover:text-amber-600 transition-colors flex items-center space-x-1.5"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Lacak status lamaran →</span>
+              </button>
             </div>
-            <div className="space-y-1">
-              <h3 className="font-extrabold text-editorial-navy text-sm group-hover:text-brand-600 transition-colors">
-                Pelamar
-              </h3>
-              <p className="text-[11px] text-stone-500 leading-normal font-medium">
-                Selesaikan administrasi berkas anda secara lengkap dan detail disini.
-              </p>
-            </div>
-          </button>
+          </div>
 
           {/* Admin Option */}
           <button
@@ -446,6 +478,7 @@ export default function App() {
         <Route path="/" element={<RoleSelectionPage />} />
         <Route path="/apply" element={<CandidateFormPage />} />
         <Route path="/success" element={<ApplicationSuccess />} />
+        <Route path="/lacak" element={<StatusLookupPage />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/admin"
