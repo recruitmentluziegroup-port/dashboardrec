@@ -258,12 +258,12 @@ export const StatusLookupPage: React.FC = () => {
                   autoComplete="off"
                   placeholder="••••"
                   value={last4}
-                  onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  maxLength={4}
+                  onChange={(e) => setLast4(e.target.value.replace(/\D/g, '').slice(-4))}
+                  maxLength={16}
                   className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-base text-stone-800 font-mono font-medium outline-hidden transition-all duration-200 tracking-[0.5em] text-center"
                 />
                 <p className="text-[10px] text-stone-400 font-medium">
-                  4 digit angka terakhir dari nomor KTP (NIK) yang Anda daftarkan.
+                  Ketik atau tempel 4 digit terakhir KTP. Jika menempel KTP lengkap, kami otomatis mengambil 4 digit terakhir.
                 </p>
               </div>
 
