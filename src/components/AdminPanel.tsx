@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save } from 'lucide-react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
+import { PrintableDetail } from './dashboard/PrintableDetail';
 
 // Indonesian label for each status (used in list and detail badges)
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -33,6 +34,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [candidates, setCandidates] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
 
   // View state tracking
   const [viewMode, setViewMode] = useState<'dashboard' | 'list' | 'vacancies'>('dashboard');
@@ -52,6 +54,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
   // Active section tab inside individual candidate detail view
   const [activeDetailTab, setActiveDetailTab] = useState<number>(1);
+
+  // Print Mode state tracking
+  const [isPrintMode, setIsPrintMode] = useState(false);
 
   // Vacancies manager states
   const [vacancies, setVacancies] = useState<any[]>([]);
@@ -138,6 +143,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
       if (res.ok && json.data) {
         setCandidates(json.data);
+        setLastSyncAt(new Date());
       } else {
         setError(json.error || 'Gagal memuat daftar pelamar dari Google Sheets.');
       }
@@ -357,13 +363,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   // Quick tabs toggles referencing recruit screenshot
   const handleNavTabClick = (mode: 'dashboard' | 'list' | 'vacancies') => {
     setSelectedId(null); // clear individual view to show overview
+    setIsPrintMode(false);
     setViewMode(mode);
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-stone-900" id="admin-panel-master">
       {/* Top Navbar styled after recruit mockup */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-stone-100 shadow-xs h-16 flex items-center justify-between px-6">
+      <nav className="no-print sticky top-0 z-50 bg-white border-b border-stone-100 shadow-xs h-16 flex items-center justify-between px-6">
         {/* Left Side: Brand Logo */}
         <div className="flex items-center space-x-8">
           <div className="flex items-center space-x-2 select-none">
@@ -563,7 +570,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       </nav>
 
       {/* Main Body */}
-      <main className="max-w-7xl mx-auto py-8 px-6">
+      <main className="grain-overlay max-w-7xl mx-auto py-8 px-6">
         {!selectedId ? (
           <>
             {/* Header Title and Dynamic Filter view selectors */}
@@ -615,11 +622,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 </button>
               </div>
             ) : viewMode === 'dashboard' ? (
-              <AdminDashboard 
-                applicants={candidates} 
-                onSelectApplicant={(id) => setSelectedId(id)} 
-                onViewAll={() => setViewMode('list')} 
+              <AdminDashboard
+                applicants={candidates}
+                onSelectApplicant={(id) => setSelectedId(id)}
+                onViewAll={() => setViewMode('list')}
                 vacancies={vacancies}
+                adminEmail={adminEmail}
+                lastSyncAt={lastSyncAt}
               />
             ) : viewMode === 'vacancies' ? (
               <VacancyManager
@@ -765,9 +774,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           // DETAILED CANDIDATE LAYOUT VIEW
           <div className="space-y-6">
             {/* Top Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 pb-4 border-b border-stone-200">
+            <div className="no-print flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0 pb-4 border-b border-stone-200">
               <button
-                onClick={() => setSelectedId(null)}
+                onClick={() => { setSelectedId(null); setIsPrintMode(false); }}
                 className="flex items-center space-x-2 text-stone-600 hover:text-stone-900 border border-stone-200 bg-white rounded-xl px-4 py-2.5 text-xs font-bold shadow-xs transition-all cursor-pointer self-start"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -787,6 +796,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <span>{isEditing ? 'Batal Edit' : 'Edit Formulir'}</span>
                 </button>
                 <button
+                  onClick={() => setIsPrintMode(true)}
+                  className="flex items-center justify-center border border-stone-200 bg-white text-stone-700 hover:border-brand-500 hover:text-brand-500 text-xs font-bold rounded-xl px-3 py-2.5 shadow-xs transition-all cursor-pointer"
+                  title="Mode Cetak — tampilkan tampilan siap-cetak di layar"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+                <button
                   onClick={() => handleTriggerPdfDownload(selectedId)}
                   className="flex items-center space-x-2 bg-brand-500 text-white hover:bg-brand-600 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
                 >
@@ -796,7 +812,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               </div>
             </div>
 
-            {/* Main Info Card Layout */}
+            {/* Main Info Card Layout (or printable view) */}
+            {isPrintMode && selectedCandidate ? (
+              <div className="space-y-4 print-only">
+                <div className="no-print flex items-center justify-between sticky top-20 z-10 bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
+                  <button
+                    onClick={() => setIsPrintMode(false)}
+                    className="flex items-center space-x-2 text-stone-600 hover:text-stone-900 border border-stone-200 bg-white rounded-xl px-4 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Keluar Mode Cetak</span>
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="flex items-center space-x-2 bg-brand-500 text-white hover:bg-brand-600 text-xs font-bold rounded-xl px-4 py-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Printer className="h-4 w-4" />
+                    <span>Cetak (Print Browser)</span>
+                  </button>
+                </div>
+                <PrintableDetail applicant={selectedCandidate} />
+              </div>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left detail area: all sections */}
               <div className="lg:col-span-2 space-y-6">
@@ -1565,6 +1602,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 )}
               </div>
             </div>
+            )}
           </div>
         )}
       </main>

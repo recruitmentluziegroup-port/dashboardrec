@@ -1,17 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { 
-  Sliders, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  MoreHorizontal, 
-  FileText, 
-  ChevronDown, 
-  Plus, 
-  Briefcase, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Sliders,
+  MapPin,
+  Calendar,
+  Clock,
+  MoreHorizontal,
+  FileText,
+  ChevronDown,
+  Plus,
+  Briefcase,
+  CheckCircle2,
+  XCircle,
   Users,
   Filter,
   X,
@@ -22,15 +22,78 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { Applicant } from '../types';
+import { GreetingBar } from './dashboard/GreetingBar';
+import { CountUp } from './dashboard/CountUp';
+import { Sparkline } from './dashboard/Sparkline';
+import { RecruitmentFunnel } from './dashboard/RecruitmentFunnel';
 
 interface DashboardProps {
   applicants: Applicant[];
   onSelectApplicant: (id: string) => void;
   onViewAll?: () => void;
   vacancies?: any[];
+  adminEmail?: string;
+  lastSyncAt?: Date | null;
 }
 
-export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectApplicant, onViewAll, vacancies = [] }) => {
+interface TimelinePoint {
+  name: string;
+  application: number;
+  previous: number;
+  fullLabel: string;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{ dataKey: string; value: number; color: string; payload?: TimelinePoint }>;
+  label?: string;
+}
+
+const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label }) => {
+  if (!active || !payload || !payload.length) return null;
+  const dataPoint = payload[0]?.payload;
+  const fullLabel = dataPoint?.fullLabel ?? label ?? '';
+  const current = payload.find(p => p.dataKey === 'application')?.value ?? 0;
+  const previous = payload.find(p => p.dataKey === 'previous')?.value ?? 0;
+  const delta = current - previous;
+  const deltaPct = previous === 0
+    ? (current > 0 ? 100 : 0)
+    : Math.round((delta / previous) * 100);
+
+  return (
+    <div className="bg-slate-800 text-white rounded-xl p-3 shadow-2xl text-xs space-y-1.5 min-w-[160px]">
+      <div className="font-extrabold text-stone-200 uppercase tracking-wider text-[10px]">
+        {fullLabel}
+      </div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-serif font-black text-xl leading-none text-white">
+          {current}
+        </span>
+        <span className="text-stone-400 text-[10px]">lamaran</span>
+      </div>
+      {previous > 0 || current > 0 ? (
+        <div className="flex items-center gap-1.5 text-[10px] pt-1 border-t border-slate-700">
+          <span className="text-stone-400">Periode sebelumnya:</span>
+          <span className="text-stone-200 font-bold">{previous}</span>
+          {previous > 0 && (
+            <span className={delta >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+              {delta >= 0 ? '+' : ''}{deltaPct}%
+            </span>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+export const AdminDashboard: React.FC<DashboardProps> = ({
+  applicants,
+  onSelectApplicant,
+  onViewAll,
+  vacancies = [],
+  adminEmail = '',
+  lastSyncAt = null,
+}) => {
   const [timeRange, setTimeRange] = useState<'12m' | '30d' | '7l'>('12m');
 
   // Helper to map search raw position to official vacancy title loaded from backend server
@@ -115,8 +178,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       totalApps: totalActual,
       pending: pendingActual,
       shortlisted: shortlistedActual,
+      reviewedCount: reviewedActual,
       hired: acceptedActual,
-      rejected: rejectedActual
+      rejected: rejectedActual,
+      interviewHR: interviewHRActual,
+      interviewUser: interviewUserActual,
     };
   }, [filteredApplicants]);
 
@@ -154,10 +220,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
       let pctChange = 0;
       if (previousMonthCount > 0) {
-        pctChange = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 105; // Slightly scaled relative change to make sample datasets feel alive, or standard pct if real
         pctChange = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 100;
       } else if (currentMonthCount > 0) {
-        pctChange = 100; // 100% scale up from zero
+        pctChange = 100;
       }
 
       return {
@@ -184,11 +249,39 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
     return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
   }, []);
 
+  // Sparkline data: 7-day daily counts per KPI filter
+  const sparklineData = useMemo(() => {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+
+    const computeForFilter = (filter: (a: Applicant) => boolean): number[] => {
+      const counts = [0, 0, 0, 0, 0, 0, 0];
+      applicants.forEach((app) => {
+        if (!filter(app)) return;
+        const date = parseSubmissionDate(app.submissionDate);
+        if (!date || date < sevenDaysAgo || date > now) return;
+        const dayIdx = Math.min(6, Math.floor((date.getTime() - sevenDaysAgo.getTime()) / (24 * 60 * 60 * 1000)));
+        counts[dayIdx]++;
+      });
+      return counts;
+    };
+
+    return {
+      total: computeForFilter(() => true),
+      pending: computeForFilter((a) => a.status === 'Pending'),
+      shortlisted: computeForFilter((a) =>
+        a.status === 'Reviewed' || a.status === 'Interview HR' || a.status === 'Interview User'
+      ),
+      hired: computeForFilter((a) => a.status === 'Accepted'),
+      rejected: computeForFilter((a) => a.status === 'Rejected'),
+    };
+  }, [applicants]);
+
   // Compute gender comparison statistics (Laki-laki vs Perempuan)
   const genderStats = useMemo(() => {
     let male = 0;
     let female = 0;
-    
+
     filteredApplicants.forEach((app) => {
       const jk = (app.jenisKelamin || '').toLowerCase().trim();
       if (jk === 'laki-laki' || jk === 'laki' || jk === 'pria' || jk === 'l') {
@@ -198,7 +291,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       }
     });
 
-    // Fallback data if database has no records so the chart shows beautifully
     if (male === 0 && female === 0) {
       male = Math.max(1, Math.floor(applicants.length * 0.55)) || 15;
       female = Math.max(1, Math.floor(applicants.length * 0.45)) || 12;
@@ -215,66 +307,89 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
   }, [filteredApplicants, applicants]);
 
   // Aggregated timeline charts counting candidate applications month by month or day by day
-  const timelineData = useMemo(() => {
-    const dayCounts = Array(7).fill(0);
-    const weekCounts = [0, 0, 0, 0];
-    const monthCounts = Array(12).fill(0);
-
-    filteredApplicants.forEach((app) => {
-      const date = parseSubmissionDate(app.submissionDate);
-      if (!date) return;
-
-      const m = date.getMonth();
-      monthCounts[m]++;
-
-      const dayVal = date.getDate();
-      const wIdx = Math.min(Math.floor((dayVal - 1) / 7), 3);
-      weekCounts[wIdx]++;
-
-      const wDay = (date.getDay() + 6) % 7;
-      dayCounts[wDay]++;
-    });
+  const timelineData = useMemo<TimelinePoint[]>(() => {
+    const now = new Date();
 
     if (timeRange === '7l') {
       const daysAbbr = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-      const now = new Date();
       const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      const recentDayCounts = Array(7).fill(0);
+      const fourteenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13);
+      const currentDayCounts = [0, 0, 0, 0, 0, 0, 0];
+      const previousDayCounts = [0, 0, 0, 0, 0, 0, 0];
       filteredApplicants.forEach((app) => {
         const date = parseSubmissionDate(app.submissionDate);
         if (!date) return;
-        if (date < sevenDaysAgo || date > now) return;
-        const wDay = (date.getDay() + 6) % 7;
-        recentDayCounts[wDay]++;
+        if (date >= sevenDaysAgo && date <= now) {
+          const wDay = (date.getDay() + 6) % 7;
+          currentDayCounts[wDay]++;
+        } else if (date >= fourteenDaysAgo && date < sevenDaysAgo) {
+          const wDay = (date.getDay() + 6) % 7;
+          previousDayCounts[wDay]++;
+        }
       });
-      return daysAbbr.map((dName, idx) => ({
-        name: dName,
-        application: recentDayCounts[idx]
-      }));
-    }
-    if (timeRange === '30d') {
-      const weeksAbbr = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-      const recentWeekCounts = [0, 0, 0, 0];
-      filteredApplicants.forEach((app) => {
-        const date = parseSubmissionDate(app.submissionDate);
-        if (!date) return;
-        if (date < thirtyDaysAgo || date > now) return;
-        const dayVal = date.getDate();
-        const wIdx = Math.min(Math.floor((dayVal - 1) / 7), 3);
-        recentWeekCounts[wIdx]++;
+      return daysAbbr.map((dName, idx) => {
+        const refDate = new Date(sevenDaysAgo);
+        refDate.setDate(refDate.getDate() + idx);
+        const fullLabel = `${dName}, ${refDate.getDate()} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][refDate.getMonth()]}`;
+        return {
+          name: dName,
+          application: currentDayCounts[idx],
+          previous: previousDayCounts[idx],
+          fullLabel,
+        };
       });
-      return weeksAbbr.map((wName, idx) => ({
-        name: wName,
-        application: recentWeekCounts[idx]
-      }));
     }
 
+    if (timeRange === '30d') {
+      const weeksAbbr = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
+      const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      const sixtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 59);
+      const currentWeekCounts = [0, 0, 0, 0];
+      const previousWeekCounts = [0, 0, 0, 0];
+      filteredApplicants.forEach((app) => {
+        const date = parseSubmissionDate(app.submissionDate);
+        if (!date) return;
+        if (date >= thirtyDaysAgo && date <= now) {
+          const dayVal = date.getDate();
+          const wIdx = Math.min(Math.floor((dayVal - 1) / 7), 3);
+          currentWeekCounts[wIdx]++;
+        } else if (date >= sixtyDaysAgo && date < thirtyDaysAgo) {
+          const dayVal = date.getDate();
+          const wIdx = Math.min(Math.floor((dayVal - 1) / 7), 3);
+          previousWeekCounts[wIdx]++;
+        }
+      });
+      return weeksAbbr.map((wName, idx) => {
+        const startDay = idx * 7 + 1;
+        const endDay = Math.min(startDay + 6, 30);
+        const fullLabel = `${wName} (${startDay}–${endDay} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][now.getMonth()]} ${now.getFullYear()})`;
+        return {
+          name: wName,
+          application: currentWeekCounts[idx],
+          previous: previousWeekCounts[idx],
+          fullLabel,
+        };
+      });
+    }
+
+    // 12m mode
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const currentYear = now.getFullYear();
+    const previousYear = currentYear - 1;
+    const currentMonthCounts = Array(12).fill(0);
+    const previousMonthCounts = Array(12).fill(0);
+    filteredApplicants.forEach((app) => {
+      const date = parseSubmissionDate(app.submissionDate);
+      if (!date) return;
+      const m = date.getMonth();
+      if (date.getFullYear() === currentYear) currentMonthCounts[m]++;
+      else if (date.getFullYear() === previousYear) previousMonthCounts[m]++;
+    });
     return months.map((mName, idx) => ({
       name: mName,
-      application: monthCounts[idx]
+      application: currentMonthCounts[idx],
+      previous: previousMonthCounts[idx],
+      fullLabel: `${mName} ${currentYear}`,
     }));
   }, [filteredApplicants, timeRange]);
 
@@ -320,7 +435,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       }
     });
 
-    // If there are less than 3 total live alert items, add a generic offline admin helper list
     if (list.length < 3) {
       list.push({
         id: 'sys-1',
@@ -338,150 +452,152 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
       });
     }
 
-    return list.slice(0, 5); // display max 5 items
+    return list.slice(0, 5);
   }, [applicants]);
 
   return (
-    <div className="space-y-8 select-none font-sans" id="admin-dashboard-container">
-      {/* 1. Header Area with Single Customize Trigger with popup modal */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
-        <div>
-          <h1 className="font-sans font-extrabold text-2xl text-stone-900 tracking-tight">Overview Dashboard</h1>
-          <p className="text-xs text-stone-400 mt-1">Live recruitment metrics integrated with candidate application sheets.</p>
-        </div>
-        
-        <div className="flex items-center space-x-3 mt-4 sm:mt-0 font-sans text-xs relative">
-          {/* Active Preset indicator */}
-          {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
-            <span className="text-[11px] font-bold text-indigo-650 bg-indigo-50 border border-indigo-150 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 animate-pulse">
-              <span>Filter Aktif</span>
-            </span>
-          )}
+    <div className="space-y-8 select-none font-sans grain-overlay" id="admin-dashboard-container">
+      {/* 1. Greeting bar with live sync indicator */}
+      <GreetingBar adminEmail={adminEmail} lastSyncAt={lastSyncAt} />
 
-          {/* Customize Button & Popover Filter Panel */}
-          <div className="relative">
-            <button 
-              onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
-              className={`flex items-center space-x-2 px-4 py-2.5 border rounded-xl hover:bg-[#F8FAFC] transition-all font-bold cursor-pointer shadow-xs ${
-                isCustomizeOpen || selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all'
-                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                  : 'bg-white border-stone-200 text-stone-700'
-              }`}
-            >
-              <Sliders className="h-4 w-4" />
-              <span>Filter & Kustomisasi</span>
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isCustomizeOpen ? 'rotate-180' : ''}`} />
-            </button>
+      {/* Filter & Kustomisasi trigger (kept as-is, but pulled out of greeting block) */}
+      <div className="flex items-center justify-end font-sans text-xs relative -mt-4">
+        {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
+          <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 mr-2 animate-pulse">
+            <span>Filter Aktif</span>
+          </span>
+        )}
 
-            {/* Dropdown Card */}
-            {isCustomizeOpen && (
-              <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-5 z-50 space-y-4 text-xs animate-in fade-in slide-in-from-top-3 duration-200">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                  <h4 className="font-bold text-stone-900 flex items-center space-x-1.5">
-                    <Filter className="h-3.5 w-3.5 text-indigo-500" />
-                    <span>Konfigurasi Filter</span>
-                  </h4>
-                  {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
-                    <button 
-                      onClick={() => {
-                        setSelectedMonth('all');
-                        setSelectedJob('all');
-                        setSelectedStatus('all');
-                      }}
-                      className="text-[10px] font-black text-red-500 hover:underline"
-                    >
-                      Reset Filter
-                    </button>
-                  )}
-                </div>
+        <div className="relative">
+          <button
+            onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
+            className={`flex items-center space-x-2 px-4 py-2.5 border rounded-xl hover:bg-stone-50 transition-all font-bold cursor-pointer shadow-xs ${
+              isCustomizeOpen || selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                : 'bg-white border-stone-200 text-stone-700'
+            }`}
+          >
+            <Sliders className="h-4 w-4" />
+            <span>Filter & Kustomisasi</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isCustomizeOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-                {/* A. Month Filter inside Popover */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Sesuai Bulan</label>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
-                  >
-                    <option value="all">Semua Bulan (Tahun 2026)</option>
-                    {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((mName, idx) => (
-                      <option key={idx} value={idx.toString()}>{mName}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* B. Job Position Filter */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Jabatan Posisi</label>
-                  <select
-                    value={selectedJob}
-                    onChange={(e) => setSelectedJob(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
-                  >
-                    <option value="all">Semua Formasi Jabatan</option>
-                    {dynamicJobs.map((job, idx) => (
-                      <option key={idx} value={job}>{job}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* C. Status Filter */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Status Pelamar</label>
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
-                  >
-                    <option value="all">Semua Status Pelamar</option>
-                    <option value="Pending">Pending Review (Belum Review)</option>
-                    <option value="Reviewed">Shortlisted</option>
-                    <option value="Interview HR">Wawancara HR (Interview HR)</option>
-                    <option value="Interview User">Wawancara User (Interview User)</option>
-                    <option value="Accepted">Hired (Diterima)</option>
-                    <option value="Rejected">Rejected (Ditolak)</option>
-                  </select>
-                </div>
-
-                <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
-                  <span className="text-[10px] text-stone-400 font-bold">
-                    Ditemukan: <strong className="text-stone-700 font-extrabold">{filteredApplicants.length} Pelamar</strong>
-                  </span>
-                  
+          {isCustomizeOpen && (
+            <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-5 z-50 space-y-4 text-xs animate-in fade-in slide-in-from-top-3 duration-200">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                <h4 className="font-bold text-stone-900 flex items-center space-x-1.5">
+                  <Filter className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Konfigurasi Filter</span>
+                </h4>
+                {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
                   <button
-                    onClick={() => setIsCustomizeOpen(false)}
-                    className="bg-indigo-650 hover:bg-indigo-700 transition-colors text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-xs"
+                    onClick={() => {
+                      setSelectedMonth('all');
+                      setSelectedJob('all');
+                      setSelectedStatus('all');
+                    }}
+                    className="text-[10px] font-black text-rose-500 hover:underline"
                   >
-                    Tutup & Terapkan
+                    Reset Filter
                   </button>
-                </div>
+                )}
               </div>
-            )}
-          </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Sesuai Bulan</label>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                >
+                  <option value="all">Semua Bulan (Tahun 2026)</option>
+                  {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((mName, idx) => (
+                    <option key={idx} value={idx.toString()}>{mName}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Jabatan Posisi</label>
+                <select
+                  value={selectedJob}
+                  onChange={(e) => setSelectedJob(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                >
+                  <option value="all">Semua Formasi Jabatan</option>
+                  {dynamicJobs.map((job, idx) => (
+                    <option key={idx} value={job}>{job}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Status Pelamar</label>
+                <select
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                >
+                  <option value="all">Semua Status Pelamar</option>
+                  <option value="Pending">Pending Review (Belum Review)</option>
+                  <option value="Reviewed">Shortlisted</option>
+                  <option value="Interview HR">Wawancara HR (Interview HR)</option>
+                  <option value="Interview User">Wawancara User (Interview User)</option>
+                  <option value="Accepted">Hired (Diterima)</option>
+                  <option value="Rejected">Rejected (Ditolak)</option>
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
+                <span className="text-[10px] text-stone-400 font-bold">
+                  Ditemukan: <strong className="text-stone-700 font-extrabold">{filteredApplicants.length} Pelamar</strong>
+                </span>
+
+                <button
+                  onClick={() => setIsCustomizeOpen(false)}
+                  className="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-xs"
+                >
+                  Tutup & Terapkan
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 2. Pure Synchronized Row of Stats Cards (5 Columns) without unrequested placeholders */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* 2. KPI Row with sparklines, count-up, Playfair numbers, staggered entrance */}
+      <div
+        className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+        style={{ counterReset: 'kpi' } as React.CSSProperties}
+      >
         {/* Total Application Card */}
-        <div className="p-5 bg-brand-50 rounded-2xl border border-brand-200 shadow-xs flex flex-col justify-between space-y-4 relative">
+        <div
+          className="p-5 bg-brand-50 rounded-2xl border border-brand-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          style={{ ['--i' as any]: 0 }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Total Application</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.totalApps.toLocaleString('id-ID')}
+              <span className="kpi-stat-value text-2xl text-stone-900">
+                <CountUp value={stats.totalApps} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.total.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                kpiStats.total.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 {kpiStats.total.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.total.pct).toFixed(1)}%
               </span>
             </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
+            <Sparkline
+              data={sparklineData.total}
+              color="#F97316"
+              height={28}
+              className="-mx-1"
+            />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% from last month
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
@@ -489,49 +605,67 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Pending Review Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
+        <div
+          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative border-l-4 border-l-amber-400"
+          style={{ ['--i' as any]: 1 }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Pending Review</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.pending.toLocaleString('id-ID')}
+              <span className="kpi-stat-value text-2xl text-stone-900">
+                <CountUp value={stats.pending} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-600'
+                kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
               }`}>
                 {kpiStats.pending.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.pending.pct).toFixed(1)}%
               </span>
             </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
+            <Sparkline
+              data={sparklineData.pending}
+              color="#F59E0B"
+              height={24}
+              className="-mx-1"
+            />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% from last month
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
-        {/* Shortlisted Card (renamed: Sedang di Review — counts Reviewed + Interview HR + Interview User) */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
+        {/* Sedang di Review Card */}
+        <div
+          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          style={{ ['--i' as any]: 2 }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Sedang di Review</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.shortlisted.toLocaleString('id-ID')}
+              <span className="kpi-stat-value text-2xl text-stone-900">
+                <CountUp value={stats.shortlisted} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.shortlisted.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                kpiStats.shortlisted.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 {kpiStats.shortlisted.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.shortlisted.pct).toFixed(1)}%
               </span>
             </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
+            <Sparkline
+              data={sparklineData.shortlisted}
+              color="#4F46E5"
+              height={24}
+              className="-mx-1"
+            />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% from last month
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
@@ -539,24 +673,33 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Hired / Accepted Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
+        <div
+          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          style={{ ['--i' as any]: 3 }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Hired / Accepted</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.hired.toLocaleString('id-ID')}
+              <span className="kpi-stat-value text-2xl text-stone-900">
+                <CountUp value={stats.hired} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.hired.pct >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                kpiStats.hired.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
               }`}>
                 {kpiStats.hired.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.hired.pct).toFixed(1)}%
               </span>
             </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
+            <Sparkline
+              data={sparklineData.hired}
+              color="#10B981"
+              height={24}
+              className="-mx-1"
+            />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% from last month
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
@@ -564,24 +707,33 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
 
         {/* Rejected Card */}
-        <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
+        <div
+          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative border-l-4 border-l-rose-400"
+          style={{ ['--i' as any]: 4 }}
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-stone-500">Rejected Candidates</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="text-2xl font-black text-stone-900 tracking-tight">
-                {stats.rejected.toLocaleString('id-ID')}
+              <span className="kpi-stat-value text-2xl text-stone-900">
+                <CountUp value={stats.rejected} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.rejected.pct >= 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'
+                kpiStats.rejected.pct >= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
               }`}>
                 {kpiStats.rejected.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.rejected.pct).toFixed(1)}%
               </span>
             </div>
-            <span className="text-[10px] text-stone-400 font-bold block">
+            <Sparkline
+              data={sparklineData.rejected}
+              color="#F43F5E"
+              height={24}
+              className="-mx-1"
+            />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% from last month
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
@@ -589,19 +741,33 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
         </div>
       </div>
 
-      {/* 3. Main Split Widgets Section - Swapped Layout */}
+      {/* 3. Recruitment Funnel */}
+      <RecruitmentFunnel
+        stats={{
+          pending: stats.pending,
+          reviewed: stats.reviewedCount,
+          interviewHR: stats.interviewHR,
+          interviewUser: stats.interviewUser,
+          accepted: stats.hired,
+          rejected: stats.rejected,
+        }}
+      />
+
+      {/* 4. Main Split Widgets Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
-        {/* Left Column: Application Chart & Upgraded New Applications Table Panel (Col-Span-2) */}
+        {/* Left Column: Chart & New Applications Table */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Widget 1: Application Received Time Trend AreaChart */}
+          {/* Widget 1: Application Received Time Trend AreaChart with comparison line */}
           <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Application Received Time</h3>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Application Received Time</h3>
+                <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                  Tren lamaran masuk dengan perbandingan periode sebelumnya
+                </p>
               </div>
-              
-              {/* Range select tabs styled after mockup */}
-              <div className="flex bg-[#F1F5F9] p-1 rounded-lg mt-3 sm:mt-0">
+
+              <div className="flex bg-stone-100 p-1 rounded-lg mt-3 sm:mt-0">
                 <button
                   onClick={() => setTimeRange('12m')}
                   className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
@@ -629,7 +795,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               </div>
             </div>
 
-            {/* Recharts Curved Area design with glow gradient */}
             <div className="h-64 antialiased">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
@@ -642,41 +807,57 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                   <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
                   <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '12px', 
-                      backgroundColor: '#1E293B', 
-                      border: 'none', 
-                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                      color: '#FFFFFF'
-                    }}
-                    labelStyle={{ display: 'none' }}
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="application" 
-                    stroke="#4F46E5" 
-                    strokeWidth={3} 
-                    fillOpacity={1} 
-                    fill="url(#glorystatGradient)" 
+                  <Area
+                    type="monotone"
+                    dataKey="application"
+                    stroke="#4F46E5"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#glorystatGradient)"
+                    name="Periode ini"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="previous"
+                    stroke="#A5B4FC"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    fillOpacity={0}
+                    name="Periode sebelumnya"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-end gap-4 text-[10px] font-bold text-stone-500 pt-1">
+              <div className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 bg-indigo-600 rounded-full" />
+                <span>Periode ini</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 border-t-2 border-dashed border-indigo-300" />
+                <span>Periode sebelumnya</span>
+              </div>
+            </div>
           </div>
 
-          {/* Widget 2: NEW APPLICATIONS (Swapped here from bottom-right as prominent table widget!) */}
+          {/* Widget 2: NEW APPLICATIONS Feed */}
           <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">New Applications Feed</h3>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">New Applications Feed</h3>
                 <p className="text-[10px] text-stone-400 font-medium leading-none mt-1">
                   Dynamic recruitment database sync. Filtered view matches your custom parameters.
                 </p>
               </div>
-              <button 
-                onClick={onViewAll} 
-                className="text-xs font-bold text-indigo-650 hover:text-indigo-800 transition-colors cursor-pointer flex items-center space-x-1"
+              <button
+                onClick={onViewAll}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer flex items-center space-x-1"
               >
                 <span>View All</span>
                 <ArrowRight className="h-3 w-3" />
@@ -687,7 +868,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               <div className="py-12 flex flex-col items-center justify-center space-y-2 border border-dashed border-stone-200 rounded-xl bg-stone-50/50">
                 <Users className="h-8 w-8 text-stone-300" />
                 <p className="text-xs text-stone-500 font-bold">Tidak ada pelamar yang cocok dengan kriteria filter.</p>
-                <button 
+                <button
                   onClick={() => {
                     setSelectedMonth('all');
                     setSelectedJob('all');
@@ -710,22 +891,21 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                       <th className="pb-3 text-center text-stone-500 font-bold">Detail</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-150 text-stone-700">
+                  <tbody className="divide-y divide-stone-100 text-stone-700">
                     {latestApplicants.map((app, idx) => {
                       const bgColors = [
-                        'bg-amber-100 text-amber-700', 
-                        'bg-blue-100 text-blue-700', 
-                        'bg-purple-100 text-purple-700', 
+                        'bg-amber-100 text-amber-700',
+                        'bg-blue-100 text-blue-700',
+                        'bg-purple-100 text-purple-700',
                         'bg-emerald-100 text-emerald-700',
                         'bg-pink-100 text-pink-700'
                       ];
                       const initials = (app.namaLengkap || 'PL').substring(0, 2).toUpperCase();
 
-                      const formattedDate = app.submissionDate 
-                        ? new Date(parseSubmissionDate(app.submissionDate) || "").toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                      const formattedDate = app.submissionDate
+                        ? new Date(parseSubmissionDate(app.submissionDate) || '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
                         : 'Beberapa saat yang lalu';
 
-                      // Status styles
                       let statusBadgeClass = 'bg-stone-100 text-stone-600';
                       let statusLabel = app.status || 'Pending';
                       if (app.status === 'Pending') {
@@ -749,7 +929,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                       }
 
                       return (
-                        <tr key={app.id || idx} className="hover:bg-[#F8FAFC]/60 transition-colors">
+                        <tr key={app.id || idx} className="hover:bg-stone-50 transition-colors">
                           <td className="py-3 font-bold text-stone-950">
                             <div className="flex items-center space-x-3">
                               <div className={`h-8 w-8 rounded-full ${bgColors[idx % 5]} text-[10px] font-extrabold flex items-center justify-center shadow-xs`}>
@@ -791,13 +971,13 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           </div>
         </div>
 
-        {/* Right Column: Today's Schedule (Col-Span-1) */}
+        {/* Right Column: Gender + Today's Schedule */}
         <div className="space-y-6">
-          {/* Widget: Jenis Kelamin (Gender Status Chart) */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-150 shadow-xs space-y-4">
+          {/* Widget: Jenis Kelamin */}
+          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
             <div className="flex justify-between items-center pb-1">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Jenis Kelamin Pelamar</h3>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Jenis Kelamin Pelamar</h3>
                 <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
                   Gender comparison feed
                 </p>
@@ -805,7 +985,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-2 py-0.5 rounded-md">Live</span>
             </div>
 
-            {/* Donut Chart & Legend layout */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="h-32 w-32 relative shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -836,7 +1015,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                {/* Total count in center */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
                   <span className="text-lg font-black text-stone-900 leading-none">
                     {(genderStats[0].value + genderStats[1].value).toLocaleString('id-ID')}
@@ -845,7 +1023,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                 </div>
               </div>
 
-              {/* Legends list */}
               <div className="flex-1 w-full space-y-2.5">
                 {genderStats.map((item, idx) => {
                   return (
@@ -869,7 +1046,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
             <div className="flex justify-between items-center pb-1">
               <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-extrabold text-stone-900 tracking-tight">Today's Schedule</h3>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Today's Schedule</h3>
                 <span className="h-5 w-5 bg-indigo-500 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center">
                   {scheduleList.filter(s => s.isLive).length || scheduleList.length}
                 </span>
@@ -879,11 +1056,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               </button>
             </div>
 
-            {/* List entries */}
             <div className="space-y-3">
               {scheduleList.map((sch) => (
-                <div 
-                  key={sch.id} 
+                <div
+                  key={sch.id}
                   onClick={() => {
                     if (sch.applicantId) {
                       onSelectApplicant(sch.applicantId);
@@ -894,7 +1070,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black tracking-normal uppercase whitespace-nowrap block">{sch.time}</span>
                     {sch.applicantId && (
-                      <span className="text-[8px] font-bold bg-[#1E3A8A]/10 text-[#1E3A8A] px-1.5 py-0.5 rounded-md uppercase">Action</span>
+                      <span className="text-[8px] font-bold bg-indigo-900/10 text-indigo-900 px-1.5 py-0.5 rounded-md uppercase">Action</span>
                     )}
                   </div>
                   <span className="text-[11px] font-bold tracking-tight block leading-normal">{sch.title}</span>
@@ -905,7 +1081,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
               ))}
             </div>
 
-            <button className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-650 rounded-xl transition-all cursor-pointer">
+            <button className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-600 rounded-xl transition-all cursor-pointer">
               View Calendar
             </button>
           </div>
