@@ -232,16 +232,37 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
 
     if (timeRange === '7l') {
       const daysAbbr = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      const recentDayCounts = Array(7).fill(0);
+      filteredApplicants.forEach((app) => {
+        const date = parseSubmissionDate(app.submissionDate);
+        if (!date) return;
+        if (date < sevenDaysAgo || date > now) return;
+        const wDay = (date.getDay() + 6) % 7;
+        recentDayCounts[wDay]++;
+      });
       return daysAbbr.map((dName, idx) => ({
         name: dName,
-        application: dayCounts[idx]
+        application: recentDayCounts[idx]
       }));
     }
     if (timeRange === '30d') {
       const weeksAbbr = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
+      const now = new Date();
+      const thirtyDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      const recentWeekCounts = [0, 0, 0, 0];
+      filteredApplicants.forEach((app) => {
+        const date = parseSubmissionDate(app.submissionDate);
+        if (!date) return;
+        if (date < thirtyDaysAgo || date > now) return;
+        const dayVal = date.getDate();
+        const wIdx = Math.min(Math.floor((dayVal - 1) / 7), 3);
+        recentWeekCounts[wIdx]++;
+      });
       return weeksAbbr.map((wName, idx) => ({
         name: wName,
-        application: weekCounts[idx]
+        application: recentWeekCounts[idx]
       }));
     }
 
