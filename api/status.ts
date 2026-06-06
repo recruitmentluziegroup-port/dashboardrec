@@ -81,13 +81,19 @@ async function sheetsFetch<T = any>(pathAndQuery: string, init: RequestInit = {}
   return (await res.json()) as T;
 }
 
-async function getFirstSheetName(): Promise<string> {
-  if (cachedFirstSheetName) return cachedFirstSheetName;
+async function getAllSheetNames(): Promise<string[]> {
   const meta = await sheetsFetch<{ sheets?: { properties?: { title?: string } }[] }>(
     '?fields=sheets.properties.title',
   );
-  const title = meta.sheets?.[0]?.properties?.title;
-  cachedFirstSheetName = title || 'Sheet1';
+  return (meta.sheets || [])
+    .map((s) => s.properties?.title || '')
+    .filter(Boolean);
+}
+
+async function getFirstSheetName(): Promise<string> {
+  if (cachedFirstSheetName) return cachedFirstSheetName;
+  const all = await getAllSheetNames();
+  cachedFirstSheetName = all[0] || 'Sheet1';
   return cachedFirstSheetName;
 }
 
@@ -147,6 +153,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
     return res.status(405).json({ error: 'Metode tidak diizinkan.' });
+  }
+
+  // -------------------------------------------------------------------
+  // DEBUG BRANCH — X-Debug-Status: 1
+  // Bypasses rate limit + input validation. Returns raw sheet structure
+  // for diagnosing lookup failures. Safe to keep in production — the
+  // header is never sent by browsers/fetch/axios.
+  // -------------------------------------------------------------------
+  if (req.headers['x-debug-status'] === '1') {
+    try {
+      const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+      if (!spreadsheetId) {
+        return res.status(500).json({ error: 'GOOGLE_SHEET_ID not set' });
+      }
+      const tabs = await getAllSheetNames();
+      const selectedTab = tabs[0] || 'Sheet1';
+      const data = await sheetsFetch<{ values?: string[][] }>(
+        `/values/${encodeURIComponent(selectedTab)}!A1:BJ`,
+      );
+      const rows = data.values || [];
+      return res.status(200).json({
+        spreadsheetIdPrefix: spreadsheetId.slice(0, 8) + '...',
+        allTabs: tabs,
+        selectedTab,
+        rowCount: rows.length,
+        headerRow: rows[0] || [],
+        firstFiveDataRows: rows.slice(1, 6).map((r) => ({
+          col0_applicantId: r[0] || '',
+          col1_submissionDate: r[1] || '',
+          col2_status: r[2] || '',
+          col3_lastUpdated: r[3] || '',
+          col4_namaLengkap: r[4] || '',
+          col5_tempatLahir: r[5] || '',
+          col6_tanggalLahir: r[6] || '',
+          col12_jenisKelamin: r[12] || '',
+          col13_nomorKtp_raw: r[13] || '',
+          col13_nomorKtp_last4: String(r[13] || '').slice(-4),
+          col14_simC: r[14] || '',
+          col36_jabatanDituju: r[36] || '',
+        })),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   }
 
   const ip = getClientIp(req);
