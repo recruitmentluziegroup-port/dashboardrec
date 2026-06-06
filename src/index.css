@@ -154,6 +154,25 @@ body {
   z-index: 1;
 }
 
+/* Corong Rekrutmen — smooth grid-template-rows collapse transition */
+.funnel-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease, opacity 300ms ease;
+  opacity: 0;
+}
+.funnel-collapse > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.funnel-collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .funnel-collapse { transition: none; }
+}
+
 /* Print stylesheet: hide chrome, let the printable view take over */
 .print-only { display: none; }
 
