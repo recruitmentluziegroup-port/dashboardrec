@@ -4,6 +4,26 @@ import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, 
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
 
+// Indonesian label for each status (used in list and detail badges)
+const STATUS_LABELS: Record<ApplicationStatus, string> = {
+  Pending: 'Belum Direview',
+  Reviewed: 'Sedang di Review',
+  Accepted: 'Lolos Seleksi',
+  Rejected: 'Gugur Seleksi',
+  'Interview HR': 'Wawancara HR',
+  'Interview User': 'Wawancara User',
+};
+
+// Tailwind class for the status badge (used in list and detail pages)
+const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
+  Pending: 'bg-amber-100 text-amber-700 border border-amber-200',
+  Reviewed: 'bg-blue-100 text-blue-700 border border-blue-200',
+  Accepted: 'bg-green-100 text-green-700 border border-green-200',
+  Rejected: 'bg-red-100 text-red-700 border border-red-200',
+  'Interview HR': 'bg-purple-100 text-purple-700 border border-purple-200',
+  'Interview User': 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+};
+
 interface AdminPanelProps {
   onLogout: () => void;
   adminEmail: string;
@@ -324,7 +344,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   };
 
   const notificationList = useMemo(() => {
-    return candidates.filter(c => c.status === 'Pending' || c.status === 'Reviewed');
+    return candidates.filter(c =>
+      c.status === 'Pending' ||
+      c.status === 'Reviewed' ||
+      c.status === 'Interview HR' ||
+      c.status === 'Interview User'
+    );
   }, [candidates]);
 
   const selectedCandidate = candidates.find(c => c.id === selectedId);
@@ -458,10 +483,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     </div>
                   ) : (
                     notificationList.map((c, idx) => {
-                      const isPending = c.status === 'Pending';
+                      const status = c.status;
+                      const isPending = status === 'Pending';
+                      const isReviewed = status === 'Reviewed';
+                      const isInterviewHR = status === 'Interview HR';
+                      const isInterviewUser = status === 'Interview User';
+                      const notifBadgeClass = isPending
+                        ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                        : isReviewed
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-150'
+                        : isInterviewHR
+                        ? 'bg-purple-50 text-purple-700 border border-purple-150'
+                        : isInterviewUser
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                        : 'bg-stone-50 text-stone-700 border border-stone-100';
+                      const notifLabel = isPending
+                        ? 'Verifikasi'
+                        : isReviewed
+                        ? 'Shortlisted'
+                        : isInterviewHR
+                        ? 'Wawancara HR'
+                        : isInterviewUser
+                        ? 'Wawancara User'
+                        : status;
                       return (
-                        <div 
-                          key={c.id || idx} 
+                        <div
+                          key={c.id || idx}
                           onClick={() => {
                             if (c.id) {
                               setSelectedId(c.id);
@@ -472,12 +519,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-stone-900 text-xs truncate max-w-[140px]">{c.namaLengkap}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              isPending 
-                                ? 'bg-amber-50 text-amber-700 border border-amber-100' 
-                                : 'bg-indigo-50 text-indigo-700 border border-indigo-150'
-                            }`}>
-                              {isPending ? 'Verifikasi' : 'Shortlisted'}
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${notifBadgeClass}`}>
+                              {notifLabel}
                             </span>
                           </div>
                           <p className="text-[10px] text-stone-405 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
@@ -617,6 +660,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       <option value="">Semua Status ({candidates.length})</option>
                       <option value="Pending">Belum Direview ({candidates.filter(c => c.status === 'Pending').length})</option>
                       <option value="Reviewed">Sedang Direview ({candidates.filter(c => c.status === 'Reviewed').length})</option>
+                      <option value="Interview HR">Wawancara HR ({candidates.filter(c => c.status === 'Interview HR').length})</option>
+                      <option value="Interview User">Wawancara User ({candidates.filter(c => c.status === 'Interview User').length})</option>
                       <option value="Accepted">Diterima ({candidates.filter(c => c.status === 'Accepted').length})</option>
                       <option value="Rejected">Ditolak ({candidates.filter(c => c.status === 'Rejected').length})</option>
                     </select>
@@ -680,13 +725,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               </td>
                               <td className="py-4 px-5 text-stone-500">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
                               <td className="py-4 px-5">
-                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold ${
-                                  c.status === 'Accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
-                                  c.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
-                                  c.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                  'bg-amber-100 text-amber-700 border border-amber-200'
-                                }`}>
-                                  {c.status === 'Pending' ? 'Belum Direview' : c.status}
+                                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[c.status]}`}>
+                                  {STATUS_LABELS[c.status]}
                                 </span>
                               </td>
                               <td className="py-4 px-5 text-center flex items-center justify-center space-x-1">
@@ -1467,13 +1507,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <div className="space-y-4">
                       {/* Active Status Badge */}
                       <div className="flex items-center space-x-2">
-                        <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold ${
-                          selectedCandidate.status === 'Accepted' ? 'bg-green-100 text-green-700 border border-green-200' :
-                          selectedCandidate.status === 'Rejected' ? 'bg-red-100 text-red-700 border border-red-200' :
-                          selectedCandidate.status === 'Reviewed' ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                          'bg-amber-100 text-amber-700 border border-amber-200'
-                        }`}>
-                          {selectedCandidate.status === 'Pending' ? 'Belum Direview' : selectedCandidate.status}
+                        <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold ${STATUS_BADGE_CLASS[selectedCandidate.status]}`}>
+                          {STATUS_LABELS[selectedCandidate.status]}
                         </span>
                       </div>
 
@@ -1487,6 +1522,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         >
                           <option value="Pending">Belum Direview (Pending)</option>
                           <option value="Reviewed">Sedang Tahap Review (Reviewed)</option>
+                          <option value="Interview HR">Wawancara HR (Interview HR)</option>
+                          <option value="Interview User">Wawancara User (Interview User)</option>
                           <option value="Accepted">Lolos Seleksi (Accepted)</option>
                           <option value="Rejected">Gugur Seleksi (Rejected)</option>
                         </select>

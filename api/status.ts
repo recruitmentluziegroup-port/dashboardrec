@@ -125,7 +125,9 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
   return { allowed: true, retryAfter: 0 };
 }
 
-function statusLabelId(s: string): 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos' {
+function statusLabelId(
+  s: string,
+): 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos' | 'Wawancara HR' | 'Wawancara User' {
   switch (s) {
     case 'Reviewed':
       return 'Sedang Ditinjau';
@@ -133,14 +135,28 @@ function statusLabelId(s: string): 'Belum Direview' | 'Sedang Ditinjau' | 'Diter
       return 'Diterima';
     case 'Rejected':
       return 'Tidak Lolos';
+    case 'Interview HR':
+      return 'Wawancara HR';
+    case 'Interview User':
+      return 'Wawancara User';
     case 'Pending':
     default:
       return 'Belum Direview';
   }
 }
 
-function normalizeStatus(s: string): 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected' {
-  if (s === 'Reviewed' || s === 'Accepted' || s === 'Rejected') return s;
+function normalizeStatus(
+  s: string,
+): 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected' | 'Interview HR' | 'Interview User' {
+  if (
+    s === 'Reviewed' ||
+    s === 'Accepted' ||
+    s === 'Rejected' ||
+    s === 'Interview HR' ||
+    s === 'Interview User'
+  ) {
+    return s;
+  }
   return 'Pending';
 }
 

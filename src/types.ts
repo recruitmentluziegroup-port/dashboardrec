@@ -60,12 +60,26 @@ export interface ReferensiKontak {
   telp: string;
 }
 
-export type ApplicationStatus = 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected';
+export type ApplicationStatus =
+  | 'Pending'
+  | 'Reviewed'
+  | 'Accepted'
+  | 'Rejected'
+  | 'Interview HR'
+  | 'Interview User';
+
+export type StatusLabelId =
+  | 'Belum Direview'
+  | 'Sedang Ditinjau'
+  | 'Diterima'
+  | 'Tidak Lolos'
+  | 'Wawancara HR'
+  | 'Wawancara User';
 
 export interface StatusRecord {
   id: string;
   status: ApplicationStatus;
-  statusLabelId: 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos';
+  statusLabelId: StatusLabelId;
   submissionDate: string;
   lastUpdated: string;
   jabatanDituju: string;

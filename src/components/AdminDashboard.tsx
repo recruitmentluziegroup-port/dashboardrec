@@ -105,13 +105,16 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
     const totalActual = filteredApplicants.length;
     const pendingActual = filteredApplicants.filter((a) => a.status === 'Pending').length;
     const reviewedActual = filteredApplicants.filter((a) => a.status === 'Reviewed').length;
+    const interviewHRActual = filteredApplicants.filter((a) => a.status === 'Interview HR').length;
+    const interviewUserActual = filteredApplicants.filter((a) => a.status === 'Interview User').length;
     const acceptedActual = filteredApplicants.filter((a) => a.status === 'Accepted').length;
     const rejectedActual = filteredApplicants.filter((a) => a.status === 'Rejected').length;
+    const shortlistedActual = reviewedActual + interviewHRActual + interviewUserActual;
 
     return {
       totalApps: totalActual,
       pending: pendingActual,
-      shortlisted: reviewedActual,
+      shortlisted: shortlistedActual,
       hired: acceptedActual,
       rejected: rejectedActual
     };
@@ -167,7 +170,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
     return {
       total: calculateKpi(() => true),
       pending: calculateKpi((a) => a.status === 'Pending'),
-      shortlisted: calculateKpi((a) => a.status === 'Reviewed'),
+      shortlisted: calculateKpi((a) =>
+        a.status === 'Reviewed' || a.status === 'Interview HR' || a.status === 'Interview User'
+      ),
       hired: calculateKpi((a) => a.status === 'Accepted'),
       rejected: calculateKpi((a) => a.status === 'Rejected'),
     };
@@ -431,6 +436,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                     <option value="all">Semua Status Pelamar</option>
                     <option value="Pending">Pending Review (Belum Review)</option>
                     <option value="Reviewed">Shortlisted</option>
+                    <option value="Interview HR">Wawancara HR (Interview HR)</option>
+                    <option value="Interview User">Wawancara User (Interview User)</option>
                     <option value="Accepted">Hired (Diterima)</option>
                     <option value="Rejected">Rejected (Ditolak)</option>
                   </select>
@@ -506,10 +513,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
           </div>
         </div>
 
-        {/* Shortlisted Card */}
+        {/* Shortlisted Card (renamed: Sedang di Review — counts Reviewed + Interview HR + Interview User) */}
         <div className="p-5 bg-white rounded-2xl border border-stone-150 shadow-xs flex flex-col justify-between space-y-4 relative">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Total Shortlisted</span>
+            <span className="text-xs font-bold text-stone-500">Sedang di Review</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
@@ -726,7 +733,13 @@ export const AdminDashboard: React.FC<DashboardProps> = ({ applicants, onSelectA
                         statusLabel = 'Pending Review';
                       } else if (app.status === 'Reviewed') {
                         statusBadgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
-                        statusLabel = 'Shortlisted';
+                        statusLabel = 'Sedang di Review';
+                      } else if (app.status === 'Interview HR') {
+                        statusBadgeClass = 'bg-purple-50 text-purple-600 border border-purple-100';
+                        statusLabel = 'Wawancara HR';
+                      } else if (app.status === 'Interview User') {
+                        statusBadgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+                        statusLabel = 'Wawancara User';
                       } else if (app.status === 'Accepted') {
                         statusBadgeClass = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
                         statusLabel = 'Hired';

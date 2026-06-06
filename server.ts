@@ -12,7 +12,7 @@ import { createServer as createViteServer } from 'vite';
 
 import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
-import { Applicant } from './src/types';
+import { Applicant, ApplicationStatus, StatusLabelId } from './src/types';
 
 const app = express();
 const PORT = 3000;
@@ -50,7 +50,7 @@ function checkStatusRateLimit(ip: string): { allowed: boolean; retryAfter: numbe
   return { allowed: true, retryAfter: 0 };
 }
 
-function statusLabelId(s: string): 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos' {
+function statusLabelId(s: string): StatusLabelId {
   switch (s) {
     case 'Reviewed':
       return 'Sedang Ditinjau';
@@ -58,13 +58,26 @@ function statusLabelId(s: string): 'Belum Direview' | 'Sedang Ditinjau' | 'Diter
       return 'Diterima';
     case 'Rejected':
       return 'Tidak Lolos';
+    case 'Interview HR':
+      return 'Wawancara HR';
+    case 'Interview User':
+      return 'Wawancara User';
+    case 'Pending':
     default:
       return 'Belum Direview';
   }
 }
 
-function normalizeStatus(s: string): 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected' {
-  if (s === 'Reviewed' || s === 'Accepted' || s === 'Rejected') return s;
+function normalizeStatus(s: string): ApplicationStatus {
+  if (
+    s === 'Reviewed' ||
+    s === 'Accepted' ||
+    s === 'Rejected' ||
+    s === 'Interview HR' ||
+    s === 'Interview User'
+  ) {
+    return s;
+  }
   return 'Pending';
 }
 

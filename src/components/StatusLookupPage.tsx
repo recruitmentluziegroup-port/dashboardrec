@@ -26,6 +26,8 @@ import {
   XCircle,
   Hourglass,
   ArrowLeft,
+  UserCheck,
+  Users,
 } from 'lucide-react';
 import type { ApplicationStatus, StatusRecord, StatusResponse } from '../types';
 
@@ -93,6 +95,28 @@ const STATUS_META: Record<
     iconColor: 'text-red-600',
     description:
       'Mohon maaf, pada kesempatan ini kami belum dapat meloloskan Anda. Kami akan menyimpan profil Anda untuk peluang lain di masa depan.',
+  },
+  'Interview HR': {
+    label: 'Wawancara HR',
+    Icon: UserCheck,
+    bg: 'bg-purple-50',
+    border: 'border-purple-200',
+    text: 'text-purple-700',
+    iconWrap: 'bg-purple-100',
+    iconColor: 'text-purple-600',
+    description:
+      'Selamat! Anda lolos ke tahap wawancara dengan tim HR. Tim rekrutmen akan menghubungi Anda untuk penjadwalan wawancara.',
+  },
+  'Interview User': {
+    label: 'Wawancara User',
+    Icon: Users,
+    bg: 'bg-indigo-50',
+    border: 'border-indigo-200',
+    text: 'text-indigo-700',
+    iconWrap: 'bg-indigo-100',
+    iconColor: 'text-indigo-600',
+    description:
+      'Anda lolos ke tahap wawancara dengan calon atasan/team lead. Tim akan menghubungi Anda untuk penjadwalan.',
   },
 };
 
