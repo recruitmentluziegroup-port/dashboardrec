@@ -27,19 +27,12 @@ import {
   Hourglass,
   ArrowLeft,
 } from 'lucide-react';
-import type { ApplicationStatus } from '../types';
+import type { ApplicationStatus, StatusRecord, StatusResponse } from '../types';
 
 // -----------------------------------------------------------------
 // Local types
 // -----------------------------------------------------------------
 type LookupPhase = 'idle' | 'loading' | 'success' | 'error';
-
-interface StatusRecord {
-  status: ApplicationStatus;
-  jabatanDituju: string;
-  submissionDate: string;
-  lastUpdated: string;
-}
 
 // -----------------------------------------------------------------
 // Per-status visual + copy mapping
@@ -142,10 +135,7 @@ export const StatusLookupPage: React.FC = () => {
     try {
       const url = `/api/status?id=${encodeURIComponent(normalizedId)}&last4=${encodeURIComponent(last4)}`;
       const res = await fetch(url, { method: 'GET' });
-      const json = (await res.json().catch(() => ({}))) as {
-        data?: StatusRecord;
-        error?: string;
-      };
+      const json = (await res.json().catch(() => ({}))) as StatusResponse;
 
       if (!res.ok || !json.data) {
         setPhase('error');

@@ -219,12 +219,14 @@ app.use(express.json({ limit: '10mb' }));
 
       // 4. Sanitized payload — no PII exposed
       return res.json({
-        id: applicant.id,
-        status: normalizeStatus(applicant.status),
-        statusLabelId: statusLabelId(applicant.status),
-        submissionDate: applicant.submissionDate,
-        lastUpdated: applicant.lastUpdated,
-        jabatanDituju: applicant.jabatanDituju,
+        data: {
+          id: applicant.id,
+          status: normalizeStatus(applicant.status),
+          statusLabelId: statusLabelId(applicant.status),
+          submissionDate: applicant.submissionDate,
+          lastUpdated: applicant.lastUpdated,
+          jabatanDituju: applicant.jabatanDituju,
+        },
       });
     } catch (err: any) {
       console.error('[status] internal error:', err);

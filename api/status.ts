@@ -251,12 +251,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const rawStatus = (match[2] || 'Pending').toString();
     return res.status(200).json({
-      id: (match[0] || '').toString(),
-      status: normalizeStatus(rawStatus),
-      statusLabelId: statusLabelId(rawStatus),
-      submissionDate: (match[1] || '').toString(),
-      lastUpdated: (match[3] || '').toString(),
-      jabatanDituju: (match[36] || '').toString(),
+      data: {
+        id: (match[0] || '').toString(),
+        status: normalizeStatus(rawStatus),
+        statusLabelId: statusLabelId(rawStatus),
+        submissionDate: (match[1] || '').toString(),
+        lastUpdated: (match[3] || '').toString(),
+        jabatanDituju: (match[36] || '').toString(),
+      },
     });
   } catch (err: any) {
     console.error('[status] internal error:', err);

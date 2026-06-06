@@ -62,6 +62,20 @@ export interface ReferensiKontak {
 
 export type ApplicationStatus = 'Pending' | 'Reviewed' | 'Accepted' | 'Rejected';
 
+export interface StatusRecord {
+  id: string;
+  status: ApplicationStatus;
+  statusLabelId: 'Belum Direview' | 'Sedang Ditinjau' | 'Diterima' | 'Tidak Lolos';
+  submissionDate: string;
+  lastUpdated: string;
+  jabatanDituju: string;
+}
+
+export interface StatusResponse {
+  data?: StatusRecord;
+  error?: string;
+}
+
 export interface Applicant {
   // Metadata
   id: string;
