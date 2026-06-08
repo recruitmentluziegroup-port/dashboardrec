@@ -203,7 +203,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       let currentMonthCount = 0;
       let previousMonthCount = 0;
 
-      applicants.forEach((app) => {
+      filteredApplicants.forEach((app) => {
         if (!filterFn(app)) return;
         const d = parseSubmissionDate(app.submissionDate);
         if (!d) return;
@@ -241,7 +241,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       hired: calculateKpi((a) => a.status === 'Accepted'),
       rejected: calculateKpi((a) => a.status === 'Rejected'),
     };
-  }, [applicants]);
+  }, [filteredApplicants]);
 
   const todayFormatted = useMemo(() => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -256,7 +256,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
     const computeForFilter = (filter: (a: Applicant) => boolean): number[] => {
       const counts = [0, 0, 0, 0, 0, 0, 0];
-      applicants.forEach((app) => {
+      filteredApplicants.forEach((app) => {
         if (!filter(app)) return;
         const date = parseSubmissionDate(app.submissionDate);
         if (!date || date < sevenDaysAgo || date > now) return;
@@ -275,7 +275,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       hired: computeForFilter((a) => a.status === 'Accepted'),
       rejected: computeForFilter((a) => a.status === 'Rejected'),
     };
-  }, [applicants]);
+  }, [filteredApplicants]);
 
   // Compute gender comparison statistics (Laki-laki vs Perempuan)
   const genderStats = useMemo(() => {
@@ -461,7 +461,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       <GreetingBar adminEmail={adminEmail} lastSyncAt={lastSyncAt} />
 
       {/* Filter & Kustomisasi trigger (kept as-is, but pulled out of greeting block) */}
-      <div className="flex items-center justify-end font-sans text-xs relative -mt-4">
+      <div className="flex items-center justify-end font-sans text-xs relative -mt-4 z-20">
         {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
           <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 mr-2 animate-pulse">
             <span>Filter Aktif</span>
