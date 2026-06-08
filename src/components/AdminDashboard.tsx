@@ -582,7 +582,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
               <span className="kpi-stat-value text-2xl text-stone-900">
-                <CountUp value={stats.totalApps} />
+                <CountUp value={kpiStats.total.current} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
                 kpiStats.total.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
@@ -616,7 +616,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
               <span className="kpi-stat-value text-2xl text-stone-900">
-                <CountUp value={stats.pending} />
+                <CountUp value={kpiStats.pending.current} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
                 kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
@@ -650,7 +650,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
               <span className="kpi-stat-value text-2xl text-stone-900">
-                <CountUp value={stats.shortlisted} />
+                <CountUp value={kpiStats.shortlisted.current} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
                 kpiStats.shortlisted.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
@@ -684,7 +684,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
               <span className="kpi-stat-value text-2xl text-stone-900">
-                <CountUp value={stats.hired} />
+                <CountUp value={kpiStats.hired.current} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
                 kpiStats.hired.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
@@ -718,7 +718,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
               <span className="kpi-stat-value text-2xl text-stone-900">
-                <CountUp value={stats.rejected} />
+                <CountUp value={kpiStats.rejected.current} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
                 kpiStats.rejected.pct >= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
