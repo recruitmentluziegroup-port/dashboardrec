@@ -169,7 +169,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 1: Identitas Pribadi */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>1. IDENTITAS PRIBADI</Text>
           </View>
@@ -225,7 +225,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 2: Keluarga & Lingkungan */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>2. KELUARGA & LINGKUNGAN</Text>
           </View>
@@ -315,7 +315,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 3: Riwayat Pendidikan */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>3. RIWAYAT PENDIDIKAN & PELATIHAN</Text>
           </View>
@@ -363,7 +363,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 4: Pengalaman Kerja */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>4. PENGALAMAN KERJA & REFERENSI</Text>
           </View>
@@ -422,7 +422,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 5: Minat & Konsep Diri */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>5. MINAT & KONSEP DIRI</Text>
           </View>
@@ -455,7 +455,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 6: Aktifitas Sosial */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>6. AKTIFITAS SOSIAL & KEMASYARAKATAN</Text>
           </View>
@@ -508,7 +508,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 7: Ekspektasi & Lain-lain */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>7. PRESTASI / EKSPEKTASI & KESEHATAN PRIBADI</Text>
           </View>
@@ -553,7 +553,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
         </View>
 
         {/* Step 8: Referensi Darurat & Pernyataan */}
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>8. REFERENSI KERABAT TERDEKAT & PERNYATAAN</Text>
           </View>
