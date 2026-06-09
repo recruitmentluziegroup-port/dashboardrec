@@ -584,6 +584,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               <span className="kpi-stat-value text-2xl text-stone-900">
                 <CountUp value={stats.totalApps} />
               </span>
+              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
+                kpiStats.total.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+              }`}>
+                {kpiStats.total.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+                {Math.abs(kpiStats.total.pct).toFixed(1)}%
+              </span>
             </div>
             <Sparkline
               data={sparklineData.total}
@@ -591,6 +597,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               height={28}
               className="-mx-1"
             />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+              {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% from last month
+            </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
@@ -609,6 +618,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               <span className="kpi-stat-value text-2xl text-stone-900">
                 <CountUp value={stats.pending} />
               </span>
+              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
+                kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+              }`}>
+                {kpiStats.pending.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+                {Math.abs(kpiStats.pending.pct).toFixed(1)}%
+              </span>
             </div>
             <Sparkline
               data={sparklineData.pending}
@@ -616,6 +631,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               height={24}
               className="-mx-1"
             />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+              {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% from last month
+            </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
@@ -634,6 +652,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               <span className="kpi-stat-value text-2xl text-stone-900">
                 <CountUp value={stats.shortlisted} />
               </span>
+              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
+                kpiStats.shortlisted.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+              }`}>
+                {kpiStats.shortlisted.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+                {Math.abs(kpiStats.shortlisted.pct).toFixed(1)}%
+              </span>
             </div>
             <Sparkline
               data={sparklineData.shortlisted}
@@ -641,6 +665,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               height={24}
               className="-mx-1"
             />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+              {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% from last month
+            </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
@@ -659,6 +686,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               <span className="kpi-stat-value text-2xl text-stone-900">
                 <CountUp value={stats.hired} />
               </span>
+              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
+                kpiStats.hired.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+              }`}>
+                {kpiStats.hired.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+                {Math.abs(kpiStats.hired.pct).toFixed(1)}%
+              </span>
             </div>
             <Sparkline
               data={sparklineData.hired}
@@ -666,6 +699,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               height={24}
               className="-mx-1"
             />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+              {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% from last month
+            </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
@@ -684,6 +720,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               <span className="kpi-stat-value text-2xl text-stone-900">
                 <CountUp value={stats.rejected} />
               </span>
+              <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
+                kpiStats.rejected.pct >= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+              }`}>
+                {kpiStats.rejected.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
+                {Math.abs(kpiStats.rejected.pct).toFixed(1)}%
+              </span>
             </div>
             <Sparkline
               data={sparklineData.rejected}
@@ -691,6 +733,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               height={24}
               className="-mx-1"
             />
+            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+              {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% from last month
+            </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
