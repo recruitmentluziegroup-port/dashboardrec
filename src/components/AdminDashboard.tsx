@@ -205,7 +205,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
       filteredApplicants.forEach((app) => {
         if (!filterFn(app)) return;
-        const d = parseSubmissionDate(app.submissionDate);
+        const d = parseSubmissionDate(app.lastUpdated || app.submissionDate);
         if (!d) return;
 
         const m = d.getMonth();
@@ -258,7 +258,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       const counts = [0, 0, 0, 0, 0, 0, 0];
       filteredApplicants.forEach((app) => {
         if (!filter(app)) return;
-        const date = parseSubmissionDate(app.submissionDate);
+        const date = parseSubmissionDate(app.lastUpdated || app.submissionDate);
         if (!date || date < sevenDaysAgo || date > now) return;
         const dayIdx = Math.min(6, Math.floor((date.getTime() - sevenDaysAgo.getTime()) / (24 * 60 * 60 * 1000)));
         counts[dayIdx]++;
