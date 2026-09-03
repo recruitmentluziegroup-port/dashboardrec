@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays } from 'lucide-react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
 import { PrintableDetail } from './dashboard/PrintableDetail';
-import { TrackerTable } from './TrackerTable';
-import { CalendarAgenda } from './CalendarAgenda';
-import { InterviewModal } from './InterviewModal';
-import type { Interview } from '../lib/interview-links';
 
 // Indonesian label for each status (used in list and detail badges)
 const STATUS_LABELS: Record<ApplicationStatus, string> = {
@@ -41,7 +37,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
 
   // View state tracking
-  const [viewMode, setViewMode] = useState<'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'list' | 'vacancies'>('dashboard');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
@@ -67,40 +63,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [vacanciesLoading, setVacanciesLoading] = useState(false);
   const [vacanciesError, setVacanciesError] = useState<string | null>(null);
   const [vacanciesSuccessMsg, setVacanciesSuccessMsg] = useState<string | null>(null);
-
-  // Interviews (tracker calendar agenda)
-  const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
-  const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
-  const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
-
-  const authHeaders = () => {
-    const token = localStorage.getItem('luzie_admin_token');
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    return headers;
-  };
-
-  const fetchInterviews = async () => {
-    try {
-      const token = localStorage.getItem('luzie_admin_token');
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      const res = await fetch('/api/admin/interviews', { headers });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
-        setInterviews(data);
-      } else if (res.ok && Array.isArray(data?.data)) {
-        setInterviews(data.data);
-      }
-    } catch (err) {
-      console.error('Gagal memuat jadwal wawancara', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchInterviews();
-  }, []);
 
   const fetchVacancies = async () => {
     setVacanciesLoading(true);
@@ -291,87 +253,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     }
   };
 
-  // ─── Interview scheduling (calendar agenda) ──────────────────────────
-  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-
-  const openNewInterviewModal = (prefill?: Partial<Interview>) => {
-    setEditingInterview({
-      id: '', applicantId: '', candidateName: '', position: '', stage: 'Interview HR',
-      date: new Date().toISOString().slice(0, 10), startTime: '09:00', endTime: '10:00',
-      interviewer: '', location: '', link: '', notes: '', ...prefill,
-    } as Interview);
-    setIsInterviewModalOpen(true);
-  };
-
-  const handleSlotClick = (date: string, startHour: number) => {
-    openNewInterviewModal({
-      date,
-      startTime: `${pad2(Math.floor(startHour))}:${startHour % 1 >= 0.5 ? '30' : '00'}`,
-      endTime: `${pad2(Math.floor(startHour) + 1)}:${startHour % 1 >= 0.5 ? '30' : '00'}`,
-    });
-  };
-
-  const handleEventClick = (ev: Interview) => {
-    setEditingInterview(ev);
-    setIsInterviewModalOpen(true);
-  };
-
-  const handleSaveInterview = async (data: Interview) => {
-    try {
-      const isEdit = Boolean(data.id);
-      const url = isEdit ? `/api/admin/interviews/${data.id}` : '/api/admin/interviews';
-      const res = await fetch(url, { method: isEdit ? 'PATCH' : 'POST', headers: authHeaders(), body: JSON.stringify(data) });
-      const json = await res.json().catch(() => ({}));
-      if (res.status === 409) {
-        alert(json.error || 'Jadwal bentrok dengan agenda lain pewawancara tersebut.');
-        return;
-      }
-      if (!res.ok) {
-        alert(json.error || 'Gagal menyimpan jadwal wawancara.');
-        return;
-      }
-      const saved = (json.data || data) as Interview;
-      setInterviews((prev) => (isEdit ? prev.map((iv) => (iv.id === saved.id ? saved : iv)) : [...prev, saved]));
-      setIsInterviewModalOpen(false);
-      setEditingInterview(null);
-      // Auto-update candidate stage to Interview HR/User on create
-      if (!isEdit && (saved.stage === 'Interview HR' || saved.stage === 'Interview User') && saved.applicantId) {
-        const cand = candidates.find((c) => c.id === saved.applicantId);
-        if (cand && cand.status !== saved.stage) {
-          await handleStatusChange(saved.applicantId, saved.stage as ApplicationStatus);
-        }
-      }
-    } catch {
-      alert('Kegagalan jaringan saat menyimpan jadwal.');
-    }
-  };
-
-  const handleDeleteInterview = async (id: string) => {
-    if (!confirm('Hapus jadwal wawancara ini?')) return;
-    try {
-      const res = await fetch(`/api/admin/interviews/${id}`, { method: 'DELETE', headers: authHeaders() });
-      if (!res.ok) {
-        alert('Gagal menghapus jadwal.');
-        return;
-      }
-      setInterviews((prev) => prev.filter((iv) => iv.id !== id));
-      setIsInterviewModalOpen(false);
-      setEditingInterview(null);
-    } catch {
-      alert('Kegagalan jaringan saat menghapus jadwal.');
-    }
-  };
-
-  const handleTrackerStatusChange = async (row: any, newStatus: string) => {
-    if (!row?.title) return;
-    const updated = vacancies.map((v) =>
-      v.title === row.title
-        ? { ...v, status: newStatus, tanggalSelesai: newStatus === 'Closed-Filled' ? new Date().toISOString().slice(0, 10) : v.tanggalSelesai || '' }
-        : v
-    );
-    await saveVacancies(updated);
-  };
-
   // Handle Save of Modified Candidate Data
   const handleSaveEditedForm = async () => {
     if (!editedRecord) return;
@@ -480,7 +361,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const selectedCandidate = candidates.find(c => c.id === selectedId);
 
   // Quick tabs toggles referencing recruit screenshot
-  const handleNavTabClick = (mode: 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar') => {
+  const handleNavTabClick = (mode: 'dashboard' | 'list' | 'vacancies') => {
     setSelectedId(null); // clear individual view to show overview
     setIsPrintMode(false);
     setViewMode(mode);
@@ -535,28 +416,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             >
               <Briefcase className="h-4 w-4" />
               <span>Kelola Lowongan</span>
-            </button>
-            <button
-              onClick={() => handleNavTabClick('tracker')}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'tracker'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <TableProperties className="h-4 w-4" />
-              <span>Treker Posisi</span>
-            </button>
-            <button
-              onClick={() => handleNavTabClick('calendar')}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                viewMode === 'calendar'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
-                  : 'text-stone-500 hover:text-stone-900'
-              }`}
-            >
-              <CalendarDays className="h-4 w-4" />
-              <span>Agenda</span>
             </button>
           </div>
         </div>
@@ -743,22 +602,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   >
                     Lowongan ({vacancies.length})
                   </button>
-                  <button
-                    onClick={() => setViewMode('tracker')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'tracker' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
-                    }`}
-                  >
-                    Treker
-                  </button>
-                  <button
-                    onClick={() => setViewMode('calendar')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
-                    }`}
-                  >
-                    Agenda
-                  </button>
                 </div>
               </div>
             </div>
@@ -786,47 +629,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 vacancies={vacancies}
                 adminEmail={adminEmail}
                 lastSyncAt={lastSyncAt}
-                interviews={interviews}
-                onViewCalendar={() => setViewMode('calendar')}
               />
-            ) : viewMode === 'tracker' ? (
-              <TrackerTable
-                rows={vacancies}
-                onStatusChange={handleTrackerStatusChange}
-                onSelect={(row) => {
-                  if (row?.title) {
-                    setPositionFilter(row.title);
-                    setViewMode('list');
-                  }
-                }}
-              />
-            ) : viewMode === 'calendar' ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-end">
-                  <button
-                    onClick={() => openNewInterviewModal()}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all cursor-pointer"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Jadwalkan Wawancara
-                  </button>
-                </div>
-                <CalendarAgenda
-                  interviews={interviews}
-                  onSlotClick={handleSlotClick}
-                  onEventClick={handleEventClick}
-                  weekAnchor={weekAnchor}
-                  setWeekAnchor={setWeekAnchor}
-                />
-                <InterviewModal
-                  open={isInterviewModalOpen}
-                  initial={editingInterview}
-                  applicants={candidates.map((c) => ({ id: c.id, namaLengkap: c.namaLengkap, jabatanDituju: c.jabatanDituju }))}
-                  onClose={() => { setIsInterviewModalOpen(false); setEditingInterview(null); }}
-                  onSave={handleSaveInterview}
-                  onDelete={handleDeleteInterview}
-                />
-              </div>
             ) : viewMode === 'vacancies' ? (
               <VacancyManager
                 vacancies={vacancies}

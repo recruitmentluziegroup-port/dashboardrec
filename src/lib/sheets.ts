@@ -1,8 +1,7 @@
 import { google } from 'googleapis';
-import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus } from '../types';
+import { Applicant, ApplicationStatus } from '../types';
 
 // Columns mapping mapping to Google Sheets. Total 62 columns.
 const HEADERS = [
@@ -436,19 +435,10 @@ export interface Vacancy {
   description: string;
   requirements: string[];
   archived?: boolean;
-  user?: string;
-  recruiter?: string;
-  tanggalDibuka?: string;
-  tanggalTerakhir?: string;
-  tanggalSelesai?: string;
-  priority?: VacancyPriority;
-  jumlah?: string;
-  gender?: string;
-  status?: VacancyStatus;
 }
 
 const VACANCY_TAB = 'Vacancies';
-const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
+const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived'];
 
 // Hardcoded seed vacancies — used as fallback when Google Sheets is unavailable
 // or the Vacancies tab is empty on first deploy. Mirrors src/data/vacancies.json.
@@ -463,16 +453,7 @@ const SEED_VACANCIES: Vacancy[] = [
       'Minimal lulusan D3/S1 sekalian jurusan (diutamakan Administrasi Perkantoran / Sekretaris)',
       'Sangat fasih mengoperasikan Google Workspace (Sheets, Docs, Slides, Google Calendar)',
       'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap'
-    ],
-    user: '',
-    recruiter: 'All',
-    tanggalDibuka: '',
-    tanggalTerakhir: '',
-    tanggalSelesai: '',
-    priority: 'Normal',
-    jumlah: '1',
-    gender: '',
-    status: 'Open'
+    ]
   },
   {
     title: 'Digital Marketer Specialist',
@@ -484,16 +465,7 @@ const SEED_VACANCIES: Vacancy[] = [
       'Pengalaman kerja langsung minimal 1-2 tahun sebagai Media Buyer / Digital Advertiser',
       'Mahir mengulik platform Google Analytics, Facebook Pixel, serta konversi landing page',
       'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli'
-    ],
-    user: '',
-    recruiter: 'All',
-    tanggalDibuka: '',
-    tanggalTerakhir: '',
-    tanggalSelesai: '',
-    priority: 'Normal',
-    jumlah: '1',
-    gender: '',
-    status: 'Open'
+    ]
   },
   {
     title: 'CEO & Founder Personal Assistant',
@@ -505,16 +477,7 @@ const SEED_VACANCIES: Vacancy[] = [
       'Gelar S1 terkemuka (Manajemen, Bisnis, Hubungan Internasional, atau Hukum disukai)',
       'Fasih berkomunikasi dalam Bahasa Inggris aktif lisan & tulisan tingkat mahir',
       'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu'
-    ],
-    user: '',
-    recruiter: 'All',
-    tanggalDibuka: '',
-    tanggalTerakhir: '',
-    tanggalSelesai: '',
-    priority: 'Normal',
-    jumlah: '1',
-    gender: '',
-    status: 'Open'
+    ]
   },
   {
     title: 'Social Media Management',
@@ -526,16 +489,7 @@ const SEED_VACANCIES: Vacancy[] = [
       'Keahlian tinggi mengoperasikan editor video CapCut, Premiere Pro, atau Adobe After Effects',
       'Mengikuti update tren konten visual, audio, serta cara kerja algoritma media sosial terbaru',
       'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda'
-    ],
-    user: '',
-    recruiter: 'All',
-    tanggalDibuka: '',
-    tanggalTerakhir: '',
-    tanggalSelesai: '',
-    priority: 'Normal',
-    jumlah: '1',
-    gender: '',
-    status: 'Open'
+    ]
   }
 ];
 
@@ -593,7 +547,7 @@ export async function getVacancies(): Promise<Vacancy[]> {
     await ensureVacancyTab(sheets, spreadsheetId);
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${VACANCY_TAB}!A2:P`
+      range: `${VACANCY_TAB}!A2:G`
     });
 
     const rows = response.data.values;
@@ -612,16 +566,7 @@ export async function getVacancies(): Promise<Vacancy[]> {
       salary: row[3] || '',
       description: row[4] || '',
       requirements: parseJsonSafe<string[]>(row[5], []),
-      archived: row[6] === 'true',
-      user: row[7] || '',
-      recruiter: row[8] || '',
-      tanggalDibuka: row[9] || '',
-      tanggalTerakhir: row[10] || '',
-      tanggalSelesai: row[11] || '',
-      priority: (row[12] || 'Normal') as VacancyPriority,
-      jumlah: row[13] || '',
-      gender: row[14] || '',
-      status: (row[15] || (row[6] === 'true' ? 'Closed-Filled' : 'Open')) as VacancyStatus
+      archived: row[6] === 'true'
     })).filter((v: any) => v.title.trim() !== '');
 
     cachedVacancies = fetched;
@@ -670,22 +615,13 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
       v.salary,
       v.description,
       JSON.stringify(v.requirements || []),
-      v.archived ? 'true' : 'false',
-      v.user || '',
-      v.recruiter || '',
-      v.tanggalDibuka || '',
-      v.tanggalTerakhir || '',
-      v.tanggalSelesai || '',
-      v.priority || 'Normal',
-      v.jumlah || '',
-      v.gender || '',
-      v.status || (v.archived ? 'Closed-Filled' : 'Open')
+      v.archived ? 'true' : 'false'
     ]);
 
     // Clear all data rows (preserve header in row 1) then rewrite
     await sheets.spreadsheets.values.clear({
       spreadsheetId,
-      range: `${VACANCY_TAB}!A2:P`
+      range: `${VACANCY_TAB}!A2:G`
     });
     if (rows.length > 0) {
       await sheets.spreadsheets.values.update({
@@ -700,225 +636,4 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
     console.error('Error saving vacancies to Sheets:', error);
     return false;
   }
-}
-
-// ─── Interview Storage ───────────────────────────────────────────────────────
-// Interviews are stored in a dedicated "Interviews" tab in the same Google Sheet.
-// Local dev fallback keeps them in memory (no committed JSON seed).
-
-export const INTERVIEW_TAB = 'Interviews';
-export const INTERVIEW_HEADERS = ['ID', 'Applicant ID', 'Candidate Name', 'Position', 'Stage', 'Date', 'Start Time', 'End Time', 'Interviewer', 'Location', 'Link', 'Notes'];
-
-let cachedInterviews: Interview[] | null = null;
-
-function interviewToRow(iv: Interview): any[] {
-  return [
-    iv.id || '',
-    iv.applicantId || '',
-    iv.candidateName || '',
-    iv.position || '',
-    iv.stage || '',
-    iv.date || '',
-    iv.startTime || '',
-    iv.endTime || '',
-    iv.interviewer || '',
-    iv.location || '',
-    iv.link || '',
-    iv.notes || ''
-  ];
-}
-
-function rowToInterview(row: any[]): Interview {
-  return {
-    id: row[0] || '',
-    applicantId: row[1] || '',
-    candidateName: row[2] || '',
-    position: row[3] || '',
-    stage: (row[4] || 'Interview HR') as Interview['stage'],
-    date: row[5] || '',
-    startTime: row[6] || '',
-    endTime: row[7] || '',
-    interviewer: row[8] || '',
-    location: row[9] || '',
-    link: row[10] || '',
-    notes: row[11] || ''
-  };
-}
-
-async function ensureInterviewTab(sheets: any, spreadsheetId: string): Promise<void> {
-  try {
-    const meta = await sheets.spreadsheets.get({ spreadsheetId });
-    const exists = (meta.data.sheets ?? []).some(
-      (s: any) => s.properties?.title === INTERVIEW_TAB
-    );
-    if (!exists) {
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: { requests: [{ addSheet: { properties: { title: INTERVIEW_TAB } } }] }
-      });
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${INTERVIEW_TAB}!A1`,
-        valueInputOption: 'RAW',
-        requestBody: { values: [INTERVIEW_HEADERS] }
-      });
-    }
-  } catch (error) {
-    console.error('Error ensuring Interviews tab:', error);
-  }
-}
-
-export async function getInterviews(): Promise<Interview[]> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  // Local dev fallback — in-memory only
-  if (!sheets || !spreadsheetId) {
-    if (cachedInterviews) return cachedInterviews;
-    cachedInterviews = [];
-    return cachedInterviews;
-  }
-
-  try {
-    await ensureInterviewTab(sheets, spreadsheetId);
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${INTERVIEW_TAB}!A2:L`
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length === 0) {
-      cachedInterviews = [];
-      return cachedInterviews;
-    }
-
-    const fetched = rows.map((row: any[]) => rowToInterview(row)).filter((iv: Interview) => iv.id !== '');
-    cachedInterviews = fetched;
-    return fetched;
-  } catch (error) {
-    console.error('Error reading interviews from Sheets:', error);
-    if (cachedInterviews) return cachedInterviews;
-    cachedInterviews = [];
-    return cachedInterviews;
-  }
-}
-
-export async function appendInterview(data: Omit<Interview, 'id'>): Promise<Interview> {
-  const interview: Interview = {
-    ...data,
-    id: `INT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
-  };
-
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  // Local dev fallback — in-memory only
-  if (!sheets || !spreadsheetId) {
-    const list = await getInterviews();
-    list.push(interview);
-    cachedInterviews = list;
-    return interview;
-  }
-
-  await ensureInterviewTab(sheets, spreadsheetId);
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${INTERVIEW_TAB}!A:A`,
-    valueInputOption: 'RAW',
-    insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: [interviewToRow(interview)] }
-  });
-  cachedInterviews = null;
-  return interview;
-}
-
-export async function updateInterview(id: string, updatedFields: Partial<Interview>): Promise<Interview | null> {
-  const list = await getInterviews();
-  const index = list.findIndex(iv => iv.id === id);
-  if (index === -1) return null;
-
-  const updated: Interview = { ...list[index], ...updatedFields, id };
-  list[index] = updated;
-
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  // Local dev fallback — in-memory only
-  if (!sheets || !spreadsheetId) {
-    cachedInterviews = list;
-    return updated;
-  }
-
-  try {
-    const sheetRowNumber = index + 2;
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${INTERVIEW_TAB}!A${sheetRowNumber}:L${sheetRowNumber}`,
-      valueInputOption: 'RAW',
-      requestBody: { values: [interviewToRow(updated)] }
-    });
-    cachedInterviews = null;
-    return updated;
-  } catch (error) {
-    console.error(`Error updating interview ${id}:`, error);
-    return null;
-  }
-}
-
-export async function deleteInterview(id: string): Promise<boolean> {
-  const list = await getInterviews();
-  const filtered = list.filter(iv => iv.id !== id);
-  if (filtered.length === list.length) return false;
-
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  // Local dev fallback — in-memory only
-  if (!sheets || !spreadsheetId) {
-    cachedInterviews = filtered;
-    return true;
-  }
-
-  try {
-    await ensureInterviewTab(sheets, spreadsheetId);
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId,
-      range: `${INTERVIEW_TAB}!A2:L`
-    });
-    if (filtered.length > 0) {
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${INTERVIEW_TAB}!A2`,
-        valueInputOption: 'RAW',
-        requestBody: { values: filtered.map(interviewToRow) }
-      });
-    }
-    cachedInterviews = null;
-    return true;
-  } catch (error) {
-    console.error(`Error deleting interview ${id}:`, error);
-    return false;
-  }
-}
-
-function toMin(t: string): number {
-  const [h, m] = String(t || '').split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
-}
-
-// Overlap = same date + intersecting [startTime, endTime) + same interviewer or same applicant.
-export function hasInterviewOverlap(list: Interview[], candidate: Omit<Interview, 'id'> & { id?: string }, excludeId?: string): boolean {
-  const s = toMin(candidate.startTime);
-  const e = toMin(candidate.endTime);
-  return list.some(iv => {
-    if (excludeId && iv.id === excludeId) return false;
-    if (candidate.id && iv.id === candidate.id) return false;
-    if (!iv.date || iv.date !== candidate.date) return false;
-    const sameInterviewer = iv.interviewer && candidate.interviewer && iv.interviewer === candidate.interviewer;
-    const sameApplicant = (iv.applicantId && candidate.applicantId && iv.applicantId === candidate.applicantId) || false;
-    if (!sameInterviewer && !sameApplicant) return false;
-    const os = toMin(iv.startTime);
-    const oe = toMin(iv.endTime);
-    return s < oe && os < e;
-  });
 }
