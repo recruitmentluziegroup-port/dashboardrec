@@ -10,7 +10,7 @@ import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies } from './src/lib/sheets';
+import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant, ApplicationStatus, StatusLabelId } from './src/types';
 
@@ -178,16 +178,48 @@ app.use(express.json({ limit: '10mb' }));
   }
 
   // -------------------------------------------------------------
+  // Validation helpers (tracker + interviews)
+  // -------------------------------------------------------------
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+  const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  function validateVacancies(vacancies: any[]): string | null {
+    for (const v of vacancies) {
+      if (!v || typeof v.title !== 'string' || v.title.trim() === '') return 'Setiap lowongan wajib memiliki Title.';
+      if (v.priority !== undefined && v.priority !== '' && v.priority !== 'Normal' && v.priority !== 'High') return `Priority tidak valid: ${v.priority}.`;
+      if (v.status !== undefined && v.status !== '' && !['Open', 'On Hold', 'Closed-Filled', 'Closed-Unfilled'].includes(v.status)) return `Status tidak valid: ${v.status}.`;
+      for (const d of [v.tanggalDibuka, v.tanggalTerakhir, v.tanggalSelesai]) {
+        if (d !== undefined && d !== '' && !DATE_RE.test(String(d))) return `Format tanggal harus YYYY-MM-DD: ${d}.`;
+      }
+      if (v.requirements !== undefined && !Array.isArray(v.requirements)) return 'Requirements harus berupa array.';
+    }
+    return null;
+  }
+
+  function validateInterviewBody(b: any): string | null {
+    if (!b || typeof b !== 'object') return 'Data jadwal tidak valid.';
+    for (const f of ['applicantId', 'candidateName', 'position', 'interviewer'] as const) {
+      if (!b[f] || String(b[f]).trim() === '') return `Field wajib belum diisi: ${f}.`;
+    }
+    if (b.stage !== 'Interview HR' && b.stage !== 'Interview User') return 'Tahap harus Interview HR atau Interview User.';
+    if (!DATE_RE.test(String(b.date || ''))) return 'Tanggal harus format YYYY-MM-DD.';
+    if (!TIME_RE.test(String(b.startTime || '')) || !TIME_RE.test(String(b.endTime || ''))) return 'Jam mulai/selesai harus format HH:MM.';
+    if (String(b.startTime) >= String(b.endTime)) return 'Jam selesai harus setelah jam mulai.';
+    if (b.link && !/^https?:\/\//i.test(String(b.link))) return 'Link harus diawali http(s)://.';
+    return null;
+  }
+
+  // -------------------------------------------------------------
   // API Endpoints
   // -------------------------------------------------------------
 
   // 0. VACANCIES MANAGEMENT ENDPOINTS
 
-  // PUBLIC: active (non-archived) vacancies only — what candidates see
+  // PUBLIC: active (non-archived, non-closed) vacancies only — what candidates see
   app.get('/api/vacancies', async (req, res) => {
     try {
       const all = await getVacancies();
-      res.json(all.filter((v: any) => v.archived !== true));
+      res.json(all.filter((v: any) => v.archived !== true && v.status !== 'Closed-Filled' && v.status !== 'Closed-Unfilled'));
     } catch (error) {
       console.error('Error reading vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil data lowongan pekerjaan.' });
@@ -264,12 +296,87 @@ app.use(express.json({ limit: '10mb' }));
       if (!Array.isArray(vacancies)) {
         return res.status(400).json({ error: 'Data lowongan harus berupa array.' });
       }
+      const err = validateVacancies(vacancies);
+      if (err) return res.status(400).json({ error: err });
       const ok = await saveVacancies(vacancies);
       if (!ok) return res.status(500).json({ error: 'Gagal menyimpan perubahan lowongan.' });
       res.json({ success: true, message: 'Lowongan pekerjaan berhasil disimpan.' });
     } catch (error) {
       console.error('Error saving vacancies:', error);
       res.status(500).json({ error: 'Gagal merubah rincian lowongan ke server.' });
+    }
+  });
+
+  // ADMIN: interview scheduling — protected
+  app.get('/api/admin/interviews', authMiddleware, async (req, res) => {
+    try {
+      let list = await getInterviews();
+      const { date, interviewer, applicantId } = req.query as any;
+      if (date) list = list.filter((iv) => iv.date === String(date));
+      if (interviewer) list = list.filter((iv) => iv.interviewer.toLowerCase() === String(interviewer).toLowerCase());
+      if (applicantId) list = list.filter((iv) => iv.applicantId === String(applicantId));
+      res.json(list);
+    } catch (error) {
+      console.error('Error reading interviews:', error);
+      res.status(500).json({ error: 'Gagal mengambil jadwal interview.' });
+    }
+  });
+
+  app.post('/api/admin/interviews', authMiddleware, async (req, res) => {
+    try {
+      const err = validateInterviewBody(req.body);
+      if (err) return res.status(400).json({ error: err });
+      const list = await getInterviews();
+      if (hasInterviewOverlap(list, req.body)) {
+        return res.status(409).json({ error: 'Pewawancara sudah memiliki jadwal lain pada waktu tersebut.' });
+      }
+      const created = await appendInterview(req.body);
+      res.status(201).json({ success: true, data: created });
+    } catch (error) {
+      console.error('Error creating interview:', error);
+      res.status(500).json({ error: 'Gagal menyimpan jadwal interview.' });
+    }
+  });
+
+  app.get('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
+    try {
+      const list = await getInterviews();
+      const found = list.find((iv) => iv.id === req.params.id);
+      if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      res.json({ data: found });
+    } catch (error) {
+      console.error('Error reading interview:', error);
+      res.status(500).json({ error: 'Gagal mengambil jadwal interview.' });
+    }
+  });
+
+  app.patch('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
+    try {
+      const list = await getInterviews();
+      const found = list.find((iv) => iv.id === req.params.id);
+      if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      const merged = { ...found, ...req.body, id: found.id };
+      const err = validateInterviewBody(merged);
+      if (err) return res.status(400).json({ error: err });
+      if (hasInterviewOverlap(list, merged, found.id)) {
+        return res.status(409).json({ error: 'Pewawancara sudah memiliki jadwal lain pada waktu tersebut.' });
+      }
+      const updated = await updateInterview(found.id, req.body);
+      res.json({ success: true, data: updated });
+    } catch (error) {
+      console.error('Error updating interview:', error);
+      res.status(500).json({ error: 'Gagal mengubah jadwal interview.' });
+    }
+  });
+
+  app.delete('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
+    try {
+      const ok = await deleteInterview(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting interview:', error);
+      res.status(500).json({ error: 'Gagal menghapus jadwal interview.' });
     }
   });
 
