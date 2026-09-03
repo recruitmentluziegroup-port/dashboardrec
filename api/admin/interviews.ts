@@ -92,15 +92,35 @@ async function readInterviews(): Promise<any[]> {
   return (data.values ?? []).map(fromRow).filter((iv) => iv.id !== '');
 }
 
-function validateInterviewBody(b: any): string | null {
-  if (!b || typeof b !== 'object') return 'Data jadwal tidak valid.';
-  for (const f of ['applicantId', 'candidateName', 'position', 'interviewer']) {
-    if (!b[f] || String(b[f]).trim() === '') return `Field wajib belum diisi: ${f}.`;
+async function rewriteAll(list: any[]): Promise<void> {
+  await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2:L')}:clear`, { method: 'POST' });
+  if (list.length > 0) {
+    await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: list.map(toRow) }) });
   }
-  if (b.stage !== 'Interview HR' && b.stage !== 'Interview User') return 'Tahap harus Interview HR atau Interview User.';
-  if (!DATE_RE.test(String(b.date || ''))) return 'Tanggal harus format YYYY-MM-DD.';
-  if (!TIME_RE.test(String(b.startTime || '')) || !TIME_RE.test(String(b.endTime || ''))) return 'Jam mulai/selesai harus format HH:MM.';
-  if (String(b.startTime) >= String(b.endTime)) return 'Jam selesai harus setelah jam mulai.';
+}
+
+function validateInterviewBody(b: any, partial = false): string | null {
+  if (!b || typeof b !== 'object') return 'Data jadwal tidak valid.';
+  const required = ['applicantId', 'candidateName', 'position', 'interviewer'];
+  for (const f of required) {
+    if (!partial && (!b[f] || String(b[f]).trim() === '')) return `Field wajib belum diisi: ${f}.`;
+    if (partial && f in b && (!b[f] || String(b[f]).trim() === '')) return `Field wajib belum diisi: ${f}.`;
+  }
+  if (!partial || b.stage !== undefined) {
+    if (b.stage !== 'Interview HR' && b.stage !== 'Interview User') return 'Tahap harus Interview HR atau Interview User.';
+  }
+  if (!partial || b.date !== undefined) {
+    if (!DATE_RE.test(String(b.date || ''))) return 'Tanggal harus format YYYY-MM-DD.';
+  }
+  if (!partial || b.startTime !== undefined) {
+    if (!TIME_RE.test(String(b.startTime || ''))) return 'Jam mulai harus format HH:MM.';
+  }
+  if (!partial || b.endTime !== undefined) {
+    if (!TIME_RE.test(String(b.endTime || ''))) return 'Jam selesai harus format HH:MM.';
+  }
+  const start = b.startTime !== undefined ? String(b.startTime) : null;
+  const end = b.endTime !== undefined ? String(b.endTime) : null;
+  if (start !== null && end !== null && start >= end) return 'Jam selesai harus setelah jam mulai.';
   if (b.link && !/^https?:\/\//i.test(String(b.link))) return 'Link harus diawali http(s)://.';
   return null;
 }
@@ -150,16 +170,24 @@ function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);
   if (!email) return;
+  // Single-resource actions arrive via rewrite /api/admin/interviews/:id -> ?id=:id
+  const id = String((req.query as any)?.id ?? '');
 
   if (req.method === 'GET') {
     try {
       await ensureInterviewTab();
-      let list = await readInterviews();
+      const list = await readInterviews();
+      if (id) {
+        const found = list.find((iv) => iv.id === id);
+        if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+        return res.json({ data: found });
+      }
+      let filtered = list;
       const { date, interviewer, applicantId } = (req.query ?? {}) as any;
-      if (date) list = list.filter((iv) => iv.date === String(date));
-      if (interviewer) list = list.filter((iv) => String(iv.interviewer).toLowerCase() === String(interviewer).toLowerCase());
-      if (applicantId) list = list.filter((iv) => iv.applicantId === String(applicantId));
-      return res.json(list);
+      if (date) filtered = filtered.filter((iv) => iv.date === String(date));
+      if (interviewer) filtered = filtered.filter((iv) => String(iv.interviewer).toLowerCase() === String(interviewer).toLowerCase());
+      if (applicantId) filtered = filtered.filter((iv) => iv.applicantId === String(applicantId));
+      return res.json(filtered);
     } catch (e: any) {
       return res.status(500).json({ error: e?.message || 'Gagal mengambil jadwal interview.' });
     }
@@ -181,6 +209,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json({ success: true, data: created });
     } catch (e: any) {
       return res.status(500).json({ error: e?.message || 'Gagal menyimpan jadwal interview.' });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    try {
+      if (!id) return res.status(400).json({ error: 'ID jadwal wajib diisi.' });
+      const list = await readInterviews();
+      const idx = list.findIndex((iv) => iv.id === id);
+      if (idx === -1) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      const merged = { ...list[idx], ...(req.body ?? {}), id };
+      const err = validateInterviewBody(merged);
+      if (err) return res.status(400).json({ error: err });
+      if (overlaps(list, merged, id)) {
+        return res.status(409).json({ error: 'Pewawancara sudah memiliki jadwal lain pada waktu tersebut.' });
+      }
+      list[idx] = merged;
+      await rewriteAll(list);
+      return res.json({ success: true, data: merged });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal mengubah jadwal interview.' });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      if (!id) return res.status(400).json({ error: 'ID jadwal wajib diisi.' });
+      const list = await readInterviews();
+      const filtered = list.filter((iv) => iv.id !== id);
+      if (filtered.length === list.length) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      await rewriteAll(filtered);
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal menghapus jadwal interview.' });
     }
   }
 
