@@ -1,9 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 
 const INTERVIEW_TAB = 'Interviews';
-const INTERVIEW_HEADERS = ['ID', 'Applicant ID', 'Candidate Name', 'Position', 'Stage', 'Date', 'Start Time', 'End Time', 'Interviewer', 'Location', 'Link', 'Notes'];
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -68,13 +66,6 @@ async function sheetsFetch<T = any>(pathAndQuery: string, init: RequestInit = {}
   return body as T;
 }
 
-async function ensureInterviewTab(): Promise<void> {
-  const meta = await sheetsFetch<{ sheets?: { properties?: { title?: string } }[] }>('');
-  if ((meta.sheets ?? []).some((s) => s.properties?.title === INTERVIEW_TAB)) return;
-  await sheetsFetch(':batchUpdate', { method: 'POST', body: JSON.stringify({ requests: [{ addSheet: { properties: { title: INTERVIEW_TAB } } }] }) });
-  await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A1')}`, { method: 'PUT', body: JSON.stringify({ values: [INTERVIEW_HEADERS] }) });
-}
-
 function toRow(iv: any): any[] {
   return [iv.id || '', iv.applicantId || '', iv.candidateName || '', iv.position || '', iv.stage || '', iv.date || '', iv.startTime || '', iv.endTime || '', iv.interviewer || '', iv.location || '', iv.link || '', iv.notes || ''];
 }
@@ -92,7 +83,7 @@ async function readInterviews(): Promise<any[]> {
   return (data.values ?? []).map(fromRow).filter((iv) => iv.id !== '');
 }
 
-function validateInterviewBody(b: any): string | null {
+function validateMerged(b: any): string | null {
   if (!b || typeof b !== 'object') return 'Data jadwal tidak valid.';
   for (const f of ['applicantId', 'candidateName', 'position', 'interviewer']) {
     if (!b[f] || String(b[f]).trim() === '') return `Field wajib belum diisi: ${f}.`;
@@ -150,37 +141,53 @@ function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);
   if (!email) return;
+  const id = String((req.query as any)?.id ?? '');
 
   if (req.method === 'GET') {
     try {
-      await ensureInterviewTab();
-      let list = await readInterviews();
-      const { date, interviewer, applicantId } = (req.query ?? {}) as any;
-      if (date) list = list.filter((iv) => iv.date === String(date));
-      if (interviewer) list = list.filter((iv) => String(iv.interviewer).toLowerCase() === String(interviewer).toLowerCase());
-      if (applicantId) list = list.filter((iv) => iv.applicantId === String(applicantId));
-      return res.json(list);
+      const list = await readInterviews();
+      const found = list.find((iv) => iv.id === id);
+      if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      return res.json({ data: found });
     } catch (e: any) {
       return res.status(500).json({ error: e?.message || 'Gagal mengambil jadwal interview.' });
     }
   }
 
-  if (req.method === 'POST') {
+  if (req.method === 'PATCH') {
     try {
-      const err = validateInterviewBody(req.body);
-      if (err) return res.status(400).json({ error: err });
-      await ensureInterviewTab();
       const list = await readInterviews();
-      if (overlaps(list, req.body)) {
+      const idx = list.findIndex((iv) => iv.id === id);
+      if (idx === -1) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      const merged = { ...list[idx], ...(req.body ?? {}), id };
+      const err = validateMerged(merged);
+      if (err) return res.status(400).json({ error: err });
+      if (overlaps(list, merged, id)) {
         return res.status(409).json({ error: 'Pewawancara sudah memiliki jadwal lain pada waktu tersebut.' });
       }
-      const created = { ...req.body, id: `INT-${crypto.randomBytes(4).toString('hex').toUpperCase()}` };
-      await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A:A')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-        method: 'POST', body: JSON.stringify({ values: [toRow(created)] }),
-      });
-      return res.status(201).json({ success: true, data: created });
+      list[idx] = merged;
+      await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2:L')}:clear`, { method: 'POST' });
+      if (list.length > 0) {
+        await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: list.map(toRow) }) });
+      }
+      return res.json({ success: true, data: merged });
     } catch (e: any) {
-      return res.status(500).json({ error: e?.message || 'Gagal menyimpan jadwal interview.' });
+      return res.status(500).json({ error: e?.message || 'Gagal mengubah jadwal interview.' });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const list = await readInterviews();
+      const filtered = list.filter((iv) => iv.id !== id);
+      if (filtered.length === list.length) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
+      await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2:L')}:clear`, { method: 'POST' });
+      if (filtered.length > 0) {
+        await sheetsFetch(`/values/${encodeURIComponent(INTERVIEW_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: filtered.map(toRow) }) });
+      }
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal menghapus jadwal interview.' });
     }
   }
 
