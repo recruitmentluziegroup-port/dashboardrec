@@ -2,7 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
 
 const VACANCY_TAB = 'Vacancies';
-const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived'];
+const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
+const VACANCY_EXTRA = { user: '', recruiter: 'All', tanggalDibuka: '', tanggalTerakhir: '', tanggalSelesai: '', priority: 'Normal', jumlah: '1', gender: '', status: 'Open' };
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 const SEED_VACANCIES = [
@@ -11,33 +12,37 @@ const SEED_VACANCIES = [
     category: 'Administrative Support',
     location: 'Solo / WFH (Remote Indonesia)',
     salary: 'Rp 3.5jt - Rp 5.0jt / bln',
-    description: 'Mengelola jadwal harian pimpinan, mengoordinasikan dokumen/surat perusahaan, menyusun agenda rapat, serta memberikan dukungan administratif perkantoran secara rahasia, tertib, dan andal.',
-    requirements: ['Minimal lulusan D3/S1 sekalian jurusan (diutamakan Administrasi Perkantoran / Sekretaris)', 'Sangat fasih mengoperasikan Google Workspace (Sheets, Docs, Slides, Google Calendar)', 'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap'],
-  },
+      description: 'Mengelola jadwal harian pimpinan, mengoordinasikan dokumen/surat perusahaan, menyusun agenda rapat, serta memberikan dukungan administratif perkantoran secara rahasia, tertib, dan andal.',
+      requirements: ['Minimal lulusan D3/S1 sekalian jurusan (diutamakan Administrasi Perkantoran / Sekretaris)', 'Sangat fasih mengoperasikan Google Workspace (Sheets, Docs, Slides, Google Calendar)', 'Memiliki keterampilan komunikasi verbal & tertulis yang rapi, ramah, dan cakap'],
+      ...VACANCY_EXTRA,
+    },
   {
     title: 'Digital Marketer Specialist',
     category: 'Marketing & Conversion Optimization',
     location: 'Purwokerto (On-site / WFO)',
     salary: 'Rp 4.0jt - Rp 6.0jt / bln',
-    description: 'Mengonsep, mengeksekusi, dan menjasmani kampanye paid traffic (Facebook Ads, TikTok Ads, Google Ads), menganalisis budget iklan, serta menjaga rasio efisiensi ROAS bisnis eksekutif.',
-    requirements: ['Pengalaman kerja langsung minimal 1-2 tahun sebagai Media Buyer / Digital Advertiser', 'Mahir mengulik platform Google Analytics, Facebook Pixel, serta konversi landing page', 'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli'],
-  },
+      description: 'Mengonsep, mengeksekusi, dan menjasmani kampanye paid traffic (Facebook Ads, TikTok Ads, Google Ads), menganalisis budget iklan, serta menjaga rasio efisiensi ROAS bisnis eksekutif.',
+      requirements: ['Pengalaman kerja langsung minimal 1-2 tahun sebagai Media Buyer / Digital Advertiser', 'Mahir mengulik platform Google Analytics, Facebook Pixel, serta konversi landing page', 'Memiliki nalar psikologi copywriting penawaran tinggi yang menarik minat beli'],
+      ...VACANCY_EXTRA,
+    },
   {
     title: 'CEO & Founder Personal Assistant',
     category: 'Executive Office Operations',
     location: 'Purwokerto (On-site / WFO)',
     salary: 'Rp 6.0jt - Rp 10.0jt / bln',
-    description: 'Bertindak sebagai asisten eksekutif utama Founder Luzie Group untuk mengawal implementasi proyek strategis, memonitor status target KPI tim, serta mendampingi kunjungan bisnis pimpinan.',
-    requirements: ['Gelar S1 terkemuka (Manajemen, Bisnis, Hubungan Internasional, atau Hukum disukai)', 'Fasih berkomunikasi dalam Bahasa Inggris aktif lisan & tulisan tingkat mahir', 'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu'],
-  },
+      description: 'Bertindak sebagai asisten eksekutif utama Founder Luzie Group untuk mengawal implementasi proyek strategis, memonitor status target KPI tim, serta mendampingi kunjungan bisnis pimpinan.',
+      requirements: ['Gelar S1 terkemuka (Manajemen, Bisnis, Hubungan Internasional, atau Hukum disukai)', 'Fasih berkomunikasi dalam Bahasa Inggris aktif lisan & tulisan tingkat mahir', 'Daya pikir analitis taktis, integritas prima, serta siap untuk dinas luar kota sewaktu-waktu'],
+      ...VACANCY_EXTRA,
+    },
   {
     title: 'Social Media Management',
     category: 'Creative Design & Content Strategy',
     location: 'Solo / WFH (Remote Indonesia)',
     salary: 'Rp 4.0jt - Rp 6.0jt / bln',
-    description: 'Merancang ide konten mingguan kreatif, memproduksi dan menyunting video pendek (Reels, TikTok & Shorts), merias caption, serta membangun interaksi organik komunitas brand Luzie.',
-    requirements: ['Keahlian tinggi mengoperasikan editor video CapCut, Premiere Pro, atau Adobe After Effects', 'Mengikuti update tren konten visual, audio, serta cara kerja algoritma media sosial terbaru', 'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda'],
-  },
+      description: 'Merancang ide konten mingguan kreatif, memproduksi dan menyunting video pendek (Reels, TikTok & Shorts), merias caption, serta membangun interaksi organik komunitas brand Luzie.',
+      requirements: ['Keahlian tinggi mengoperasikan editor video CapCut, Premiere Pro, atau Adobe After Effects', 'Mengikuti update tren konten visual, audio, serta cara kerja algoritma media sosial terbaru', 'Wajib melampirkan portofolio kumpulan karya konten kreatif media sosial Anda'],
+      ...VACANCY_EXTRA,
+    },
 ];
 
 let cachedVacancies: any[] | null = null;
@@ -122,7 +127,7 @@ async function getVacancies(): Promise<any[]> {
   }
   try {
     await ensureVacancyTab();
-    const data = await sheetsFetch<{ values?: string[][] }>(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:G')}`);
+    const data = await sheetsFetch<{ values?: string[][] }>(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:P')}`);
     const rows = data.values;
     if (!rows || rows.length === 0) {
       if (SEED_VACANCIES.length > 0) {
@@ -135,6 +140,9 @@ async function getVacancies(): Promise<any[]> {
     cachedVacancies = rows.map((row) => ({
       title: row[0] || '', category: row[1] || '', location: row[2] || '', salary: row[3] || '',
       description: row[4] || '', requirements: parseJsonSafe<string[]>(row[5], []), archived: row[6] === 'true',
+      user: row[7] || '', recruiter: row[8] || '', tanggalDibuka: row[9] || '', tanggalTerakhir: row[10] || '',
+      tanggalSelesai: row[11] || '', priority: row[12] || 'Normal', jumlah: row[13] || '', gender: row[14] || '',
+      status: row[15] || (row[6] === 'true' ? 'Closed-Filled' : 'Open'),
     })).filter((v) => v.title.trim() !== '');
     return cachedVacancies;
   } catch {
@@ -146,8 +154,8 @@ async function getVacancies(): Promise<any[]> {
 
 async function saveVacanciesInternal(vacancies: any[]): Promise<boolean> {
   await ensureVacancyTab();
-  const rows = vacancies.map((v) => [v.title, v.category, v.location, v.salary, v.description, JSON.stringify(v.requirements || []), v.archived ? 'true' : 'false']);
-  await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:G')}:clear`, { method: 'POST' });
+  const rows = vacancies.map((v) => [v.title, v.category, v.location, v.salary, v.description, JSON.stringify(v.requirements || []), v.archived ? 'true' : 'false', v.user || '', v.recruiter || '', v.tanggalDibuka || '', v.tanggalTerakhir || '', v.tanggalSelesai || '', v.priority || 'Normal', v.jumlah || '', v.gender || '', v.status || (v.archived ? 'Closed-Filled' : 'Open')]);
+  await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:P')}:clear`, { method: 'POST' });
   if (rows.length > 0) {
     await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: rows }) });
   }
@@ -159,7 +167,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).end();
   try {
     const all = await getVacancies();
-    return res.json(all.filter((v: any) => v.archived !== true));
+    return res.json(all.filter((v: any) => v.archived !== true && v.status !== 'Closed-Filled' && v.status !== 'Closed-Unfilled'));
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || 'Gagal mengambil data lowongan.' });
   }

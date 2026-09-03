@@ -22,6 +22,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { Applicant } from '../types';
+import type { Interview } from '../lib/interview-links';
 import { GreetingBar } from './dashboard/GreetingBar';
 import { CountUp } from './dashboard/CountUp';
 import { Sparkline } from './dashboard/Sparkline';
@@ -34,6 +35,8 @@ interface DashboardProps {
   vacancies?: any[];
   adminEmail?: string;
   lastSyncAt?: Date | null;
+  interviews?: Interview[];
+  onViewCalendar?: () => void;
 }
 
 interface TimelinePoint {
@@ -93,6 +96,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
   vacancies = [],
   adminEmail = '',
   lastSyncAt = null,
+  interviews = [],
+  onViewCalendar,
 }) => {
   const [timeRange, setTimeRange] = useState<'12m' | '30d' | '7l'>('12m');
 
@@ -403,57 +408,31 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
     return sorted.slice(0, 5);
   }, [filteredApplicants]);
 
-  // Dynamic recruitment-driven action alert schedules
+  // Upcoming interviews (real data): today onwards, sorted, max 5
   const scheduleList = useMemo(() => {
-    const list: Array<{ id: string | number; time: string; title: string; applicantId?: string; isLive: boolean; color: string }> = [];
-
-    // 1. Unreviewed candidates (status === 'Pending') => URGENT ACTION
-    applicants.forEach((app) => {
-      if (app.status === 'Pending') {
-        list.push({
-          id: `pending-${app.id}`,
-          time: 'Action Required',
-          title: `Tinjau berkas baru: ${app.namaLengkap} (${getOfficialPositionName(app.jabatanDituju)})`,
-          applicantId: app.id,
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return [...(interviews || [])]
+      .filter((ev) => String(ev.date || '').slice(0, 10) >= todayStr)
+      .sort((a, b) =>
+        `${a.date || ''}${a.startTime ?? a.start ?? ''}`.localeCompare(
+          `${b.date || ''}${b.startTime ?? b.start ?? ''}`,
+        ),
+      )
+      .slice(0, 5)
+      .map((ev) => {
+        const isHR = /hr/i.test(String(ev.stage || ''));
+        return {
+          id: String(ev.id),
+          time: `${String(ev.date || '').slice(0, 10)} · ${ev.startTime ?? ev.start ?? ''}`,
+          title: `Wawancara ${ev.stage || ''}: ${ev.candidateName || ''} (${ev.position || ''}) — ${ev.interviewer || ''}`,
+          applicantId: (ev.applicantId as string) || undefined,
           isLive: true,
-          color: 'bg-amber-50/85 hover:bg-amber-100/95 text-amber-900 border-l-4 border-amber-500 cursor-pointer transition-all'
-        });
-      }
-    });
-
-    // 2. Shortlisted candidates (status === 'Reviewed') => SCHEDULED FOR INTERVIEW info
-    applicants.forEach((app) => {
-      if (app.status === 'Reviewed') {
-        list.push({
-          id: `reviewed-${app.id}`,
-          time: 'Interview Scheduled',
-          title: `Jadwal wawancara: ${app.namaLengkap} - ${getOfficialPositionName(app.jabatanDituju)}`,
-          applicantId: app.id,
-          isLive: true,
-          color: 'bg-indigo-50/85 hover:bg-indigo-100/95 text-indigo-950 border-l-4 border-indigo-500 cursor-pointer transition-all'
-        });
-      }
-    });
-
-    if (list.length < 3) {
-      list.push({
-        id: 'sys-1',
-        time: 'Penyelarasan Rutin',
-        title: 'Sinkronisasi berkas dengan Google Sheets Rekrutmen',
-        isLive: false,
-        color: 'bg-stone-50 text-stone-600 border-l-4 border-stone-400 font-medium'
+          color: isHR
+            ? 'bg-purple-50/85 hover:bg-purple-100/95 text-purple-950 border-l-4 border-purple-500 cursor-pointer transition-all'
+            : 'bg-indigo-50/85 hover:bg-indigo-100/95 text-indigo-950 border-l-4 border-indigo-500 cursor-pointer transition-all',
+        };
       });
-      list.push({
-        id: 'sys-2',
-        time: 'Job Board Maintenance',
-        title: 'Review kesesuaian formasi jabatan yang sedang dibuka',
-        isLive: false,
-        color: 'bg-stone-50 text-stone-600 border-l-4 border-stone-400 font-medium'
-      });
-    }
-
-    return list.slice(0, 5);
-  }, [applicants]);
+  }, [interviews]);
 
   return (
     <div className="space-y-8 select-none font-sans grain-overlay" id="admin-dashboard-container">
@@ -1057,7 +1036,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="space-y-3">
-              {scheduleList.map((sch) => (
+              {scheduleList.length === 0 ? (
+                <p className="text-xs text-stone-500 font-medium border border-dashed border-stone-200 rounded-xl px-3 py-6 text-center">
+                  Belum ada jadwal wawancara mendatang.
+                </p>
+              ) : (
+                scheduleList.map((sch) => (
                 <div
                   key={sch.id}
                   onClick={() => {
@@ -1078,10 +1062,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                     <span className="text-[9px] opacity-80 font-medium block mt-1 underline">Mulai Tinjau Profil &rarr;</span>
                   )}
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
-            <button className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-600 rounded-xl transition-all cursor-pointer">
+            <button
+              onClick={onViewCalendar}
+              className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-600 rounded-xl transition-all cursor-pointer"
+            >
               View Calendar
             </button>
           </div>
