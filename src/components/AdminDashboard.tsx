@@ -306,8 +306,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
     const femalePercent = total > 0 ? Math.round((female / total) * 100) : 50;
 
     return [
-      { name: 'Laki-laki', value: male, percent: malePercent, color: '#0ea5e9' },
-      { name: 'Perempuan', value: female, percent: femalePercent, color: '#ec4899' }
+      { name: 'Laki-laki', value: male, percent: malePercent, color: '#C2410C' },
+      { name: 'Perempuan', value: female, percent: femalePercent, color: '#1A1F2E' }
     ];
   }, [filteredApplicants, applicants]);
 
@@ -428,8 +428,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           applicantId: (ev.applicantId as string) || undefined,
           isLive: true,
           color: isHR
-            ? 'bg-purple-50/85 hover:bg-purple-100/95 text-purple-950 border-l-4 border-purple-500 cursor-pointer transition-all'
-            : 'bg-indigo-50/85 hover:bg-indigo-100/95 text-indigo-950 border-l-4 border-indigo-500 cursor-pointer transition-all',
+            ? 'bg-amber-50/85 hover:bg-amber-100/95 text-amber-950 border-l-4 border-amber-500 cursor-pointer transition-all'
+            : 'bg-brand-50/85 hover:bg-brand-100/95 text-editorial-navy border-l-4 border-brand-700 cursor-pointer transition-all',
         };
       });
   }, [interviews]);
@@ -442,7 +442,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       {/* Filter & Kustomisasi trigger (kept as-is, but pulled out of greeting block) */}
       <div className="flex items-center justify-end font-sans text-xs relative -mt-4" style={{ zIndex: 100 }}>
         {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
-          <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 mr-2 animate-pulse">
+          <span className="text-[11px] font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-1.5 rounded-xl flex items-center space-x-1 mr-2 animate-pulse">
             <span>Filter Aktif</span>
           </span>
         )}
@@ -452,7 +452,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             onClick={() => setIsCustomizeOpen(!isCustomizeOpen)}
             className={`flex items-center space-x-2 px-4 py-2.5 border rounded-xl hover:bg-stone-50 transition-all font-bold cursor-pointer shadow-xs ${
               isCustomizeOpen || selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all'
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                ? 'bg-brand-50 border-brand-200 text-brand-700'
                 : 'bg-white border-stone-200 text-stone-700'
             }`}
           >
@@ -465,7 +465,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-5 z-50 space-y-4 text-xs animate-in fade-in slide-in-from-top-3 duration-200">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2">
                 <h4 className="font-bold text-stone-900 flex items-center space-x-1.5">
-                  <Filter className="h-3.5 w-3.5 text-indigo-500" />
+                  <Filter className="h-3.5 w-3.5 text-brand-600" />
                   <span>Konfigurasi Filter</span>
                 </h4>
                 {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
@@ -487,7 +487,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
                 >
                   <option value="all">Semua Bulan (Tahun 2026)</option>
                   {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((mName, idx) => (
@@ -501,7 +501,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                 <select
                   value={selectedJob}
                   onChange={(e) => setSelectedJob(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
                 >
                   <option value="all">Semua Formasi Jabatan</option>
                   {dynamicJobs.map((job, idx) => (
@@ -515,15 +515,15 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-indigo-100 text-xs"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
                 >
                   <option value="all">Semua Status Pelamar</option>
-                  <option value="Pending">Pending Review (Belum Review)</option>
-                  <option value="Reviewed">Shortlisted</option>
+                  <option value="Pending">Belum Direview (Pending)</option>
+                  <option value="Reviewed">Sedang di Review (Reviewed)</option>
                   <option value="Interview HR">Wawancara HR (Interview HR)</option>
                   <option value="Interview User">Wawancara User (Interview User)</option>
-                  <option value="Accepted">Hired (Diterima)</option>
-                  <option value="Rejected">Rejected (Ditolak)</option>
+                  <option value="Accepted">Lolos Seleksi (Accepted)</option>
+                  <option value="Rejected">Gugur Seleksi (Rejected)</option>
                 </select>
               </div>
 
@@ -534,7 +534,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
                 <button
                   onClick={() => setIsCustomizeOpen(false)}
-                  className="bg-indigo-600 hover:bg-indigo-700 transition-colors text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-xs"
+                  className="bg-brand-700 hover:bg-brand-800 transition-colors text-white font-bold px-3 py-1.5 rounded-lg text-[10px] cursor-pointer shadow-xs"
                 >
                   Tutup & Terapkan
                 </button>
@@ -549,13 +549,13 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
         className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
         style={{ counterReset: 'kpi' } as React.CSSProperties}
       >
-        {/* Total Application Card */}
+        {/* Total Lamaran Card */}
         <div
           className="p-5 bg-brand-50 rounded-2xl border border-brand-200 shadow-xs flex flex-col justify-between space-y-3 relative"
           style={{ ['--i' as any]: 0 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Total Application</span>
+            <span className="text-xs font-bold text-stone-500">Total Lamaran</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
@@ -572,24 +572,24 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.total}
-              color="#F97316"
+              color="#C2410C"
               height={28}
               className="-mx-1"
             />
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
-              {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% from last month
+              {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% dari bulan lalu
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
-        {/* Pending Review Card */}
+        {/* Menunggu Review Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative border-l-4 border-l-amber-400"
+          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
           style={{ ['--i' as any]: 1 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Pending Review</span>
+            <span className="text-xs font-bold text-stone-500">Menunggu Review</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
@@ -611,7 +611,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               className="-mx-1"
             />
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
-              {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% from last month
+              {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% dari bulan lalu
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
@@ -619,7 +619,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Sedang di Review Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
           style={{ ['--i' as any]: 2 }}
         >
           <div className="flex items-center justify-between">
@@ -640,24 +640,24 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.shortlisted}
-              color="#4F46E5"
+              color="#1A1F2E"
               height={24}
               className="-mx-1"
             />
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
-              {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% from last month
+              {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% dari bulan lalu
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
-        {/* Hired / Accepted Card */}
+        {/* Lolos Seleksi Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
           style={{ ['--i' as any]: 3 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Hired / Accepted</span>
+            <span className="text-xs font-bold text-stone-500">Lolos Seleksi</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
@@ -679,7 +679,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               className="-mx-1"
             />
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
-              {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% from last month
+              {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% dari bulan lalu
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
@@ -687,11 +687,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Rejected Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between space-y-3 relative border-l-4 border-l-rose-400"
+          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
           style={{ ['--i' as any]: 4 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Rejected Candidates</span>
+            <span className="text-xs font-bold text-stone-500">Gugur Seleksi</span>
             <ArrowUpRight className="h-4 w-4 text-stone-400" />
           </div>
           <div className="space-y-1">
@@ -713,7 +713,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               className="-mx-1"
             />
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
-              {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% from last month
+              {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% dari bulan lalu
             </span>
             <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
@@ -736,11 +736,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
         {/* Left Column: Chart & New Applications Table */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Widget 1: Application Received Time Trend AreaChart with comparison line */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
+          {/* Widget 1: Tren Lamaran Masuk dengan perbandingan periode sebelumnya */}
+          <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-2">
               <div>
-                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Application Received Time</h3>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Tren Lamaran Masuk</h3>
                 <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
                   Tren lamaran masuk dengan perbandingan periode sebelumnya
                 </p>
@@ -750,26 +750,26 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                 <button
                   onClick={() => setTimeRange('12m')}
                   className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '12m' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                    timeRange === '12m' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-500 hover:text-stone-900'
                   }`}
                 >
-                  12 months
+                  12 Bulan
                 </button>
                 <button
                   onClick={() => setTimeRange('30d')}
                   className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '30d' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                    timeRange === '30d' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-500 hover:text-stone-900'
                   }`}
                 >
-                  30 days
+                  30 Hari
                 </button>
                 <button
                   onClick={() => setTimeRange('7l')}
                   className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all cursor-pointer ${
-                    timeRange === '7l' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-500 hover:text-stone-900'
+                    timeRange === '7l' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-500 hover:text-stone-900'
                   }`}
                 >
-                  7 Days
+                  7 Hari
                 </button>
               </div>
             </div>
@@ -779,8 +779,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                 <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="glorystatGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.24}/>
-                      <stop offset="95%" stopColor="#4F46E5" stopOpacity={0.0}/>
+                      <stop offset="5%" stopColor="#C2410C" stopOpacity={0.24}/>
+                      <stop offset="95%" stopColor="#C2410C" stopOpacity={0.0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
@@ -793,7 +793,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <Area
                     type="monotone"
                     dataKey="application"
-                    stroke="#4F46E5"
+                    stroke="#C2410C"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#glorystatGradient)"
@@ -802,7 +802,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <Area
                     type="monotone"
                     dataKey="previous"
-                    stroke="#A5B4FC"
+                    stroke="#D6CFC4"
                     strokeWidth={1.5}
                     strokeDasharray="4 4"
                     fillOpacity={0}
@@ -815,30 +815,30 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             {/* Legend */}
             <div className="flex items-center justify-end gap-4 text-[10px] font-bold text-stone-500 pt-1">
               <div className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-indigo-600 rounded-full" />
+                <span className="h-0.5 w-4 bg-brand-700 rounded-full" />
                 <span>Periode ini</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-t-2 border-dashed border-indigo-300" />
+                <span className="h-0.5 w-4 border-t-2 border-dashed border-stone-400" />
                 <span>Periode sebelumnya</span>
               </div>
             </div>
           </div>
 
           {/* Widget 2: NEW APPLICATIONS Feed */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
             <div className="flex justify-between items-center pb-2">
               <div>
-                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">New Applications Feed</h3>
+<h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Lamaran Terbaru</h3>
                 <p className="text-[10px] text-stone-400 font-medium leading-none mt-1">
-                  Dynamic recruitment database sync. Filtered view matches your custom parameters.
+                  Sinkronisasi basis data rekrutmen. Tampilan tersaring mengikuti parameter kustom Anda.
                 </p>
               </div>
               <button
                 onClick={onViewAll}
-                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer flex items-center space-x-1"
+                className="text-xs font-bold text-brand-700 hover:text-brand-800 transition-colors cursor-pointer flex items-center space-x-1"
               >
-                <span>View All</span>
+                <span>Lihat Semua</span>
                 <ArrowRight className="h-3 w-3" />
               </button>
             </div>
@@ -853,7 +853,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                     setSelectedJob('all');
                     setSelectedStatus('all');
                   }}
-                  className="text-[11px] font-black text-indigo-600 hover:underline"
+                  className="text-[11px] font-black text-brand-700 hover:underline"
                 >
                   Bersihkan semua filter
                 </button>
@@ -873,11 +873,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <tbody className="divide-y divide-stone-100 text-stone-700">
                     {latestApplicants.map((app, idx) => {
                       const bgColors = [
-                        'bg-amber-100 text-amber-700',
-                        'bg-blue-100 text-blue-700',
-                        'bg-purple-100 text-purple-700',
-                        'bg-emerald-100 text-emerald-700',
-                        'bg-pink-100 text-pink-700'
+                        'bg-amber-100 text-amber-800',
+                        'bg-stone-200 text-editorial-navy',
+                        'bg-orange-100 text-brand-800',
+                        'bg-green-100 text-editorial-green',
+                        'bg-red-100 text-editorial-red'
                       ];
                       const initials = (app.namaLengkap || 'PL').substring(0, 2).toUpperCase();
 
@@ -888,23 +888,23 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                       let statusBadgeClass = 'bg-stone-100 text-stone-600';
                       let statusLabel = app.status || 'Pending';
                       if (app.status === 'Pending') {
-                        statusBadgeClass = 'bg-amber-50 text-amber-600 border border-amber-100';
-                        statusLabel = 'Pending Review';
+                        statusBadgeClass = 'bg-amber-100 text-amber-700 border border-amber-200';
+                        statusLabel = 'Belum Direview';
                       } else if (app.status === 'Reviewed') {
-                        statusBadgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+                        statusBadgeClass = 'bg-stone-100 text-editorial-navy border border-editorial-border';
                         statusLabel = 'Sedang di Review';
                       } else if (app.status === 'Interview HR') {
-                        statusBadgeClass = 'bg-purple-50 text-purple-600 border border-purple-100';
+                        statusBadgeClass = 'bg-amber-50 text-amber-800 border border-amber-200';
                         statusLabel = 'Wawancara HR';
                       } else if (app.status === 'Interview User') {
-                        statusBadgeClass = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+                        statusBadgeClass = 'bg-orange-50 text-brand-700 border border-brand-200';
                         statusLabel = 'Wawancara User';
                       } else if (app.status === 'Accepted') {
-                        statusBadgeClass = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-                        statusLabel = 'Hired';
+                        statusBadgeClass = 'bg-green-50 text-editorial-green border border-green-200';
+                        statusLabel = 'Lolos Seleksi';
                       } else if (app.status === 'Rejected') {
-                        statusBadgeClass = 'bg-rose-50 text-rose-600 border border-rose-100';
-                        statusLabel = 'Rejected';
+                        statusBadgeClass = 'bg-red-50 text-editorial-red border border-red-200';
+                        statusLabel = 'Gugur Seleksi';
                       }
 
                       return (
@@ -934,7 +934,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                                   onSelectApplicant(app.id);
                                 }
                               }}
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 transition-colors text-white text-[10px] font-bold rounded-lg inline-flex items-center space-x-1 cursor-pointer"
+                              className="px-3 py-1.5 bg-brand-700 hover:bg-brand-800 transition-colors text-white text-[10px] font-bold rounded-lg inline-flex items-center space-x-1 cursor-pointer"
                             >
                               <User className="h-3 w-3" />
                               <span>Buka Profil</span>
@@ -953,12 +953,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
         {/* Right Column: Gender + Today's Schedule */}
         <div className="space-y-6">
           {/* Widget: Jenis Kelamin */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+          <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4">
             <div className="flex justify-between items-center pb-1">
               <div>
                 <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Jenis Kelamin Pelamar</h3>
                 <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
-                  Gender comparison feed
+                  Perbandingan komposisi pelamar
                 </p>
               </div>
               <span className="text-[10px] bg-slate-100 text-slate-700 font-extrabold px-2 py-0.5 rounded-md">Live</span>
@@ -1021,12 +1021,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Widget 3: Today's Schedule */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4">
+          {/* Widget 3: Jadwal Hari Ini */}
+          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4 berkas-stripe">
             <div className="flex justify-between items-center pb-1">
               <div className="flex items-center space-x-2">
-                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Today's Schedule</h3>
-                <span className="h-5 w-5 bg-indigo-500 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center">
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Jadwal Hari Ini</h3>
+                <span className="h-5 w-5 bg-brand-700 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center">
                   {scheduleList.filter(s => s.isLive).length || scheduleList.length}
                 </span>
               </div>
@@ -1054,7 +1054,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black tracking-normal uppercase whitespace-nowrap block">{sch.time}</span>
                     {sch.applicantId && (
-                      <span className="text-[8px] font-bold bg-indigo-900/10 text-indigo-900 px-1.5 py-0.5 rounded-md uppercase">Action</span>
+                      <span className="text-[8px] font-bold bg-editorial-navy/10 text-editorial-navy px-1.5 py-0.5 rounded-md uppercase">Tindakan</span>
                     )}
                   </div>
                   <span className="text-[11px] font-bold tracking-tight block leading-normal">{sch.title}</span>
@@ -1068,9 +1068,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
             <button
               onClick={onViewCalendar}
-              className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-indigo-600 rounded-xl transition-all cursor-pointer"
+              className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-brand-700 rounded-xl transition-all cursor-pointer"
             >
-              View Calendar
+              Lihat Agenda
             </button>
           </div>
         </div>

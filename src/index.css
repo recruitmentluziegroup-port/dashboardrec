@@ -6,15 +6,18 @@
   --font-mono: 'DM Mono', ui-monospace, SFMono-Regular, monospace;
   --font-serif: 'Playfair Display', Georgia, serif;
 
-  /* Brand — warm orange (shared) */
+  /* Brand — warm orange (shared). Action default is brand-700 (4.5:1 on white); 500 is decorative only */
   --color-brand-50: #FFF7ED;
   --color-brand-100: #FFEDD5;
   --color-brand-200: #FED7AA;
+  --color-brand-300: #FDBA74;
   --color-brand-400: #FB923C;
   --color-brand-500: #F97316;
   --color-brand-600: #EA580C;
   --color-brand-700: #C2410C;
+  --color-brand-800: #9A3412;
   --color-brand-900: #7C2D12;
+  --color-admin-accent: #C2410C;
 
   /* Bento (candidate side) */
   --color-bento-cream: #FFF8F0;
@@ -42,13 +45,15 @@
   --color-text-secondary: #44403C;
   --color-text-muted: #78716C;
 
-  /* Custom radii */
+  /* Custom radii — admin uses card/input scale (Direction A Trusted HR) */
   --radius-bento: 1.5rem;
   --radius-editorial: 0.75rem;
+  --radius-card: 1rem;
+  --radius-input: 0.625rem;
 
-  /* Shadows */
-  --shadow-bento: 0 4px 24px -8px rgba(194, 65, 12, 0.12), 0 2px 8px -2px rgba(0, 0, 0, 0.04);
-  --shadow-editorial: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  /* Shadows — single editorial depth for admin */
+  --shadow-bento: 0 8px 30px -12px rgb(124 45 18 / 0.18), 0 2px 8px -2px rgb(0 0 0 / 0.04);
+  --shadow-editorial: 0 1px 3px rgb(0 0 0 / 0.04), 0 1px 2px rgb(0 0 0 / 0.02);
 
   /* Animations */
   --animate-fade-in-up: fade-in-up 0.5s ease-out;
@@ -171,6 +176,28 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .funnel-collapse { transition: none; }
+}
+
+/* Luzie identity — berkas stripe (signature 3px amber→brand→ink top rule) */
+.berkas-stripe {
+  position: relative;
+  overflow: hidden;
+}
+.berkas-stripe::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, #F59E0B, #C2410C, #1A1F2E);
+  z-index: 2;
+}
+
+/* Accessible focus — visible in light mode + Windows High Contrast */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid #C2410C;
+  outline-offset: 2px;
 }
 
 /* Print stylesheet: hide chrome, let the printable view take over */

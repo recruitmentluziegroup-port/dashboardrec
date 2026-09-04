@@ -55,7 +55,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
         {onAdd && (
           <button
             onClick={onAdd}
-            className="px-3.5 py-2 text-[11px] font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all cursor-pointer"
+            className="px-3.5 py-2 text-[11px] font-bold bg-brand-700 text-white rounded-xl hover:bg-brand-800 transition-all cursor-pointer"
           >
             + Tambah
           </button>
@@ -124,7 +124,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
                           <select
                             value={STATUS_OPTIONS.includes(status) ? status : 'Open'}
                             onChange={(e) => onStatusChange(r, e.target.value)}
-                            className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-[11px] cursor-pointer outline-none focus:border-indigo-400"
+                            className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-[11px] cursor-pointer outline-none focus:border-brand-700"
                             aria-label={`Ubah status ${nama}`}
                           >
                             {STATUS_OPTIONS.map((s) => (
@@ -139,7 +139,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
                         {onSelect && (
                           <button
                             onClick={() => onSelect(r)}
-                            className="inline-flex items-center space-x-1 border border-stone-200 hover:border-indigo-400 hover:text-indigo-600 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
+                            className="inline-flex items-center space-x-1 border border-stone-200 hover:border-brand-700 hover:text-brand-700 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>Tinjau</span>
@@ -148,7 +148,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
                         {onEdit && (
                           <button
                             onClick={() => onEdit(r)}
-                            className="px-2.5 py-1.5 rounded-lg border border-stone-200 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-all cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg border border-stone-200 font-bold hover:border-brand-700 hover:text-brand-700 transition-all cursor-pointer"
                           >
                             Edit
                           </button>

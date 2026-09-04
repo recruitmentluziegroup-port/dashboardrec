@@ -104,9 +104,9 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   const selectedVacancy = selectedIdx !== null ? displayList[selectedIdx] : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 shadow-xl overflow-hidden font-sans" id="vacancy-manager-card">
-      {/* Top action header info */}
-      <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-brand-950 px-6 py-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 select-none relative overflow-hidden rounded-t-2xl">
+    <div className="bg-white rounded-2xl border border-editorial-border shadow-xl overflow-hidden font-sans berkas-stripe" id="vacancy-manager-card">
+      {/* Top action header info — Luzie Trusted HR ink */}
+      <div className="bg-editorial-navy px-6 py-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 select-none relative overflow-hidden rounded-t-2xl">
         {/* Abstract design elements underlay */}
         <div className="absolute inset-0 opacity-10 mix-blend-overlay pointer-events-none select-none">
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -118,17 +118,17 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
             <rect width="100%" height="100%" fill="url(#admin-grid)" />
           </svg>
         </div>
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-500/25 rounded-full blur-2xl pointer-events-none"></div>
-        <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-indigo-500/25 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-700/25 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-amber-500/20 rounded-full blur-2xl pointer-events-none"></div>
 
         <div className="space-y-1.5 relative z-10">
           <div className="flex items-center space-x-2">
-            <span className="p-1.5 bg-indigo-500/20 text-indigo-300 rounded-lg border border-indigo-500/40">
+            <span className="p-1.5 bg-brand-700/20 text-brand-200 rounded-lg border border-brand-700/40">
               <Briefcase className="h-5 w-5" />
             </span>
             <h2 className="text-xl font-black tracking-tight leading-none text-white">Kelola Lowongan Aktif</h2>
           </div>
-          <p className="text-xs text-indigo-100 font-medium">
+          <p className="text-xs text-stone-300 font-medium">
             Atur dan rombak formasi jabatan pendaftaran yang sedang dibuka saat ini untuk masuk langsung ke sistem portal pelamar.
           </p>
         </div>
@@ -136,7 +136,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
         <div className="flex items-center space-x-2">
           <button
             onClick={onRefresh}
-            className="p-2.5 bg-indigo-800/50 hover:bg-indigo-700/55 text-indigo-100 rounded-xl transition-all border border-indigo-700/40 cursor-pointer"
+            className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20 cursor-pointer"
             title="Refresh Data"
             disabled={loading}
           >
@@ -146,7 +146,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
           {!isEditingList ? (
             <button
                onClick={startEditing}
-              className="px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center space-x-1.5"
+              className="px-4 py-2.5 bg-brand-700 hover:bg-brand-800 text-white font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center space-x-1.5"
             >
               <Plus className="h-4 w-4" />
               <span>Edit Formasi Lowongan</span>
@@ -229,8 +229,8 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                   onClick={() => setActiveTab(idx)}
                   className={`p-3 rounded-xl border transition-all cursor-pointer text-left flex items-start justify-between space-x-3 ${
                     selectedIdx === idx
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-950 shadow-xs ring-1 ring-indigo-100'
-                      : 'bg-white hover:bg-stone-100 border-stone-150 text-stone-700'
+                      ? 'bg-brand-50 border-brand-200 text-editorial-navy shadow-xs ring-1 ring-brand-100'
+                      : 'bg-white hover:bg-stone-100 border-editorial-border text-stone-700'
                   }`}
                 >
                   <div className="space-y-1 truncate flex-1 min-w-0">
@@ -280,7 +280,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                             type="text"
                             value={selectedVacancy.title}
                             onChange={(e) => handleFieldChange(selectedIdx!, 'title', e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-250 focus:border-indigo-500 rounded-xl p-2.5 text-xs font-extrabold outline-hidden shadow-xs"
+                            className="w-full bg-stone-50 border border-editorial-border focus:border-brand-700 rounded-xl p-2.5 text-xs font-extrabold outline-hidden shadow-xs"
                             placeholder="Contoh: Senior Full Stack Developer"
                           />
                         </div>
@@ -290,7 +290,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                             type="text"
                             value={selectedVacancy.category}
                             onChange={(e) => handleFieldChange(selectedIdx!, 'category', e.target.value)}
-                            className="w-full bg-stone-50 border border-stone-250 focus:border-indigo-500 rounded-xl p-2.5 text-xs font-bold outline-hidden shadow-xs"
+                            className="w-full bg-stone-50 border border-editorial-border focus:border-brand-700 rounded-xl p-2.5 text-xs font-bold outline-hidden shadow-xs"
                             placeholder="Contoh: IT / Engineering"
                           />
                         </div>
@@ -345,8 +345,8 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                 {/* Grid criteria parameters */}
                 <div className="grid grid-cols-1 gap-4">
                   {/* Location field */}
-                  <div className="bg-stone-50 border border-stone-150 rounded-xl p-3.5 flex items-start space-x-3">
-                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                  <div className="bg-stone-50 border border-editorial-border rounded-xl p-3.5 flex items-start space-x-3">
+                    <div className="p-2 bg-brand-50 text-brand-700 rounded-lg">
                       <MapPin className="h-4 w-4" />
                     </div>
                     <div className="flex-1 space-y-1">
@@ -356,7 +356,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                           type="text"
                           value={selectedVacancy.location}
                           onChange={(e) => handleFieldChange(selectedIdx!, 'location', e.target.value)}
-                          className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-lg px-2 py-1 text-xs font-bold outline-hidden"
+                          className="w-full bg-white border border-stone-200 focus:border-brand-700 rounded-lg px-2 py-1 text-xs font-bold outline-hidden"
                           placeholder="Solo / Remote"
                         />
                       ) : (
@@ -367,7 +367,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                 </div>
 
                 {/* Job Description row */}
-                <div className="bg-stone-50 border border-stone-150 rounded-xl p-4 space-y-2">
+                <div className="bg-stone-50 border border-editorial-border rounded-xl p-4 space-y-2">
                   <div className="flex items-center space-x-2 text-stone-400">
                     <Layers className="h-3.5 w-3.5" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Deskripsi Formasi Jabatan / Tugas Pokok</span>
@@ -377,19 +377,19 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                       rows={3}
                       value={selectedVacancy.description}
                       onChange={(e) => handleFieldChange(selectedIdx!, 'description', e.target.value)}
-                      className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl p-2.5 text-xs font-medium outline-hidden"
+                      className="w-full bg-white border border-stone-200 focus:border-brand-700 rounded-xl p-2.5 text-xs font-medium outline-hidden"
                       placeholder="Masukkan deskripsi penawaran / tugas ringkas untuk posisi..."
                     />
                   ) : (
-                    <p className="text-xs text-stone-605 font-semibold leading-relaxed whitespace-pre-line text-left">
+                    <p className="text-xs text-stone-500 font-semibold leading-relaxed whitespace-pre-line text-left">
                       {selectedVacancy.description || 'Tidak ada deskripsi rinci untuk jabatan ini.'}
                     </p>
                   )}
                 </div>
 
                 {/* Primary Qualifications bullet lists mapping */}
-                <div className="bg-stone-50 border border-stone-150 rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-stone-150 pb-2">
+                <div className="bg-stone-50 border border-editorial-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-editorial-border pb-2">
                     <div className="flex items-center space-x-2 text-stone-400">
                       <ListChecks className="h-3.5 w-3.5" />
                       <span className="text-[9px] font-black uppercase tracking-widest">Kualifikasi & Persyaratan Khusus</span>
@@ -404,7 +404,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                       rows={5}
                       value={selectedVacancy.requirements.join('\n')}
                       onChange={(e) => handleRequirementsChange(selectedIdx!, e.target.value)}
-                      className="w-full bg-white border border-stone-200 focus:border-indigo-500 rounded-xl p-2.5 text-xs font-mono outline-hidden"
+                      className="w-full bg-white border border-stone-200 focus:border-brand-700 rounded-xl p-2.5 text-xs font-mono outline-hidden"
                       placeholder="Satu baris berisi satu poin persyaratan kualifikasi..."
                     />
                   ) : (

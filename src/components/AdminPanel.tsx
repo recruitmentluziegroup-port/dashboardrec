@@ -20,14 +20,14 @@ const STATUS_LABELS: Record<ApplicationStatus, string> = {
   'Interview User': 'Wawancara User',
 };
 
-// Tailwind class for the status badge (used in list and detail pages)
+// Tailwind class for the status badge — Direction A semantic (no blue/purple second brand)
 const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
   Pending: 'bg-amber-100 text-amber-700 border border-amber-200',
-  Reviewed: 'bg-blue-100 text-blue-700 border border-blue-200',
-  Accepted: 'bg-green-100 text-green-700 border border-green-200',
-  Rejected: 'bg-red-100 text-red-700 border border-red-200',
-  'Interview HR': 'bg-purple-100 text-purple-700 border border-purple-200',
-  'Interview User': 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  Reviewed: 'bg-stone-100 text-editorial-navy border border-editorial-border',
+  Accepted: 'bg-green-50 text-editorial-green border border-green-200',
+  Rejected: 'bg-red-50 text-editorial-red border border-red-200',
+  'Interview HR': 'bg-amber-50 text-amber-800 border border-amber-200',
+  'Interview User': 'bg-orange-50 text-brand-700 border border-brand-200',
 };
 
 interface AdminPanelProps {
@@ -552,18 +552,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-stone-900" id="admin-panel-master">
-      {/* Top Navbar styled after recruit mockup */}
-      <nav className="no-print sticky top-0 z-50 bg-white border-b border-stone-100 shadow-xs h-16 flex items-center justify-between px-6">
+    <div className="min-h-screen bg-editorial-cream text-stone-900" id="admin-panel-master">
+      {/* Top Navbar — Luzie Trusted HR identity */}
+      <nav className="no-print sticky top-0 z-50 bg-white border-b border-editorial-border shadow-xs h-16 flex items-center justify-between px-6 berkas-stripe">
         {/* Left Side: Brand Logo */}
         <div className="flex items-center space-x-8">
-          <div className="flex items-center space-x-2 select-none">
-            <div className="h-8 w-8 rounded-lg bg-stone-900 flex items-center justify-center text-white">
-              <svg className="h-4 w-4 fill-current text-white" viewBox="0 0 24 24">
-                <path d="M12 2L2 22h20zM12 6l7.5 13h-15z" />
-              </svg>
+          <div className="flex items-center space-x-2.5 select-none">
+            <div className="h-8 w-8 rounded-lg bg-editorial-navy flex items-center justify-center text-white shadow-xs">
+              <span className="font-serif font-black text-sm tracking-tight leading-none">LG</span>
             </div>
-            <span className="font-sans font-extrabold text-lg text-stone-950 tracking-tight">Luzie Group</span>
+            <span className="leading-none">
+              <span className="font-sans font-extrabold text-base text-stone-950 tracking-tight block">Luzie Group</span>
+              <span className="text-[9px] font-bold text-stone-500 uppercase tracking-[0.18em] block mt-0.5">Recruitment</span>
+            </span>
           </div>
 
           {/* Navigation Tabs based on Mockup */}
@@ -572,7 +573,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               onClick={() => handleNavTabClick('dashboard')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 viewMode === 'dashboard' && !selectedId
-                  ? 'bg-[#EEF2F6] text-indigo-650'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
@@ -583,7 +584,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               onClick={() => handleNavTabClick('list')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies')
-                  ? 'bg-[#EEF2F6] text-indigo-650'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
@@ -594,7 +595,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               onClick={() => handleNavTabClick('vacancies')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 viewMode === 'vacancies'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
@@ -605,7 +606,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               onClick={() => handleNavTabClick('tracker')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 viewMode === 'tracker'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
@@ -616,7 +617,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               onClick={() => handleNavTabClick('calendar')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 viewMode === 'calendar'
-                  ? 'bg-[#EEF2F6] text-indigo-650'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
             >
@@ -633,13 +634,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-stone-400" />
             <input
               type="text"
-              placeholder="Search here..."
+              placeholder="Cari nama / ID / jabatan..."
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 if (viewMode !== 'list') setViewMode('list');
               }}
-              className="w-full bg-[#F4F6F9] border-0 rounded-full pl-10 pr-4 py-2 text-xs transition-all outline-hidden focus:ring-2 focus:ring-indigo-100"
+              className="w-full bg-stone-100 border-0 rounded-full pl-10 pr-4 py-2 text-xs transition-all focus:bg-white focus:ring-2 focus:ring-brand-200"
             />
           </div>
 
@@ -649,11 +650,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             <button 
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className={`h-9 w-9 rounded-full transition-all flex items-center justify-center relative cursor-pointer ${
-                isNotifOpen ? 'bg-indigo-50 text-indigo-650' : 'hover:bg-stone-100'
+                isNotifOpen ? 'bg-brand-50 text-brand-700' : 'hover:bg-stone-100'
               }`} 
               title="Notifikasi Tindak Lanjut"
             >
-              <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
@@ -691,7 +692,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       </div>
                       <div>
                         <p className="font-bold text-stone-900">Semua Berkas Bersih</p>
-                        <p className="text-[10px] text-stone-405 leading-none mt-1">Sangat bagus! Tidak ada tugas tinjauan pelamar yang tersisa.</p>
+                        <p className="text-[10px] text-stone-500 leading-none mt-1">Sangat bagus! Tidak ada tugas tinjauan pelamar yang tersisa.</p>
                       </div>
                     </div>
                   ) : (
@@ -704,11 +705,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       const notifBadgeClass = isPending
                         ? 'bg-amber-50 text-amber-700 border border-amber-100'
                         : isReviewed
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-150'
+                        ? 'bg-brand-50 text-brand-700 border border-brand-200'
                         : isInterviewHR
-                        ? 'bg-purple-50 text-purple-700 border border-purple-150'
+                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
                         : isInterviewUser
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                        ? 'bg-brand-50 text-brand-700 border border-brand-200'
                         : 'bg-stone-50 text-stone-700 border border-stone-100';
                       const notifLabel = isPending
                         ? 'Verifikasi'
@@ -736,7 +737,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {notifLabel}
                             </span>
                           </div>
-                          <p className="text-[10px] text-stone-405 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
+                          <p className="text-[10px] text-stone-500 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
                           <span className="text-[9px] text-[#4F46E5] font-bold hover:underline flex items-center space-x-0.5 mt-1">
                             <span>Lakukan Evaluasi Profil &rarr;</span>
                           </span>
@@ -752,7 +753,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           {/* User Profile Frame with Green Indicator */}
           <div className="flex items-center space-x-3 pl-3 border-l border-stone-200">
             <div className="relative cursor-pointer group">
-              <div className="h-9 w-9 rounded-full bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center border border-indigo-100 shadow-xs">
+              <div className="h-9 w-9 rounded-full bg-brand-700 text-white font-extrabold text-xs flex items-center justify-center border border-brand-200 shadow-xs">
                 {adminEmail.substring(0, 2).toUpperCase()}
               </div>
               <span className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-green-500 border-2 border-white rounded-full"></span>
@@ -787,7 +788,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <button
                     onClick={() => setViewMode('dashboard')}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'dashboard' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                      viewMode === 'dashboard' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Ikhtisar
@@ -795,7 +796,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <button
                     onClick={() => setViewMode('list')}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'list' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                      viewMode === 'list' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Daftar ({candidates.length})
@@ -803,7 +804,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <button
                     onClick={() => setViewMode('vacancies')}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'vacancies' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                      viewMode === 'vacancies' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Lowongan ({vacancies.length})
@@ -811,7 +812,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <button
                     onClick={() => setViewMode('tracker')}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'tracker' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                      viewMode === 'tracker' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Treker ({trackers.length})
@@ -819,7 +820,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   <button
                     onClick={() => setViewMode('calendar')}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                      viewMode === 'calendar' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
+                      viewMode === 'calendar' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Agenda
@@ -830,7 +831,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
             {loading ? (
               <div className="py-24 flex flex-col items-center justify-center space-y-3">
-                <RefreshCw className="h-10 w-10 text-brand-500 animate-spin" />
+                <RefreshCw className="h-10 w-10 text-brand-700 animate-spin" />
                 <p className="text-sm text-stone-500 font-medium">Menghubungi Google Sheets API...</p>
               </div>
             ) : error ? (
@@ -891,7 +892,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 <div className="flex items-center justify-end">
                   <button
                     onClick={() => openNewInterviewModal()}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-brand-700 text-white rounded-xl hover:bg-brand-800 transition-all cursor-pointer"
                   >
                     <Plus className="h-4 w-4" />
                     Jadwalkan Wawancara
@@ -936,7 +937,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         placeholder="Cari nama, no. hp, atau ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl pl-9 pr-4 py-2 text-xs transition-all outline-hidden"
+                        className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl pl-9 pr-4 py-2 text-xs transition-all outline-hidden"
                       />
                     </div>
                   </div>
@@ -947,7 +948,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
                     >
                       <option value="">Semua Status ({candidates.length})</option>
                       <option value="Pending">Belum Direview ({candidates.filter(c => c.status === 'Pending').length})</option>
@@ -965,7 +966,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={positionFilter}
                       onChange={(e) => setPositionFilter(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
                     >
                       <option value="">Semua Posisi</option>
                       {dynamicPositions.map((pos) => (
@@ -980,7 +981,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-500 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
+                      className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
                     >
                       <option value="newest">Terbaru Mendaftar</option>
                       <option value="oldest">Terlama Mendaftar</option>
@@ -1024,14 +1025,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               <td className="py-4 px-5 text-center flex items-center justify-center space-x-1">
                                 <button
                                   onClick={() => setSelectedId(c.id)}
-                                  className="flex items-center space-x-1 border border-stone-200 hover:border-brand-500 hover:text-brand-500 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
+                                  className="flex items-center space-x-1 border border-stone-200 hover:border-brand-700 hover:text-brand-700 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
                                 >
                                   <Eye className="h-3.5 w-3.5" />
                                   <span>Tinjau</span>
                                 </button>
                                 <button
                                   onClick={() => handleTriggerPdfDownload(c.id)}
-                                  className="flex items-center text-stone-500 hover:text-brand-600 border border-stone-200 hover:border-brand-500 p-1.5 rounded-lg transition-all cursor-pointer"
+                                  className="flex items-center text-stone-500 hover:text-brand-600 border border-stone-200 hover:border-brand-700 p-1.5 rounded-lg transition-all cursor-pointer"
                                   title="Download PDF"
                                 >
                                   <Download className="h-3.5 w-3.5" />
@@ -1072,7 +1073,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   className={`flex items-center space-x-2 border text-xs font-bold rounded-xl px-4 py-2.5 shadow-xs transition-all cursor-pointer ${
                     isEditing
                       ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                      : 'bg-white text-stone-700 border-stone-200 hover:border-brand-500 hover:text-brand-500'
+                      : 'bg-white text-stone-700 border-stone-200 hover:border-brand-700 hover:text-brand-700'
                   }`}
                 >
                   <Edit2 className="h-4 w-4" />
@@ -1080,14 +1081,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 </button>
                 <button
                   onClick={() => setIsPrintMode(true)}
-                  className="flex items-center justify-center border border-stone-200 bg-white text-stone-700 hover:border-brand-500 hover:text-brand-500 text-xs font-bold rounded-xl px-3 py-2.5 shadow-xs transition-all cursor-pointer"
+                  className="flex items-center justify-center border border-stone-200 bg-white text-stone-700 hover:border-brand-700 hover:text-brand-700 text-xs font-bold rounded-xl px-3 py-2.5 shadow-xs transition-all cursor-pointer"
                   title="Mode Cetak — tampilkan tampilan siap-cetak di layar"
                 >
                   <Printer className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => handleTriggerPdfDownload(selectedId)}
-                  className="flex items-center space-x-2 bg-brand-500 text-white hover:bg-brand-600 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
+                  className="flex items-center space-x-2 bg-brand-700 text-white hover:bg-brand-800 text-xs font-bold rounded-xl px-4 py-2.5 shadow-sm transition-all cursor-pointer"
                 >
                   <Download className="h-4 w-4" />
                   <span>Cetak PDF</span>
@@ -1108,7 +1109,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </button>
                   <button
                     onClick={() => window.print()}
-                    className="flex items-center space-x-2 bg-brand-500 text-white hover:bg-brand-600 text-xs font-bold rounded-xl px-4 py-2 shadow-sm transition-all cursor-pointer"
+                    className="flex items-center space-x-2 bg-brand-700 text-white hover:bg-brand-800 text-xs font-bold rounded-xl px-4 py-2 shadow-sm transition-all cursor-pointer"
                   >
                     <Printer className="h-4 w-4" />
                     <span>Cetak (Print Browser)</span>
@@ -1139,7 +1140,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         onClick={() => setActiveDetailTab(stepNum)}
                         className={`whitespace-nowrap px-4 py-2.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                           activeDetailTab === stepNum
-                            ? 'bg-brand-500 text-white shadow-xs'
+                            ? 'bg-brand-700 text-white shadow-xs'
                             : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
                         }`}
                       >
@@ -1149,13 +1150,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   })}
                 </div>
 
-                <div className="bg-white p-6 rounded-b-2xl border-x border-b border-stone-200 shadow-sm space-y-6">
+                <div className="bg-white p-6 rounded-b-2xl border-x border-b border-editorial-border shadow-sm space-y-6 berkas-stripe">
                   {editedRecord ? (
                     <>
                       {/* Step 1: Identitas Pribadi */}
                       {activeDetailTab === 1 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">1. Identitas Pribadi</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">1. Identitas Pribadi</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
                               <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Lengkap</label>
@@ -1308,7 +1309,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.anak || []).map((ch, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                                     <input type="text" placeholder="Nama Anak" disabled={!isEditing} value={ch.nama} onChange={(e) => handleEditNested('anak', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <input type="text" placeholder="TTL Anak" disabled={!isEditing} value={ch.ttl} onChange={(e) => handleEditNested('anak', idx, 'ttl', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
@@ -1371,7 +1372,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.saudara || []).map((sd, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                                     <input type="text" placeholder="Nama Saudara" disabled={!isEditing} value={sd.nama} onChange={(e) => handleEditNested('saudara', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <select disabled={!isEditing} value={sd.kakakAdik} onChange={(e) => handleEditNested('saudara', idx, 'kakakAdik', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg">
@@ -1451,7 +1452,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.kursus || []).map((ks, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
                                     <input type="text" placeholder="Bidang Kursus" disabled={!isEditing} value={ks.bidang} onChange={(e) => handleEditNested('kursus', idx, 'bidang', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <input type="text" placeholder="Lamanya (Durasi)" disabled={!isEditing} value={ks.lamanya} onChange={(e) => handleEditNested('kursus', idx, 'lamanya', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
@@ -1547,7 +1548,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.referensiPerusahaan || []).map((rf, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                                     <input type="text" placeholder="Perusahaan" disabled={!isEditing} value={rf.perusahaan} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'perusahaan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <input type="text" placeholder="Nama Atasan" disabled={!isEditing} value={rf.kontak} onChange={(e) => handleEditNested('referensiPerusahaan', idx, 'kontak', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
@@ -1640,7 +1641,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {isEditing ? (
                                 <textarea value={editedRecord.kekuatanDiri} onChange={(e) => editField('kekuatanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-xs text-stone-850 whitespace-pre-wrap">{editedRecord.kekuatanDiri}</p>
+                                <p className="text-xs text-stone-900 whitespace-pre-wrap">{editedRecord.kekuatanDiri}</p>
                               )}
                             </div>
                             <div className="space-y-1">
@@ -1656,7 +1657,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {isEditing ? (
                                 <input type="text" value={editedRecord.hobby} onChange={(e) => editField('hobby', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-xs text-stone-850">{editedRecord.hobby}</p>
+                                <p className="text-xs text-stone-900">{editedRecord.hobby}</p>
                               )}
                             </div>
                             <div className="space-y-1">
@@ -1664,7 +1665,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {isEditing ? (
                                 <input type="text" value={editedRecord.waktuLuang} onChange={(e) => editField('waktuLuang', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-xs text-stone-850">{editedRecord.waktuLuang}</p>
+                                <p className="text-xs text-stone-900">{editedRecord.waktuLuang}</p>
                               )}
                             </div>
                           </div>
@@ -1681,7 +1682,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                             <div className="space-y-3">
                               {(editedRecord.organisasi || []).map((or, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-stone-250 flex items-center space-x-3">
+                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
                                     <input type="text" placeholder="Nama Organisasi" disabled={!isEditing} value={or.nama} onChange={(e) => handleEditNested('organisasi', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <input type="text" placeholder="Periode" disabled={!isEditing} value={or.periode} onChange={(e) => handleEditNested('organisasi', idx, 'periode', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
@@ -1711,7 +1712,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {isEditing ? (
                                 <input type="text" value={editedRecord.gajiDiinginkan} onChange={(e) => editField('gajiDiinginkan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-sm font-semibold text-stone-850">Rp {editedRecord.gajiDiinginkan}</p>
+                                <p className="text-sm font-semibold text-stone-900">Rp {editedRecord.gajiDiinginkan}</p>
                               )}
                             </div>
                             <div className="space-y-1">
@@ -1719,7 +1720,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               {isEditing ? (
                                 <input type="date" value={editedRecord.dapatMulaiBekerja} onChange={(e) => editField('dapatMulaiBekerja', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-xs text-stone-850 font-medium">{editedRecord.dapatMulaiBekerja}</p>
+                                <p className="text-xs text-stone-900 font-medium">{editedRecord.dapatMulaiBekerja}</p>
                               )}
                             </div>
                             <div className="space-y-1">
@@ -1779,7 +1780,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-stone-150 flex flex-col items-end">
+                          <div className="pt-4 border-t border-editorial-border flex flex-col items-end">
                             <span className="text-xs text-stone-500">Mengesahkan Pernyataan Diatas Sebenar-benarnya:</span>
                             <span className="text-[10px] text-stone-400 mt-1">Dibuat di: {editedRecord.kotaTgl}</span>
                             <span className="text-sm font-bold text-stone-900 mt-4">{editedRecord.namaTerang}</span>
@@ -1820,7 +1821,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               {/* Right sidebar: Actions details */}
               <div className="space-y-6">
                 {/* Recruitment Status card workflow */}
-                <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+                <div className="bg-white p-5 rounded-2xl border border-editorial-border shadow-sm space-y-4 berkas-stripe">
                   <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest leading-none">Status Rekrutmen</h4>
 
                   {selectedCandidate && (
@@ -1838,7 +1839,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         <select
                           value={selectedCandidate.status}
                           onChange={(e) => handleStatusChange(selectedCandidate.id, e.target.value as ApplicationStatus)}
-                          className="w-full bg-stone-50 border border-stone-250 focus:border-brand-500 rounded-lg p-2.5 text-xs font-medium cursor-pointer"
+                          className="w-full bg-stone-50 border border-editorial-border focus:border-brand-700 rounded-lg p-2.5 text-xs font-medium cursor-pointer"
                         >
                           <option value="Pending">Belum Direview (Pending)</option>
                           <option value="Reviewed">Sedang Tahap Review (Reviewed)</option>
@@ -1857,28 +1858,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                 {/* Meta details card */}
                 {selectedCandidate && (
-                  <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+                  <div className="bg-white p-5 rounded-2xl border border-editorial-border shadow-sm space-y-3 berkas-stripe">
                     <h4 className="text-xs font-bold text-stone-500 uppercase tracking-widest leading-none">Berkas Administrasi</h4>
                     <div className="space-y-2 text-xs divide-y divide-stone-100 pt-1">
-                      <div className="py-2 flex justify-between">
+                      <div className="py-2 flex justify-between items-center gap-2">
                         <span className="text-stone-500">ID Berkas</span>
-                        <span className="font-mono font-bold text-stone-850">{selectedCandidate.id}</span>
+                        <span className="font-mono font-bold text-[11px] bg-editorial-navy text-white px-2.5 py-1 rounded-md tracking-wide">{selectedCandidate.id}</span>
                       </div>
                       <div className="py-3 flex justify-between">
                         <span className="text-stone-500">Tanggal Pengajuan</span>
-                        <span className="text-stone-850 font-semibold">
+                        <span className="text-stone-900 font-semibold">
                           {new Date(selectedCandidate.submissionDate).toLocaleString('id-ID')}
                         </span>
                       </div>
                       <div className="py-3 flex justify-between">
                         <span className="text-stone-500">Terakhir Diupdate</span>
-                        <span className="text-stone-850 font-mono">
+                        <span className="text-stone-900 font-mono">
                           {selectedCandidate.lastUpdated ? new Date(selectedCandidate.lastUpdated).toLocaleString('id-ID') : '-'}
                         </span>
                       </div>
                       <div className="py-3 flex justify-between">
                         <span className="text-stone-500">Posisi Lowongan</span>
-                        <span className="text-brand-600 font-bold">{getOfficialPositionName(selectedCandidate.jabatanDituju) || '-'}</span>
+                        <span className="text-brand-700 font-bold">{getOfficialPositionName(selectedCandidate.jabatanDituju) || '-'}</span>
                       </div>
                     </div>
                   </div>

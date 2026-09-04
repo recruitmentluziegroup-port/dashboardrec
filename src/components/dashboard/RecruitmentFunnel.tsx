@@ -44,10 +44,10 @@ const STAGES: Stage[] = [
     label: 'Direview',
     icon: <UserCheck className="h-3.5 w-3.5" />,
     palette: {
-      bg: 'bg-indigo-50',
-      text: 'text-indigo-700',
-      border: 'border-indigo-200',
-      bar: 'bg-indigo-500',
+      bg: 'bg-stone-100',
+      text: 'text-editorial-navy',
+      border: 'border-editorial-border',
+      bar: 'bg-editorial-navy',
     },
   },
   {
@@ -55,10 +55,10 @@ const STAGES: Stage[] = [
     label: 'Wawancara HR',
     icon: <Users className="h-3.5 w-3.5" />,
     palette: {
-      bg: 'bg-purple-50',
-      text: 'text-purple-700',
-      border: 'border-purple-200',
-      bar: 'bg-purple-500',
+      bg: 'bg-amber-50',
+      text: 'text-amber-800',
+      border: 'border-amber-200',
+      bar: 'bg-amber-500',
     },
   },
   {
@@ -66,10 +66,10 @@ const STAGES: Stage[] = [
     label: 'Wawancara User',
     icon: <Users className="h-3.5 w-3.5" />,
     palette: {
-      bg: 'bg-sky-50',
-      text: 'text-sky-700',
-      border: 'border-sky-200',
-      bar: 'bg-sky-500',
+      bg: 'bg-brand-50',
+      text: 'text-brand-700',
+      border: 'border-brand-200',
+      bar: 'bg-brand-700',
     },
   },
   {
@@ -77,10 +77,10 @@ const STAGES: Stage[] = [
     label: 'Diterima',
     icon: <CheckCircle2 className="h-3.5 w-3.5" />,
     palette: {
-      bg: 'bg-emerald-50',
-      text: 'text-emerald-700',
-      border: 'border-emerald-200',
-      bar: 'bg-emerald-500',
+      bg: 'bg-green-50',
+      text: 'text-editorial-green',
+      border: 'border-green-200',
+      bar: 'bg-editorial-green',
     },
   },
 ];
@@ -175,7 +175,7 @@ export const RecruitmentFunnel: React.FC<RecruitmentFunnelProps> = ({ stats }) =
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] bg-indigo-50 text-indigo-600 font-extrabold px-2 py-0.5 rounded-md uppercase">
+          <span className="text-[10px] bg-brand-50 text-brand-700 font-extrabold px-2 py-0.5 rounded-md uppercase">
             {counts[0]} masuk
           </span>
           <button
@@ -183,7 +183,7 @@ export const RecruitmentFunnel: React.FC<RecruitmentFunnelProps> = ({ stats }) =
             onClick={toggleExpanded}
             aria-expanded={isExpanded}
             aria-controls="funnel-body"
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-indigo-300 hover:text-indigo-600 text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-700 text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer"
             title={isExpanded ? 'Sembunyikan alur' : 'Buka alur'}
           >
             {isExpanded ? (

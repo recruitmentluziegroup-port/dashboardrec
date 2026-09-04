@@ -10,7 +10,7 @@ interface TrackerModalProps {
 }
 
 const inputCls =
-  'w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-400';
+  'w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-brand-700';
 const labelCls = 'block text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1';
 
 const PRIORITIES = ['Normal', 'High'];
@@ -209,7 +209,7 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
               </button>
               <button
                 onClick={handleSave}
-                className="text-[11px] font-bold px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
+                className="text-[11px] font-bold px-4 py-2 rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer min-h-[44px]"
               >
                 Simpan
               </button>

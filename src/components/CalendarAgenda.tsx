@@ -102,7 +102,7 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
           </button>
           <button
             onClick={() => setWeekAnchor(new Date())}
-            className="ml-1 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-stone-200 hover:border-indigo-400 hover:text-indigo-600 cursor-pointer"
+            className="ml-1 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 cursor-pointer"
           >
             <CalendarDays className="h-3.5 w-3.5" />
             <span>Hari Ini</span>
@@ -123,14 +123,14 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
             <button
               key={ymd}
               onClick={() => setWeekAnchor(d)}
-              className={`py-2.5 flex flex-col items-center gap-0.5 cursor-pointer transition-colors ${
-                active ? 'bg-indigo-50' : 'hover:bg-stone-100'
+              className={`py-2.5 flex flex-col items-center gap-0.5 cursor-pointer transition-colors min-h-[44px] min-w-[44px] ${
+                active ? 'bg-brand-50' : 'hover:bg-stone-100'
               }`}
             >
               <span className="text-[10px] font-bold uppercase text-stone-400">{DAY_NAMES[i]}</span>
               <span
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-black ${
-                  isToday ? 'bg-indigo-600 text-white' : active ? 'text-indigo-700' : 'text-stone-700'
+                  isToday ? 'bg-brand-700 text-white' : active ? 'text-brand-700' : 'text-stone-700'
                 }`}
               >
                 {d.getDate()}
@@ -155,7 +155,7 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
                     <div
                       key={h}
                       onClick={() => onSlotClick(ymd, h)}
-                      className="flex border-b border-stone-100 h-14 cursor-pointer hover:bg-indigo-50/40"
+                      className="flex border-b border-stone-100 h-14 cursor-pointer hover:bg-brand-50/40"
                     >
                       <div className="w-14 shrink-0 text-[10px] font-semibold text-stone-400 pt-1 pl-2">
                         {`${`${h}`.padStart(2, '0')}:00`}
@@ -178,10 +178,10 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
                           onEventClick(ev);
                         }}
                         style={{ top, height }}
-                        className={`absolute left-14 right-1 rounded-lg px-2 py-1 text-left text-[10px] font-bold border overflow-hidden cursor-pointer transition-shadow hover:shadow ${
+                        className={`absolute left-14 right-1 rounded-lg px-2 py-1 text-left text-[10px] font-bold border overflow-hidden cursor-pointer transition-shadow hover:shadow min-h-[44px] ${
                           isHR
-                            ? 'bg-purple-100 text-purple-800 border-purple-200'
-                            : 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                            ? 'bg-amber-100 text-amber-900 border-amber-200'
+                            : 'bg-brand-100 text-brand-800 border-brand-200'
                         }`}
                       >
                         <span className="block truncate leading-tight">
