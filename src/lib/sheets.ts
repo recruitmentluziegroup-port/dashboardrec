@@ -702,6 +702,178 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   }
 }
 
+// ─── Tracker Posisi Storage ────────────────────────────────────────────────
+// Decoupled from Vacancies. Own "Trackers" tab (ID + 11 tracker fields).
+// Local dev fallback persists to src/data/trackers.json (starts empty).
+
+export interface TrackerItem {
+  id: string;
+  title: string;
+  category: string;
+  user: string;
+  recruiter: string;
+  tanggalDibuka: string;
+  tanggalTerakhir: string;
+  tanggalSelesai: string;
+  priority?: VacancyPriority;
+  jumlah?: string;
+  gender?: string;
+  status?: VacancyStatus;
+}
+
+const TRACKER_TAB = 'Trackers';
+const TRACKER_HEADERS = ['ID', 'Title', 'Category', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
+
+let cachedTrackers: TrackerItem[] | null = null;
+
+function readLocalTrackers(): TrackerItem[] {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/trackers.json');
+    if (fs.existsSync(filePath)) {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {
+    // File not accessible — fall through to empty list
+  }
+  return [];
+}
+
+function trackerToRow(t: TrackerItem): any[] {
+  return [
+    t.id || '', t.title || '', t.category || '', t.user || '', t.recruiter || '',
+    t.tanggalDibuka || '', t.tanggalTerakhir || '', t.tanggalSelesai || '',
+    t.priority || 'Normal', t.jumlah || '', t.gender || '', t.status || 'Open'
+  ];
+}
+
+function rowToTracker(row: any[]): TrackerItem {
+  return {
+    id: row[0] || '',
+    title: row[1] || '',
+    category: row[2] || '',
+    user: row[3] || '',
+    recruiter: row[4] || '',
+    tanggalDibuka: row[5] || '',
+    tanggalTerakhir: row[6] || '',
+    tanggalSelesai: row[7] || '',
+    priority: (row[8] || 'Normal') as VacancyPriority,
+    jumlah: row[9] || '',
+    gender: row[10] || '',
+    status: (row[11] || 'Open') as VacancyStatus
+  };
+}
+
+async function ensureTrackerTab(sheets: any, spreadsheetId: string): Promise<void> {
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const exists = (meta.data.sheets ?? []).some(
+      (s: any) => s.properties?.title === TRACKER_TAB
+    );
+    if (!exists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: [{ addSheet: { properties: { title: TRACKER_TAB } } }] }
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${TRACKER_TAB}!A1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [TRACKER_HEADERS] }
+      });
+    }
+  } catch (error) {
+    console.error('Error ensuring Trackers tab:', error);
+  }
+}
+
+export async function getTrackers(): Promise<TrackerItem[]> {
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  // Local dev fallback — persisted JSON file, starts empty (no seeding)
+  if (!sheets || !spreadsheetId) {
+    if (cachedTrackers) return cachedTrackers;
+    const local = readLocalTrackers();
+    cachedTrackers = local;
+    return local;
+  }
+
+  try {
+    await ensureTrackerTab(sheets, spreadsheetId);
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${TRACKER_TAB}!A2:L`
+    });
+
+    const rows = response.data.values;
+    if (!rows || rows.length === 0) {
+      cachedTrackers = [];
+      return cachedTrackers;
+    }
+
+    const fetched = rows.map((row: any[]) => rowToTracker(row))
+      .filter((t: TrackerItem) => t.id !== '' || t.title.trim() !== '');
+    cachedTrackers = fetched;
+    return fetched;
+  } catch (error) {
+    console.error('Error reading trackers from Sheets:', error);
+    if (cachedTrackers) return cachedTrackers;
+    const fallback = readLocalTrackers();
+    cachedTrackers = fallback;
+    return fallback;
+  }
+}
+
+export async function saveTrackers(trackers: TrackerItem[]): Promise<boolean> {
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  // Update memory cache — reset first to force re-fetch on next getTrackers() call
+  cachedTrackers = null;
+
+  // Local dev fallback — write directly to the JSON file
+  if (!sheets || !spreadsheetId) {
+    try {
+      const filePath = path.join(process.cwd(), 'src/data/trackers.json');
+      const dirPath = path.dirname(filePath);
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+      fs.writeFileSync(filePath, JSON.stringify(trackers, null, 2), 'utf-8');
+      console.log('Successfully saved trackers locally to src/data/trackers.json');
+      return true;
+    } catch (err) {
+      console.warn('Failed to write local trackers file (might be Vercel serverless):', err);
+      return true;
+    }
+  }
+
+  try {
+    await ensureTrackerTab(sheets, spreadsheetId);
+
+    const rows = trackers.map(trackerToRow);
+
+    // Clear all data rows (preserve header in row 1) then rewrite
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${TRACKER_TAB}!A2:L`
+    });
+    if (rows.length > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${TRACKER_TAB}!A2`,
+        valueInputOption: 'RAW',
+        requestBody: { values: rows }
+      });
+    }
+    return true;
+  } catch (error) {
+    console.error('Error saving trackers to Sheets:', error);
+    return false;
+  }
+}
+
 // ─── Interview Storage ───────────────────────────────────────────────────────
 // Interviews are stored in a dedicated "Interviews" tab in the same Google Sheet.
 // Local dev fallback keeps them in memory (no committed JSON seed).

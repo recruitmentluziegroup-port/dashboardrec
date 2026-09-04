@@ -10,7 +10,7 @@ import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap } from './src/lib/sheets';
+import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant, ApplicationStatus, StatusLabelId } from './src/types';
 
@@ -196,6 +196,18 @@ app.use(express.json({ limit: '10mb' }));
     return null;
   }
 
+  function validateTrackers(trackers: any[]): string | null {
+    for (const t of trackers) {
+      if (!t || typeof t.title !== 'string' || t.title.trim() === '') return 'Setiap tracker wajib memiliki Nama Posisi.';
+      if (t.priority !== undefined && t.priority !== '' && t.priority !== 'Normal' && t.priority !== 'High') return `Priority tidak valid: ${t.priority}.`;
+      if (t.status !== undefined && t.status !== '' && !['Open', 'On Hold', 'Closed-Filled', 'Closed-Unfilled'].includes(t.status)) return `Status tidak valid: ${t.status}.`;
+      for (const d of [t.tanggalDibuka, t.tanggalTerakhir, t.tanggalSelesai]) {
+        if (d !== undefined && d !== '' && !DATE_RE.test(String(d))) return `Format tanggal harus YYYY-MM-DD: ${d}.`;
+      }
+    }
+    return null;
+  }
+
   function validateInterviewBody(b: any): string | null {
     if (!b || typeof b !== 'object') return 'Data jadwal tidak valid.';
     for (const f of ['applicantId', 'candidateName', 'position', 'interviewer'] as const) {
@@ -280,8 +292,11 @@ app.use(express.json({ limit: '10mb' }));
   });
 
   // ADMIN: all vacancies including archived — protected
+  // (?store=trackers serves the decoupled Treker Posisi list from the same
+  // route so Vercel stays at 11 serverless functions.)
   app.get('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      if ((req.query as any)?.store === 'trackers') return res.json(await getTrackers());
       res.json(await getVacancies());
     } catch (error) {
       console.error('Error reading all vacancies:', error);
@@ -292,6 +307,17 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: persist vacancy changes (archived flag included) — protected
   app.post('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      if ((req.query as any)?.store === 'trackers') {
+        const trackers = req.body;
+        if (!Array.isArray(trackers)) {
+          return res.status(400).json({ error: 'Data tracker harus berupa array.' });
+        }
+        const trackErr = validateTrackers(trackers);
+        if (trackErr) return res.status(400).json({ error: trackErr });
+        const trackOk = await saveTrackers(trackers);
+        if (!trackOk) return res.status(500).json({ error: 'Gagal menyimpan data tracker.' });
+        return res.json({ success: true, message: 'Data tracker berhasil disimpan.' });
+      }
       const vacancies = req.body;
       if (!Array.isArray(vacancies)) {
         return res.status(400).json({ error: 'Data lowongan harus berupa array.' });

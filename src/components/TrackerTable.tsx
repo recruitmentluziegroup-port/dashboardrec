@@ -5,6 +5,9 @@ interface TrackerTableProps {
   rows: any[];
   onStatusChange?: (row: any, newStatus: string) => void;
   onSelect?: (row: any) => void;
+  onAdd?: () => void;
+  onEdit?: (row: any) => void;
+  onDelete?: (id: string) => void;
 }
 
 const STATUS_OPTIONS = ['Open', 'Closed-Filled', 'Closed-Unfilled', 'On Hold'];
@@ -39,7 +42,7 @@ const fmtDate = (v: unknown): string => {
   return d.toLocaleDateString('id-ID');
 };
 
-export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange, onSelect }) => {
+export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange, onSelect, onAdd, onEdit, onDelete }) => {
   return (
     <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-stone-200 flex items-center justify-between">
@@ -49,6 +52,14 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
             {rows.length} posisi terpantau — klik Tinjau untuk melihat pelamar.
           </p>
         </div>
+        {onAdd && (
+          <button
+            onClick={onAdd}
+            className="px-3.5 py-2 text-[11px] font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all cursor-pointer"
+          >
+            + Tambah
+          </button>
+        )}
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[1100px]">
@@ -72,7 +83,7 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-12 text-center text-stone-500 font-medium">
-                  Belum ada posisi rekrutmen. Tambahkan lowongan terlebih dahulu.
+                  Belum ada tracker posisi. Klik + Tambah untuk membuat posisi baru.
                 </td>
               </tr>
             ) : (
@@ -124,15 +135,33 @@ export const TrackerTable: React.FC<TrackerTableProps> = ({ rows, onStatusChange
                       </div>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {onSelect && (
-                        <button
-                          onClick={() => onSelect(r)}
-                          className="inline-flex items-center space-x-1 border border-stone-200 hover:border-indigo-400 hover:text-indigo-600 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Tinjau</span>
-                        </button>
-                      )}
+                      <div className="flex items-center justify-center gap-1">
+                        {onSelect && (
+                          <button
+                            onClick={() => onSelect(r)}
+                            className="inline-flex items-center space-x-1 border border-stone-200 hover:border-indigo-400 hover:text-indigo-600 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            <span>Tinjau</span>
+                          </button>
+                        )}
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(r)}
+                            className="px-2.5 py-1.5 rounded-lg border border-stone-200 font-bold hover:border-indigo-400 hover:text-indigo-600 transition-all cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(String(r.id ?? r.title))}
+                            className="px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 font-bold hover:bg-red-50 transition-all cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

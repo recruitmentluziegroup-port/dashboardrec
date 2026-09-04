@@ -5,6 +5,7 @@ import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
 import { PrintableDetail } from './dashboard/PrintableDetail';
 import { TrackerTable } from './TrackerTable';
+import { TrackerModal } from './TrackerModal';
 import { CalendarAgenda } from './CalendarAgenda';
 import { InterviewModal } from './InterviewModal';
 import type { Interview } from '../lib/interview-links';
@@ -67,6 +68,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [vacanciesLoading, setVacanciesLoading] = useState(false);
   const [vacanciesError, setVacanciesError] = useState<string | null>(null);
   const [vacanciesSuccessMsg, setVacanciesSuccessMsg] = useState<string | null>(null);
+
+  // Treker Posisi states — decoupled from vacancies, own store (?store=trackers)
+  const [trackers, setTrackers] = useState<any[]>([]);
+  const [isTrackerModalOpen, setIsTrackerModalOpen] = useState(false);
+  const [editingTracker, setEditingTracker] = useState<any | null>(null);
 
   // Interviews (tracker calendar agenda)
   const [interviews, setInterviews] = useState<Interview[]>([]);
@@ -164,6 +170,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   useEffect(() => {
     fetchVacancies();
   }, []);
+
+  const fetchTrackers = async () => {
+    try {
+      const res = await fetch('/api/admin/vacancies?store=trackers', { headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data)) {
+        setTrackers(data);
+      }
+    } catch (err) {
+      console.error('Gagal memuat data tracker', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrackers();
+  }, []);
+
+  const saveTrackers = async (next: any[]) => {
+    try {
+      const res = await fetch('/api/admin/vacancies?store=trackers', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(next)
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        alert(json.error || 'Gagal menyimpan data tracker.');
+        return;
+      }
+      setTrackers(next);
+    } catch {
+      alert('Kegagalan jaringan saat menyimpan data tracker.');
+    }
+  };
 
   // Fetch all rows
   const fetchApplicants = async () => {
@@ -362,14 +402,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     }
   };
 
+  const trackerKeyOf = (r: any) => String(r?.id ?? r?.title ?? '');
+
   const handleTrackerStatusChange = async (row: any, newStatus: string) => {
-    if (!row?.title) return;
-    const updated = vacancies.map((v) =>
-      v.title === row.title
-        ? { ...v, status: newStatus, tanggalSelesai: newStatus === 'Closed-Filled' ? new Date().toISOString().slice(0, 10) : v.tanggalSelesai || '' }
-        : v
+    const key = trackerKeyOf(row);
+    if (!key) return;
+    const updated = trackers.map((t) =>
+      trackerKeyOf(t) === key
+        ? { ...t, status: newStatus, tanggalSelesai: newStatus === 'Closed-Filled' ? new Date().toISOString().slice(0, 10) : t.tanggalSelesai || '' }
+        : t
     );
-    await saveVacancies(updated);
+    await saveTrackers(updated);
+  };
+
+  const handleSaveTracker = async (data: any) => {
+    const key = data?.id ? String(data.id) : data?.title ? `title:${String(data.title).trim().toLowerCase()}` : '';
+    let next: any[];
+    if (key && trackers.some((t) => (t.id ? String(t.id) : `title:${String(t.title || '').trim().toLowerCase()}`) === key)) {
+      next = trackers.map((t) =>
+        ((t.id ? String(t.id) : `title:${String(t.title || '').trim().toLowerCase()}`) === key ? { ...t, ...data } : t)
+      );
+    } else {
+      next = [...trackers, { ...data, id: data.id || `trk-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}` }];
+    }
+    await saveTrackers(next);
+    setIsTrackerModalOpen(false);
+    setEditingTracker(null);
+  };
+
+  const handleDeleteTracker = async (id: string) => {
+    if (!confirm('Hapus posisi tracker ini?')) return;
+    await saveTrackers(trackers.filter((t) => trackerKeyOf(t) !== String(id)));
+    setIsTrackerModalOpen(false);
+    setEditingTracker(null);
   };
 
   // Handle Save of Modified Candidate Data
@@ -749,7 +814,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       viewMode === 'tracker' ? 'bg-white text-indigo-600 shadow-xs' : 'text-stone-600'
                     }`}
                   >
-                    Treker
+                    Treker ({trackers.length})
                   </button>
                   <button
                     onClick={() => setViewMode('calendar')}
@@ -790,16 +855,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 onViewCalendar={() => setViewMode('calendar')}
               />
             ) : viewMode === 'tracker' ? (
-              <TrackerTable
-                rows={vacancies}
-                onStatusChange={handleTrackerStatusChange}
-                onSelect={(row) => {
-                  if (row?.title) {
-                    setPositionFilter(row.title);
-                    setViewMode('list');
-                  }
-                }}
-              />
+              <>
+                <TrackerTable
+                  rows={trackers}
+                  onStatusChange={handleTrackerStatusChange}
+                  onSelect={(row) => {
+                    if (row?.title) {
+                      setPositionFilter(row.title);
+                      setViewMode('list');
+                    }
+                  }}
+                  onAdd={() => {
+                    setEditingTracker(null);
+                    setIsTrackerModalOpen(true);
+                  }}
+                  onEdit={(row) => {
+                    setEditingTracker(row);
+                    setIsTrackerModalOpen(true);
+                  }}
+                  onDelete={handleDeleteTracker}
+                />
+                <TrackerModal
+                  open={isTrackerModalOpen}
+                  initial={editingTracker}
+                  onClose={() => {
+                    setIsTrackerModalOpen(false);
+                    setEditingTracker(null);
+                  }}
+                  onSave={handleSaveTracker}
+                  onDelete={handleDeleteTracker}
+                />
+              </>
             ) : viewMode === 'calendar' ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-end">

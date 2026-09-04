@@ -4,6 +4,71 @@ import jwt from 'jsonwebtoken';
 const VACANCY_TAB = 'Vacancies';
 const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
 const VACANCY_EXTRA = { user: '', recruiter: 'All', tanggalDibuka: '', tanggalTerakhir: '', tanggalSelesai: '', priority: 'Normal', jumlah: '1', gender: '', status: 'Open' };
+
+// ─── Trackers (decoupled Treker Posisi — own Sheet tab, own cache) ──────────
+// Served from this same file via ?store=trackers so the Hobby 12-function cap
+// is not exceeded. Starts empty, never seeded from vacancies.
+const TRACKER_TAB = 'Trackers';
+const TRACKER_HEADERS = ['ID', 'Title', 'Category', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
+let cachedTrackers: any[] | null = null;
+
+async function ensureTrackerTab(): Promise<void> {
+  const meta = await sheetsFetch<{ sheets?: { properties?: { title?: string } }[] }>('');
+  if ((meta.sheets ?? []).some((s) => s.properties?.title === TRACKER_TAB)) return;
+  await sheetsFetch(':batchUpdate', { method: 'POST', body: JSON.stringify({ requests: [{ addSheet: { properties: { title: TRACKER_TAB } } }] }) });
+  await sheetsFetch(`/values/${encodeURIComponent(TRACKER_TAB + '!A1')}`, { method: 'PUT', body: JSON.stringify({ values: [TRACKER_HEADERS] }) });
+}
+
+function validateTrackers(body: any[]): string | null {
+  for (const t of body) {
+    if (!t || typeof t.title !== 'string' || t.title.trim() === '') return 'Setiap tracker wajib memiliki Nama Posisi.';
+    if (t.priority !== undefined && t.priority !== '' && t.priority !== 'Normal' && t.priority !== 'High') return `Priority tidak valid: ${t.priority}.`;
+    if (t.status !== undefined && t.status !== '' && !['Open', 'On Hold', 'Closed-Filled', 'Closed-Unfilled'].includes(t.status)) return `Status tidak valid: ${t.status}.`;
+    for (const d of [t.tanggalDibuka, t.tanggalTerakhir, t.tanggalSelesai]) {
+      if (d !== undefined && d !== '' && !DATE_RE.test(String(d))) return `Format tanggal harus YYYY-MM-DD: ${d}.`;
+    }
+  }
+  return null;
+}
+
+async function readTrackers(): Promise<any[]> {
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!parseCredentials() || !spreadsheetId) {
+    if (cachedTrackers) return cachedTrackers;
+    cachedTrackers = [];
+    return cachedTrackers;
+  }
+  try {
+    await ensureTrackerTab();
+    const data = await sheetsFetch<{ values?: string[][] }>(`/values/${encodeURIComponent(TRACKER_TAB + '!A2:L')}`);
+    if (!data.values || data.values.length === 0) {
+      cachedTrackers = [];
+      return cachedTrackers;
+    }
+    cachedTrackers = data.values.map((row) => ({
+      id: row[0] || '', title: row[1] || '', category: row[2] || '', user: row[3] || '',
+      recruiter: row[4] || '', tanggalDibuka: row[5] || '', tanggalTerakhir: row[6] || '',
+      tanggalSelesai: row[7] || '', priority: row[8] || 'Normal', jumlah: row[9] || '',
+      gender: row[10] || '', status: row[11] || 'Open',
+    })).filter((t) => t.id !== '' || t.title.trim() !== '');
+    return cachedTrackers;
+  } catch {
+    if (cachedTrackers) return cachedTrackers;
+    cachedTrackers = [];
+    return cachedTrackers;
+  }
+}
+
+async function writeTrackers(trackers: any[]): Promise<boolean> {
+  await ensureTrackerTab();
+  const rows = trackers.map((t) => [t.id || '', t.title, t.category || '', t.user || '', t.recruiter || '', t.tanggalDibuka || '', t.tanggalTerakhir || '', t.tanggalSelesai || '', t.priority || 'Normal', t.jumlah || '', t.gender || '', t.status || 'Open']);
+  await sheetsFetch(`/values/${encodeURIComponent(TRACKER_TAB + '!A2:L')}:clear`, { method: 'POST' });
+  if (rows.length > 0) {
+    await sheetsFetch(`/values/${encodeURIComponent(TRACKER_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: rows }) });
+  }
+  cachedTrackers = trackers;
+  return true;
+}
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
@@ -158,6 +223,28 @@ function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);
   if (!email) return;
+
+  // Decoupled Treker Posisi store — same function, no extra Vercel function.
+  const isTracker = (req.query as any)?.store === 'trackers';
+  if (isTracker && req.method === 'GET') {
+    try {
+      return res.json(await readTrackers());
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal mengambil data tracker.' });
+    }
+  }
+
+  if (isTracker && req.method === 'POST') {
+    try {
+      if (!Array.isArray(req.body)) return res.status(400).json({ error: 'Data tracker harus berupa array.' });
+      const trackErr = validateTrackers(req.body);
+      if (trackErr) return res.status(400).json({ error: trackErr });
+      await writeTrackers(req.body);
+      return res.json({ success: true, message: 'Data tracker berhasil disimpan.' });
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal menyimpan data tracker.' });
+    }
+  }
 
   if (req.method === 'GET') {
     try {
