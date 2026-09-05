@@ -176,6 +176,11 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .funnel-collapse { transition: none; }
+  .animate-scale-in, .animate-fade-in-up, .animate-fade-in-up-slow, .animate-bounce-in, .animate-dashboard-stagger,
+  .bento-card, .dashboard-stagger > * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Luzie identity — berkas stripe (signature 3px amber→brand→ink top rule) */

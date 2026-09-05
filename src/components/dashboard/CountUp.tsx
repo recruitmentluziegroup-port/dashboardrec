@@ -23,6 +23,11 @@ export const CountUp: React.FC<CountUpProps> = ({
   const startRef = useRef<number | null>(null);
 
   useEffect(() => {
+    // Honor reduced-motion: render the final value immediately, no animation.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(value);
+      return;
+    }
     fromRef.current = display;
     startRef.current = null;
 

@@ -100,8 +100,8 @@ export const GreetingBar: React.FC<GreetingBarProps> = ({ adminEmail, lastSyncAt
   return (
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 pb-2">
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-400">
-          Recruitment Dashboard
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-stone-500">
+          Dasbor Rekrutmen
         </p>
         <h1 className="font-serif font-black text-3xl sm:text-4xl text-stone-900 tracking-tight leading-tight mt-1">
           {greeting}, {fullName}.

@@ -1,30 +1,17 @@
 import React from 'react';
 import { Applicant, Anak, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../../types';
+import { formatTanggalID, formatTanggalWaktuID } from '../../lib/format';
 
 interface PrintableDetailProps {
   applicant: Applicant;
 }
 
 function formatDate(s: string): string {
-  if (!s) return '-';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  try {
-    return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
-  } catch {
-    return d.toDateString();
-  }
+  return formatTanggalID(s);
 }
 
 function formatDateTime(s: string): string {
-  if (!s) return '-';
-  const d = new Date(s);
-  if (isNaN(d.getTime())) return s;
-  try {
-    return new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short' }).format(d);
-  } catch {
-    return d.toString();
-  }
+  return formatTanggalWaktuID(s);
 }
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
@@ -117,14 +104,20 @@ export const PrintableDetail: React.FC<PrintableDetailProps> = ({ applicant }) =
 
   return (
     <div className="printable-detail bg-white p-8 max-w-3xl mx-auto text-stone-900 font-sans">
+      <div className="h-[3px] bg-gradient-to-r from-amber-500 via-brand-700 to-[#1A1F2E] mb-5" />
       <header className="border-b-2 border-stone-900 pb-4 mb-6 flex items-end justify-between">
-        <div>
-          <p className="text-[8pt] font-bold uppercase tracking-[0.2em] text-stone-500">Luzie Group Recruitment</p>
-          <h1 className="font-serif font-black text-2xl mt-1 leading-tight">Data Personal Pelamar</h1>
-          <p className="text-[9pt] text-stone-600 mt-1">Dokumen ini dicetak untuk tinjauan internal rekrutmen.</p>
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-lg bg-[#1A1F2E] text-white flex items-center justify-center shrink-0">
+            <span className="font-serif font-black text-base leading-none">LG</span>
+          </div>
+          <div>
+            <p className="text-[8pt] font-bold uppercase tracking-[0.2em] text-stone-500">Luzie Group · Recruitment</p>
+            <h1 className="font-serif font-black text-2xl mt-1 leading-tight">Data Personal Pelamar</h1>
+            <p className="text-[9pt] text-stone-600 mt-1">Berkas administrasi untuk tinjauan internal rekrutmen.</p>
+          </div>
         </div>
         <div className="text-right text-[8pt] text-stone-500 leading-snug">
-          <div><span className="font-bold text-stone-700">ID:</span> {a.id}</div>
+          <div><span className="font-bold text-stone-700">ID Berkas:</span> <span className="font-mono font-bold text-stone-900">{a.id}</span></div>
           <div><span className="font-bold text-stone-700">Status:</span> {a.status}</div>
           <div><span className="font-bold text-stone-700">Diajukan:</span> {formatDateTime(a.submissionDate)}</div>
         </div>

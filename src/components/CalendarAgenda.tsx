@@ -82,9 +82,9 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-editorial-border shadow-sm overflow-hidden berkas-stripe">
       {/* Week strip */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-stone-200">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-editorial-border">
         <div className="flex items-center gap-1">
           <button
             onClick={() => shiftWeek(-7)}
@@ -127,7 +127,7 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
                 active ? 'bg-brand-50' : 'hover:bg-stone-100'
               }`}
             >
-              <span className="text-[10px] font-bold uppercase text-stone-400">{DAY_NAMES[i]}</span>
+              <span className="text-[10px] font-bold uppercase text-stone-500">{DAY_NAMES[i]}</span>
               <span
                 className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-black ${
                   isToday ? 'bg-brand-700 text-white' : active ? 'text-brand-700' : 'text-stone-700'
@@ -140,8 +140,8 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
         })}
       </div>
 
-      {/* Timeline */}
-      <div className="overflow-x-auto">
+      {/* Timeline (desktop grid) */}
+      <div className="overflow-x-auto hidden md:block">
         <div className="min-w-[840px] grid grid-cols-7">
           {weekDays.map((d) => {
             const ymd = toYMD(d);
@@ -157,7 +157,7 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
                       onClick={() => onSlotClick(ymd, h)}
                       className="flex border-b border-stone-100 h-14 cursor-pointer hover:bg-brand-50/40"
                     >
-                      <div className="w-14 shrink-0 text-[10px] font-semibold text-stone-400 pt-1 pl-2">
+                      <div className="w-14 shrink-0 text-[10px] font-semibold text-stone-500 pt-1 pl-2">
                         {`${`${h}`.padStart(2, '0')}:00`}
                       </div>
                       <div className="flex-1" />
@@ -191,7 +191,7 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
                           {ev.stage || ''} · {ev.interviewer || ''}
                         </span>
                         {conflict && (
-                          <span className="mt-0.5 inline-flex items-center gap-1 bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                          <span className="mt-0.5 inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
                             <AlertTriangle className="h-3 w-3" />
                             Bentrok
                           </span>
@@ -204,6 +204,67 @@ export const CalendarAgenda: React.FC<CalendarAgendaProps> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Day agenda list (<md) — same events, thumb-friendly */}
+      <div className="md:hidden divide-y divide-stone-100">
+        {weekDays.map((d, i) => {
+          const ymd = toYMD(d);
+          const events = (byDate.get(ymd) || []).slice().sort((a, b) =>
+            String(a.startTime ?? a.start ?? '').localeCompare(String(b.startTime ?? b.start ?? '')),
+          );
+          const isToday = ymd === todayStr;
+          return (
+            <div key={ymd} className="p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className={`text-xs font-black uppercase tracking-wide ${isToday ? 'text-brand-700' : 'text-stone-500'}`}>
+                  {DAY_NAMES[i]}, {d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                  {isToday ? ' · Hari ini' : ''}
+                </p>
+                <button
+                  onClick={() => onSlotClick(ymd, 9)}
+                  className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-lg border border-dashed border-stone-300 text-stone-500 hover:border-brand-700 hover:text-brand-700 transition-all cursor-pointer"
+                  aria-label={`Tambah jadwal ${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`}
+                >
+                  + Jadwal
+                </button>
+              </div>
+              {events.length === 0 ? (
+                <p className="text-[11px] text-stone-500 font-medium">Tidak ada jadwal.</p>
+              ) : (
+                events.map((ev) => {
+                  const s = String(ev.startTime ?? ev.start ?? '09:00');
+                  const conflict = events.some((o) => o !== ev && isOverlap(ev, o));
+                  const isHR = /hr/i.test(String(ev.stage || ''));
+                  return (
+                    <button
+                      key={String(ev.id)}
+                      onClick={() => onEventClick(ev)}
+                      className={`w-full text-left rounded-xl px-3 py-2.5 min-h-[44px] text-[11px] font-bold border transition-all cursor-pointer ${
+                        isHR
+                          ? 'bg-amber-100 text-amber-900 border-amber-200'
+                          : 'bg-brand-100 text-brand-800 border-brand-200'
+                      }`}
+                    >
+                      <span className="block tabular-nums">
+                        {s} · {ev.candidateName || 'Kandidat'}
+                      </span>
+                      <span className="block font-semibold opacity-80">
+                        {ev.stage || ''} · {ev.interviewer || ''}
+                      </span>
+                      {conflict && (
+                        <span className="mt-1 inline-flex items-center gap-1 bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                          <AlertTriangle className="h-3 w-3" />
+                          Bentrok
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

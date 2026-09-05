@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
@@ -8,6 +8,10 @@ import { TrackerTable } from './TrackerTable';
 import { TrackerModal } from './TrackerModal';
 import { CalendarAgenda } from './CalendarAgenda';
 import { InterviewModal } from './InterviewModal';
+import { AdminEmptyState } from './dashboard/AdminEmptyState';
+import { AdminSkeleton } from './dashboard/AdminSkeleton';
+import { BerkasIdChip } from './dashboard/BerkasIdChip';
+import { useToast, ConfirmDialog } from './ui/Toast';
 import type { Interview } from '../lib/interview-links';
 
 // Indonesian label for each status (used in list and detail badges)
@@ -35,22 +39,96 @@ interface AdminPanelProps {
   adminEmail: string;
 }
 
+type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar';
+
+const VALID_TABS: AdminTab[] = ['dashboard', 'list', 'vacancies', 'tracker', 'calendar'];
+
+// Deep-link (?tab=&status=&id=&q=&pos=&sort=) — shareable + refresh-safe admin state
+function readAdminParams(): { tab: AdminTab; id: string | null; q: string; status: string; pos: string; sort: 'newest' | 'oldest' | 'name' } {
+  const p = new URLSearchParams(window.location.search);
+  const tab = p.get('tab');
+  const sort = p.get('sort');
+  return {
+    tab: VALID_TABS.includes(tab as AdminTab) ? (tab as AdminTab) : 'dashboard',
+    id: p.get('id') || null,
+    q: p.get('q') || '',
+    status: p.get('status') || '',
+    pos: p.get('pos') || '',
+    sort: sort === 'oldest' || sort === 'name' ? sort : 'newest',
+  };
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) => {
   const [candidates, setCandidates] = useState<Applicant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
 
-  // View state tracking
-  const [viewMode, setViewMode] = useState<'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar'>('dashboard');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // View state tracking (initialized from URL deep-link when present)
+  const [viewMode, setViewMode] = useState<AdminTab>(() => readAdminParams().tab);
+  const [selectedId, setSelectedId] = useState<string | null>(() => readAdminParams().id);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
 
-  // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [positionFilter, setPositionFilter] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
+  // Search & Filter state (initialized from URL deep-link when present)
+  const [searchQuery, setSearchQuery] = useState(() => readAdminParams().q);
+  const [statusFilter, setStatusFilter] = useState(() => readAdminParams().status);
+  const [positionFilter, setPositionFilter] = useState(() => readAdminParams().pos);
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>(() => readAdminParams().sort);
+
+  // URL sync flags (skip push on first render + on browser back/forward)
+  const skipPush = useRef(true);
+  const suppressPush = useRef(false);
+
+  // State → URL: tab/record changes push history (back-button safe), filters replace
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (viewMode !== 'dashboard') params.set('tab', viewMode);
+    if (selectedId) params.set('id', selectedId);
+    if (searchQuery) params.set('q', searchQuery);
+    if (statusFilter) params.set('status', statusFilter);
+    if (positionFilter) params.set('pos', positionFilter);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    const url = '/admin' + (params.toString() ? `?${params.toString()}` : '');
+    if (skipPush.current || suppressPush.current) {
+      skipPush.current = false;
+      suppressPush.current = false;
+      window.history.replaceState(null, '', url);
+    } else {
+      window.history.pushState(null, '', url);
+    }
+  }, [viewMode, selectedId]);
+
+  // Filters → URL (replace only, no history spam)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const setOrDel = (k: string, v: string, isDefault: boolean) => {
+      if (!v || isDefault) params.delete(k);
+      else params.set(k, v);
+    };
+    setOrDel('q', searchQuery, false);
+    setOrDel('status', statusFilter, false);
+    setOrDel('pos', positionFilter, false);
+    setOrDel('sort', sortBy, sortBy === 'newest');
+    const url = '/admin' + (params.toString() ? `?${params.toString()}` : '');
+    window.history.replaceState(null, '', url);
+  }, [searchQuery, statusFilter, positionFilter, sortBy]);
+
+  // Browser back/forward → state
+  useEffect(() => {
+    const onPop = () => {
+      const s = readAdminParams();
+      suppressPush.current = true;
+      setViewMode(s.tab);
+      setSelectedId(s.id);
+      setSearchQuery(s.q);
+      setStatusFilter(s.status);
+      setPositionFilter(s.pos);
+      setSortBy(s.sort);
+      setIsPrintMode(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
 
   // Edit Mode state tracking
   const [isEditing, setIsEditing] = useState(false);
@@ -79,6 +157,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [weekAnchor, setWeekAnchor] = useState<Date>(new Date());
   const [isInterviewModalOpen, setIsInterviewModalOpen] = useState(false);
   const [editingInterview, setEditingInterview] = useState<Interview | null>(null);
+
+  // Non-blocking feedback (replaces native alert/confirm)
+  const toast = useToast();
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    body: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
+
+  // Reset all list filters at once (used by empty-state recovery)
+  const resetListFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('');
+    setPositionFilter('');
+    setSortBy('newest');
+    setHealthFilter('');
+    setSelectedIds([]);
+  };
+
+  // Triage velocity: health filter, bulk selection, saved views
+  const [healthFilter, setHealthFilter] = useState<'' | 'overdue' | 'dupe' | 'incomplete'>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkStatus, setBulkStatus] = useState<ApplicationStatus | ''>('');
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [savedViews, setSavedViews] = useState<Array<{ name: string; q: string; status: string; pos: string; sort: string }>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('luzie_saved_views_v1') || '[]');
+      return Array.isArray(raw) ? raw.slice(0, 5) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showSaveView, setShowSaveView] = useState(false);
+  const [saveViewName, setSaveViewName] = useState('');
+  // Row overflow menu (single open at a time — keeps Tinjau the only primary CTA)
+  const [openRowMenu, setOpenRowMenu] = useState<string | null>(null);
 
   const authHeaders = () => {
     const token = localStorage.getItem('luzie_admin_token');
@@ -196,12 +311,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        alert(json.error || 'Gagal menyimpan data tracker.');
+        toast('error', json.error || 'Gagal menyimpan data tracker.');
         return;
       }
       setTrackers(next);
+      toast('success', 'Data tracker berhasil disimpan.');
     } catch {
-      alert('Kegagalan jaringan saat menyimpan data tracker.');
+      toast('error', 'Kegagalan jaringan saat menyimpan data tracker.');
     }
   };
 
@@ -278,6 +394,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     return Array.from(new Set(list));
   }, [vacancies]);
 
+  // Live pipeline counts per position (vacancy ↔ tracker join, keyed by lowercase title)
+  const pipelineCounts = useMemo(() => {
+    const map: Record<string, { total: number; pending: number }> = {};
+    candidates.forEach((c) => {
+      const key = getOfficialPositionName(c.jabatanDituju).toLowerCase().trim();
+      if (!key) return;
+      const e = map[key] || (map[key] = { total: 0, pending: 0 });
+      e.total++;
+      if (c.status === 'Pending' || c.status === 'Reviewed') e.pending++;
+    });
+    return map;
+  }, [candidates, vacancies]);
+  // Triage health sets: overdue review (>3 hari), duplicate KTP, incomplete files
+  const healthSets = useMemo(() => {
+    const now = Date.now();
+    const threeDays = 3 * 24 * 60 * 60 * 1000;
+    const overdue = new Set<string>();
+    const incomplete = new Set<string>();
+    const ktpGroups = new Map<string, string[]>();
+    candidates.forEach((c) => {
+      if (c.status === 'Pending' || c.status === 'Reviewed') {
+        const t = new Date(c.submissionDate).getTime();
+        if (!isNaN(t) && now - t > threeDays) overdue.add(c.id);
+      }
+      if (!c.namaLengkap?.trim() || !c.noTelp?.trim() || !c.jabatanDituju?.trim() || !c.emailPribadi?.trim()) {
+        incomplete.add(c.id);
+      }
+      const ktp = (c.nomorKtp || '').trim();
+      if (ktp) {
+        const g = ktpGroups.get(ktp) || [];
+        g.push(c.id);
+        ktpGroups.set(ktp, g);
+      }
+    });
+    const dupe = new Set<string>();
+    ktpGroups.forEach((ids) => {
+      if (ids.length > 1) ids.forEach((id) => dupe.add(id));
+    });
+    return { overdue, dupe, incomplete };
+  }, [candidates]);
+
   // Filter & Search logic
   const filteredCandidates = useMemo(() => {
     return candidates
@@ -292,15 +449,108 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         const statusOk = !statusFilter || c.status === statusFilter;
         const cPosition = getOfficialPositionName(c.jabatanDituju);
         const positionOk = !positionFilter || cPosition.toLowerCase().trim() === positionFilter.toLowerCase().trim();
+        const healthOk =
+          !healthFilter ||
+          (healthFilter === 'overdue' && healthSets.overdue.has(c.id)) ||
+          (healthFilter === 'dupe' && healthSets.dupe.has(c.id)) ||
+          (healthFilter === 'incomplete' && healthSets.incomplete.has(c.id));
 
-        return searchOk && statusOk && positionOk;
+        return searchOk && statusOk && positionOk && healthOk;
       })
       .sort((a, b) => {
         if (sortBy === 'newest') return new Date(b.submissionDate).getTime() - new Date(a.submissionDate).getTime();
         if (sortBy === 'oldest') return new Date(a.submissionDate).getTime() - new Date(b.submissionDate).getTime();
         return (a.namaLengkap || '').localeCompare(b.namaLengkap || '');
       });
-  }, [candidates, searchQuery, statusFilter, positionFilter, sortBy]);
+  }, [candidates, searchQuery, statusFilter, positionFilter, sortBy, healthFilter, healthSets]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  // Bulk status change (single summary toast, reuses single-record PATCH path)
+  const handleBulkStatus = async () => {
+    if (!bulkStatus || selectedIds.length === 0 || bulkWorking) return;
+    setBulkWorking(true);
+    const token = localStorage.getItem('luzie_admin_token');
+    const headers: any = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    let ok = 0;
+    for (const id of selectedIds) {
+      try {
+        const res = await fetch(`/api/admin/applications/${id}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ status: bulkStatus }),
+        });
+        if (res.ok) ok++;
+      } catch {
+        // counted as failure below
+      }
+    }
+    if (ok > 0) {
+      const now = new Date().toISOString();
+      setCandidates((prev) =>
+        prev.map((c) => (selectedSet.has(c.id) ? { ...c, status: bulkStatus as ApplicationStatus, lastUpdated: now } : c))
+      );
+    }
+    setBulkWorking(false);
+    if (ok === selectedIds.length) {
+      toast('success', `${ok} berkas berhasil diubah ke ${STATUS_LABELS[bulkStatus as ApplicationStatus]}.`);
+    } else {
+      toast('error', `${ok} dari ${selectedIds.length} berkas berhasil diubah. Sisanya gagal tersinkron.`);
+    }
+    setSelectedIds([]);
+    setBulkStatus('');
+  };
+
+  // CSV export of selected rows (triage columns only, not the full 62-col sheet)
+  const handleExportSelected = () => {
+    const rows = candidates.filter((c) => selectedSet.has(c.id));
+    if (rows.length === 0) return;
+    const head = ['ID Berkas', 'Nama Lengkap', 'Jabatan Dituju', 'No. HP', 'Email', 'Status', 'Tanggal Daftar'];
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [
+      head.join(','),
+      ...rows.map((c) =>
+        [c.id, c.namaLengkap, c.jabatanDituju, c.noTelp, c.emailPribadi, STATUS_LABELS[c.status], c.submissionDate]
+          .map(esc)
+          .join(',')
+      ),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `seleksi-pelamar-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast('success', `${rows.length} berkas berhasil diekspor ke CSV.`);
+  };
+
+  // Saved filter views (localStorage, max 5)
+  const handleSaveView = () => {
+    const name = saveViewName.trim();
+    if (!name) return;
+    const next = [{ name, q: searchQuery, status: statusFilter, pos: positionFilter, sort: sortBy }, ...savedViews].slice(0, 5);
+    setSavedViews(next);
+    try {
+      localStorage.setItem('luzie_saved_views_v1', JSON.stringify(next));
+    } catch {
+      // storage full/blocked — views simply won't persist
+    }
+    setSaveViewName('');
+    setShowSaveView(false);
+    toast('success', `Tampilan "${name}" berhasil disimpan.`);
+  };
+
+  const applySavedView = (v: { q: string; status: string; pos: string; sort: string }) => {
+    setSearchQuery(v.q);
+    setStatusFilter(v.status);
+    setPositionFilter(v.pos);
+    setSortBy(v.sort as 'newest' | 'oldest' | 'name');
+    setHealthFilter('');
+  };
 
   // Handle Quick Status Change
   const handleStatusChange = async (targetId: string, newStatus: ApplicationStatus) => {
@@ -324,10 +574,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           setEditedRecord(prev => prev ? { ...prev, status: newStatus } : null);
         }
       } else {
-        alert('Gagal memperbaharui status pendaftar.');
+        toast('error', 'Gagal memperbaharui status pendaftar.');
       }
     } catch {
-      alert('Kegagalan jaringan saat mengirim data update status.');
+      toast('error', 'Kegagalan jaringan saat mengirim data update status.');
     }
   };
 
@@ -363,17 +613,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       const res = await fetch(url, { method: isEdit ? 'PATCH' : 'POST', headers: authHeaders(), body: JSON.stringify(data) });
       const json = await res.json().catch(() => ({}));
       if (res.status === 409) {
-        alert(json.error || 'Jadwal bentrok dengan agenda lain pewawancara tersebut.');
+        toast('error', json.error || 'Jadwal bentrok dengan agenda lain pewawancara tersebut.');
         return;
       }
       if (!res.ok) {
-        alert(json.error || 'Gagal menyimpan jadwal wawancara.');
+        toast('error', json.error || 'Gagal menyimpan jadwal wawancara.');
         return;
       }
       const saved = (json.data || data) as Interview;
       setInterviews((prev) => (isEdit ? prev.map((iv) => (iv.id === saved.id ? saved : iv)) : [...prev, saved]));
       setIsInterviewModalOpen(false);
       setEditingInterview(null);
+      toast('success', 'Jadwal wawancara berhasil disimpan.');
       // Auto-update candidate stage to Interview HR/User on create
       if (!isEdit && (saved.stage === 'Interview HR' || saved.stage === 'Interview User') && saved.applicantId) {
         const cand = candidates.find((c) => c.id === saved.applicantId);
@@ -382,23 +633,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         }
       }
     } catch {
-      alert('Kegagalan jaringan saat menyimpan jadwal.');
+      toast('error', 'Kegagalan jaringan saat menyimpan jadwal.');
     }
   };
 
-  const handleDeleteInterview = async (id: string) => {
-    if (!confirm('Hapus jadwal wawancara ini?')) return;
+  const handleDeleteInterview = (id: string) => {
+    setConfirmState({
+      title: 'Hapus jadwal wawancara?',
+      body: 'Jadwal yang dihapus tidak dapat dikembalikan. Tahapan pelamar yang terkait tidak ikut berubah.',
+      confirmLabel: 'Hapus Jadwal',
+      onConfirm: () => doDeleteInterview(id),
+    });
+  };
+
+  const doDeleteInterview = async (id: string) => {
+    setConfirmState(null);
     try {
       const res = await fetch(`/api/admin/interviews/${id}`, { method: 'DELETE', headers: authHeaders() });
       if (!res.ok) {
-        alert('Gagal menghapus jadwal.');
+        toast('error', 'Gagal menghapus jadwal.');
         return;
       }
       setInterviews((prev) => prev.filter((iv) => iv.id !== id));
       setIsInterviewModalOpen(false);
       setEditingInterview(null);
+      toast('success', 'Jadwal wawancara berhasil dihapus.');
     } catch {
-      alert('Kegagalan jaringan saat menghapus jadwal.');
+      toast('error', 'Kegagalan jaringan saat menghapus jadwal.');
     }
   };
 
@@ -430,8 +691,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     setEditingTracker(null);
   };
 
-  const handleDeleteTracker = async (id: string) => {
-    if (!confirm('Hapus posisi tracker ini?')) return;
+  const handleDeleteTracker = (id: string) => {
+    setConfirmState({
+      title: 'Hapus posisi tracker ini?',
+      body: 'Baris treker posisi akan dihapus permanen dari Google Sheets. Data pelamar tidak ikut terhapus.',
+      confirmLabel: 'Hapus Posisi',
+      onConfirm: () => doDeleteTracker(id),
+    });
+  };
+
+  const doDeleteTracker = async (id: string) => {
+    setConfirmState(null);
     await saveTrackers(trackers.filter((t) => trackerKeyOf(t) !== String(id)));
     setIsTrackerModalOpen(false);
     setEditingTracker(null);
@@ -458,13 +728,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         await fetchApplicants();
         // Fetch to confirm update
         await fetchSingleApplicant(editedRecord.id);
-        alert('Data personal pelamar berhasil dipos dan disimpan ke Google Sheets!');
+        toast('success', 'Data personal pelamar berhasil disimpan ke Google Sheets.');
       } else {
         const errorRes = await res.json();
-        alert(errorRes.error || 'Gagal menyimpan data perubahan.');
+        toast('error', errorRes.error || 'Gagal menyimpan data perubahan.');
       }
     } catch {
-      alert('Gagal menyinkronkan data perubahan ke server.');
+      toast('error', 'Gagal menyinkronkan data perubahan ke server.');
     } finally {
       setSaving(false);
     }
@@ -496,8 +766,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
+      toast('success', 'Dokumen PDF berhasil diunduh.');
     } catch (err) {
-      alert('Sistem gagal mencetak dokumen PDF. Silahkan periksa koneksi atau coba masuk kembali.');
+      toast('error', 'Sistem gagal mencetak dokumen PDF. Silakan periksa koneksi atau coba masuk kembali.');
     }
   };
 
@@ -563,7 +834,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             </div>
             <span className="leading-none">
               <span className="font-sans font-extrabold text-base text-stone-950 tracking-tight block">Luzie Group</span>
-              <span className="text-[9px] font-bold text-stone-500 uppercase tracking-[0.18em] block mt-0.5">Recruitment</span>
+              <span className="text-[10px] font-bold text-stone-500 uppercase tracking-[0.18em] block mt-0.5">Recruitment</span>
             </span>
           </div>
 
@@ -733,12 +1004,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-bold text-stone-900 text-xs truncate max-w-[140px]">{c.namaLengkap}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${notifBadgeClass}`}>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${notifBadgeClass}`}>
                               {notifLabel}
                             </span>
                           </div>
                           <p className="text-[10px] text-stone-500 font-semibold">Tujuan: {getOfficialPositionName(c.jabatanDituju) || '-'}</p>
-                          <span className="text-[9px] text-[#4F46E5] font-bold hover:underline flex items-center space-x-0.5 mt-1">
+                          <span className="text-[10px] text-brand-700 font-bold hover:underline flex items-center space-x-0.5 mt-1">
                             <span>Lakukan Evaluasi Profil &rarr;</span>
                           </span>
                         </div>
@@ -830,20 +1101,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             </div>
 
             {loading ? (
-              <div className="py-24 flex flex-col items-center justify-center space-y-3">
-                <RefreshCw className="h-10 w-10 text-brand-700 animate-spin" />
-                <p className="text-sm text-stone-500 font-medium">Menghubungi Google Sheets API...</p>
-              </div>
+              <AdminSkeleton variant="table" />
             ) : error ? (
-              <div className="py-12 px-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl flex flex-col items-center space-y-3">
-                <p className="font-semibold">{error}</p>
-                <button
-                  onClick={fetchApplicants}
-                  className="px-4 py-2 text-xs font-bold bg-white text-red-700 hover:bg-red-100 rounded-xl shadow-xs border border-red-200 transition-all cursor-pointer"
-                >
-                  Coba Sinkron Ulang
-                </button>
-              </div>
+              <AdminEmptyState
+                tone="error"
+                icon={<CloudOff className="h-7 w-7" />}
+                title="Gagal memuat data pelamar"
+                body={error}
+                meta={
+                  lastSyncAt
+                    ? `Data terakhir tersinkron ${lastSyncAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} — coba muat ulang sinkronisasi.`
+                    : 'Belum ada data tersinkron — coba muat ulang sinkronisasi.'
+                }
+                actionLabel="Coba Sinkron Ulang"
+                onAction={fetchApplicants}
+              />
             ) : viewMode === 'dashboard' ? (
               <AdminDashboard
                 applicants={candidates}
@@ -859,6 +1131,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
               <>
                 <TrackerTable
                   rows={trackers}
+                  pipelineCounts={pipelineCounts}
                   onStatusChange={handleTrackerStatusChange}
                   onSelect={(row) => {
                     if (row?.title) {
@@ -909,6 +1182,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   open={isInterviewModalOpen}
                   initial={editingInterview}
                   applicants={candidates.map((c) => ({ id: c.id, namaLengkap: c.namaLengkap, jabatanDituju: c.jabatanDituju }))}
+                  existingInterviews={interviews}
                   onClose={() => { setIsInterviewModalOpen(false); setEditingInterview(null); }}
                   onSave={handleSaveInterview}
                   onDelete={handleDeleteInterview}
@@ -917,6 +1191,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             ) : viewMode === 'vacancies' ? (
               <VacancyManager
                 vacancies={vacancies}
+                pipelineCounts={pipelineCounts}
                 onSave={saveVacancies}
                 loading={vacanciesLoading}
                 successMessage={vacanciesSuccessMsg}
@@ -926,13 +1201,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             ) : (
               // Filter and Listing Space
               <div className="space-y-6">
-                <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div className="no-print bg-white p-5 rounded-2xl border border-editorial-border shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4 items-end lg:sticky lg:top-20 lg:z-20">
                   {/* Search query field */}
                   <div className="md:col-span-1 space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wide text-stone-500">Cari Pelamar</label>
+                    <label htmlFor="flt-q" className="text-xs font-bold uppercase tracking-wide text-stone-500">Cari Pelamar</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
                       <input
+                        id="flt-q"
                         type="text"
                         placeholder="Cari nama, no. hp, atau ID..."
                         value={searchQuery}
@@ -944,8 +1220,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                   {/* Status filter select */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wide text-stone-500">Filter Status</label>
+                    <label htmlFor="flt-status" className="text-xs font-bold uppercase tracking-wide text-stone-500">Filter Status</label>
                     <select
+                      id="flt-status"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
@@ -962,8 +1239,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                   {/* Job/Position filter select */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wide text-stone-500">Filter Posisi / Jabatan</label>
+                    <label htmlFor="flt-pos" className="text-xs font-bold uppercase tracking-wide text-stone-500">Filter Posisi / Jabatan</label>
                     <select
+                      id="flt-pos"
                       value={positionFilter}
                       onChange={(e) => setPositionFilter(e.target.value)}
                       className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
@@ -977,8 +1255,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
 
                   {/* Sorting criteria select */}
                   <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wide text-stone-500">Urutkan</label>
+                    <label htmlFor="flt-sort" className="text-xs font-bold uppercase tracking-wide text-stone-500">Urutkan</label>
                     <select
+                      id="flt-sort"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
                       className="w-full bg-stone-50 border border-stone-200 focus:border-brand-700 rounded-xl px-3 py-2 text-xs transition-all outline-hidden cursor-pointer"
@@ -990,12 +1269,155 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </div>
                 </div>
 
+                {/* Saved filter views */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {savedViews.map((v) => (
+                    <button
+                      key={v.name}
+                      onClick={() => applySavedView(v)}
+                      title={`Cari: ${v.q || '—'} · Status: ${v.status || 'Semua'} · Posisi: ${v.pos || 'Semua'}`}
+                      className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-xl bg-white border border-editorial-border text-stone-600 hover:border-brand-700 hover:text-brand-700 transition-all cursor-pointer"
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                  {showSaveView ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <input
+                        value={saveViewName}
+                        onChange={(e) => setSaveViewName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveView();
+                          if (e.key === 'Escape') setShowSaveView(false);
+                        }}
+                        placeholder="Nama tampilan…"
+                        autoFocus
+                        className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-xl bg-white border border-brand-300 text-stone-900 w-40"
+                        aria-label="Nama tampilan tersimpan"
+                      />
+                      <button
+                        onClick={handleSaveView}
+                        disabled={!saveViewName.trim()}
+                        className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-xl bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white transition-all cursor-pointer"
+                      >
+                        Simpan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSaveView(false);
+                          setSaveViewName('');
+                        }}
+                        className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-all cursor-pointer"
+                        aria-label="Batal menyimpan tampilan"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ) : (
+                    savedViews.length < 5 && (
+                      <button
+                        onClick={() => setShowSaveView(true)}
+                        className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-xl border border-dashed border-stone-300 text-stone-500 hover:border-brand-700 hover:text-brand-700 transition-all cursor-pointer"
+                      >
+                        + Simpan tampilan ini
+                      </button>
+                    )
+                  )}
+                  {(searchQuery || statusFilter || positionFilter || sortBy !== 'newest' || healthFilter) && (
+                    <button
+                      onClick={resetListFilters}
+                      className="px-3 py-2 min-h-[44px] text-[11px] font-bold rounded-xl text-stone-500 hover:text-editorial-red transition-all cursor-pointer"
+                    >
+                      Atur Ulang
+                    </button>
+                  )}
+                </div>
+
+                {/* Triage health strip */}
+                {candidates.length > 0 && (
+                  <div className="flex flex-wrap gap-2" role="group" aria-label="Kesehatan triase">
+                    {(
+                      [
+                        { key: 'overdue', label: 'Butuh review >3 hari', count: healthSets.overdue.size, cls: 'bg-amber-50 text-amber-800 border-amber-200', onCls: 'bg-amber-100 border-amber-300' },
+                        { key: 'dupe', label: 'Duplikat KTP', count: healthSets.dupe.size, cls: 'bg-red-50 text-editorial-red border-red-200', onCls: 'bg-red-100 border-red-300' },
+                        { key: 'incomplete', label: 'Berkas tak lengkap', count: healthSets.incomplete.size, cls: 'bg-stone-100 text-editorial-navy border-editorial-border', onCls: 'bg-stone-200 border-stone-300' },
+                      ] as const
+                    ).map((chip) => (
+                      <button
+                        key={chip.key}
+                        onClick={() => setHealthFilter(healthFilter === chip.key ? '' : chip.key)}
+                        aria-pressed={healthFilter === chip.key}
+                        className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl border text-xs font-bold transition-all cursor-pointer ${chip.cls} ${healthFilter === chip.key ? `${chip.onCls} ring-2 ring-brand-200` : ''}`}
+                      >
+                        <span>{chip.label}</span>
+                        <span className="font-mono font-black">{chip.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Candidate List Data Table */}
-                <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+                {/* Bulk action bar */}
+                {selectedIds.length > 0 && (
+                  <div className="no-print sticky top-20 lg:top-48 z-30 bg-editorial-navy text-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2 shadow-lg berkas-stripe">
+                    <span className="text-xs font-bold mr-1">{selectedIds.length} berkas terpilih</span>
+                    <select
+                      value={bulkStatus}
+                      onChange={(e) => setBulkStatus(e.target.value as ApplicationStatus | '')}
+                      className="bg-white/10 border border-white/20 rounded-lg px-2.5 py-2 min-h-[44px] text-xs font-bold cursor-pointer"
+                      aria-label="Status massal tujuan"
+                    >
+                      <option value="" className="text-stone-900">Ubah status ke…</option>
+                      {(Object.keys(STATUS_LABELS) as ApplicationStatus[]).map((s) => (
+                        <option key={s} value={s} className="text-stone-900">
+                          {STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleBulkStatus}
+                      disabled={!bulkStatus || bulkWorking}
+                      className="px-3.5 py-2 min-h-[44px] bg-brand-700 hover:bg-brand-800 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      {bulkWorking ? 'Memproses…' : 'Terapkan'}
+                    </button>
+                    <button
+                      onClick={handleExportSelected}
+                      className="px-3.5 py-2 min-h-[44px] bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      Ekspor CSV
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedIds([]);
+                        setBulkStatus('');
+                      }}
+                      className="px-3 py-2 min-h-[44px] text-stone-300 hover:text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                )}
+                <div className="hidden md:block bg-white rounded-2xl border border-editorial-border shadow-sm overflow-hidden berkas-stripe">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
-                        <tr className="border-b border-stone-200 text-xs font-bold uppercase text-stone-600 bg-stone-50">
+                        <tr className="border-b border-editorial-border text-[11px] font-bold uppercase text-stone-500 bg-editorial-cream">
+                          <th className="py-4 px-5 w-10">
+                            <input
+                              type="checkbox"
+                              checked={filteredCandidates.length > 0 && filteredCandidates.every((c) => selectedSet.has(c.id))}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedIds(filteredCandidates.map((c) => c.id));
+                                } else {
+                                  setSelectedIds([]);
+                                }
+                              }}
+                              className="h-4 w-4 accent-brand-700 cursor-pointer"
+                              aria-label="Pilih semua pelamar pada tampilan ini"
+                            />
+                          </th>
                           <th className="py-4 px-5">ID Pelamar</th>
                           <th className="py-4 px-5">Nama Pelamar</th>
                           <th className="py-4 px-5">Jabatan Lengkap</th>
@@ -1005,51 +1427,174 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           <th className="py-4 px-5 text-center">Aksi</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-150 text-xs text-stone-700">
+                      <tbody className="divide-y divide-editorial-border text-xs text-stone-700">
                         {filteredCandidates.length > 0 ? (
                           filteredCandidates.map((c, idx) => (
                             <tr key={c.id || idx} className="hover:bg-brand-50 transition-colors">
-                              <td className="py-4 px-5 font-mono font-medium text-stone-500">{c.id}</td>
+                              <td className="py-4 px-5">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSet.has(c.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedIds((prev) => [...prev, c.id]);
+                                    } else {
+                                      setSelectedIds((prev) => prev.filter((id) => id !== c.id));
+                                    }
+                                  }}
+                                  className="h-4 w-4 accent-brand-700 cursor-pointer"
+                                  aria-label={`Pilih berkas ${c.namaLengkap || c.id}`}
+                                />
+                              </td>
+                              <td className="py-4 px-5">
+                                <BerkasIdChip id={c.id} />
+                              </td>
                               <td className="py-4 px-5 font-bold text-stone-900">{c.namaLengkap}</td>
                               <td className="py-4 px-5 font-semibold text-stone-700">{getOfficialPositionName(c.jabatanDituju)}</td>
-                              <td className="py-4 px-5">
+                              <td className="py-4 px-5 tabular-nums">
                                 <span className="block">{c.emailPribadi}</span>
                                 <span className="block text-stone-500 text-[10px] mt-0.5">{c.noTelp}</span>
                               </td>
-                              <td className="py-4 px-5 text-stone-500">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
+                              <td className="py-4 px-5 text-stone-500 tabular-nums">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
                               <td className="py-4 px-5">
                                 <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[c.status]}`}>
                                   {STATUS_LABELS[c.status]}
                                 </span>
                               </td>
-                              <td className="py-4 px-5 text-center flex items-center justify-center space-x-1">
-                                <button
-                                  onClick={() => setSelectedId(c.id)}
-                                  className="flex items-center space-x-1 border border-stone-200 hover:border-brand-700 hover:text-brand-700 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
-                                >
-                                  <Eye className="h-3.5 w-3.5" />
-                                  <span>Tinjau</span>
-                                </button>
-                                <button
-                                  onClick={() => handleTriggerPdfDownload(c.id)}
-                                  className="flex items-center text-stone-500 hover:text-brand-600 border border-stone-200 hover:border-brand-700 p-1.5 rounded-lg transition-all cursor-pointer"
-                                  title="Download PDF"
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                </button>
+                              <td className="py-4 px-5 text-center">
+                                <div className="flex items-center justify-center space-x-1">
+                                  <button
+                                    onClick={() => setSelectedId(c.id)}
+                                    className="flex items-center space-x-1 border border-stone-200 hover:border-brand-700 hover:text-brand-700 px-2.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    <span>Tinjau</span>
+                                  </button>
+                                  <div className="relative">
+                                    <button
+                                      onClick={() => setOpenRowMenu(openRowMenu === c.id ? null : c.id)}
+                                      className="flex items-center text-stone-500 hover:text-brand-700 border border-stone-200 hover:border-brand-700 p-1.5 rounded-lg transition-all cursor-pointer"
+                                      title="Aksi lainnya"
+                                      aria-label={`Aksi lainnya untuk ${c.namaLengkap || c.id}`}
+                                      aria-expanded={openRowMenu === c.id}
+                                    >
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </button>
+                                    {openRowMenu === c.id && (
+                                      <>
+                                        <div
+                                          className="fixed inset-0 z-40"
+                                          onClick={() => setOpenRowMenu(null)}
+                                          aria-hidden="true"
+                                        />
+                                        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl border border-editorial-border shadow-xl p-1.5 z-50 text-left">
+                                          <button
+                                            onClick={() => {
+                                              setOpenRowMenu(null);
+                                              handleTriggerPdfDownload(c.id);
+                                            }}
+                                            className="w-full flex items-center space-x-2 px-3 py-2 min-h-[44px] text-xs font-bold text-stone-700 hover:bg-brand-50 hover:text-brand-700 rounded-lg transition-all cursor-pointer"
+                                          >
+                                            <Download className="h-3.5 w-3.5" />
+                                            <span>Unduh PDF</span>
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setOpenRowMenu(null);
+                                              navigator.clipboard.writeText(c.id);
+                                              toast('info', `ID Berkas ${c.id} disalin ke papan klip.`);
+                                            }}
+                                            className="w-full flex items-center space-x-2 px-3 py-2 min-h-[44px] text-xs font-bold text-stone-700 hover:bg-brand-50 hover:text-brand-700 rounded-lg transition-all cursor-pointer"
+                                          >
+                                            <FileText className="h-3.5 w-3.5" />
+                                            <span>Salin ID Berkas</span>
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                             </tr>
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={7} className="py-12 text-center text-stone-500 font-medium">
-                              Tidak ada data pelamar yang cocok dengan kriteria pencarian / filter Anda.
+                            <td colSpan={8} className="py-8 px-4">
+                              <AdminEmptyState
+                                compact
+                                icon={<Inbox className="h-7 w-7" />}
+                                title="Tidak ada pelamar yang cocok"
+                                body="Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda. Longgarkan filter untuk melihat berkas lainnya."
+                                actionLabel="Atur Ulang Filter"
+                                onAction={resetListFilters}
+                              />
                             </td>
                           </tr>
                         )}
                       </tbody>
                     </table>
                   </div>
+                </div>
+
+                {/* Mobile card list (<md) — same data, thumb-friendly triage */}
+                <div className="md:hidden space-y-3">
+                  {filteredCandidates.length > 0 ? (
+                    filteredCandidates.map((c, idx) => (
+                      <div
+                        key={c.id || idx}
+                        className="bg-white rounded-2xl border border-editorial-border shadow-sm p-4 space-y-3"
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedSet.has(c.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedIds((prev) => [...prev, c.id]);
+                              } else {
+                                setSelectedIds((prev) => prev.filter((id) => id !== c.id));
+                              }
+                            }}
+                            className="h-5 w-5 mt-1 accent-brand-700 cursor-pointer shrink-0"
+                            aria-label={`Pilih berkas ${c.namaLengkap || c.id}`}
+                          />
+                          <div className="h-10 w-10 rounded-full bg-editorial-navy text-white font-extrabold text-xs flex items-center justify-center shrink-0">
+                            {(c.namaLengkap || 'PL').substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-stone-900 truncate">{c.namaLengkap}</p>
+                            <p className="text-[11px] text-stone-500 font-semibold truncate">
+                              {getOfficialPositionName(c.jabatanDituju)}
+                            </p>
+                            <div className="mt-1.5">
+                              <BerkasIdChip id={c.id} />
+                            </div>
+                          </div>
+                          <span
+                            className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[c.status]}`}
+                          >
+                            {STATUS_LABELS[c.status]}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setSelectedId(c.id)}
+                          className="w-full flex items-center justify-center space-x-1.5 border border-stone-200 hover:border-brand-700 hover:text-brand-700 px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span>Tinjau Berkas</span>
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <AdminEmptyState
+                      compact
+                      icon={<Inbox className="h-7 w-7" />}
+                      title="Tidak ada pelamar yang cocok"
+                      body="Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda."
+                      actionLabel="Atur Ulang Filter"
+                      onAction={resetListFilters}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -1159,57 +1704,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">1. Identitas Pribadi</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Lengkap</label>
+                              <label htmlFor="dt-nama" className="text-[10px] font-bold text-stone-500 uppercase">Nama Lengkap</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.namaLengkap} onChange={(e) => editField('namaLengkap', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-nama" type="text" value={editedRecord.namaLengkap} onChange={(e) => editField('namaLengkap', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm font-semibold text-stone-900">{editedRecord.namaLengkap}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nomor KTP (16 Digit)</label>
+                              <label htmlFor="dt-ktp" className="text-[10px] font-bold text-stone-500 uppercase">Nomor KTP (16 Digit)</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.nomorKtp} onChange={(e) => editField('nomorKtp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-ktp" type="text" value={editedRecord.nomorKtp} onChange={(e) => editField('nomorKtp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm font-semibold text-stone-900">{editedRecord.nomorKtp}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Tempat Lahir</label>
+                              <label htmlFor="dt-tempat-lahir" className="text-[10px] font-bold text-stone-500 uppercase">Tempat Lahir</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.tempatLahir} onChange={(e) => editField('tempatLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-tempat-lahir" type="text" value={editedRecord.tempatLahir} onChange={(e) => editField('tempatLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800">{editedRecord.tempatLahir}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Tanggal Lahir</label>
+                              <label htmlFor="dt-tgl-lahir" className="text-[10px] font-bold text-stone-500 uppercase">Tanggal Lahir</label>
                               {isEditing ? (
-                                <input type="date" value={editedRecord.tanggalLahir} onChange={(e) => editField('tanggalLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-tgl-lahir" type="date" value={editedRecord.tanggalLahir} onChange={(e) => editField('tanggalLahir', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800">{editedRecord.tanggalLahir}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Email Pribadi</label>
+                              <label htmlFor="dt-email" className="text-[10px] font-bold text-stone-500 uppercase">Email Pribadi</label>
                               {isEditing ? (
-                                <input type="email" value={editedRecord.emailPribadi} onChange={(e) => editField('emailPribadi', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-email" type="email" value={editedRecord.emailPribadi} onChange={(e) => editField('emailPribadi', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800 font-mono">{editedRecord.emailPribadi}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Nomor HP / Telp</label>
+                              <label htmlFor="dt-telp" className="text-[10px] font-bold text-stone-500 uppercase">Nomor HP / Telp</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.noTelp} onChange={(e) => editField('noTelp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-telp" type="text" value={editedRecord.noTelp} onChange={(e) => editField('noTelp', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800 font-semibold">{editedRecord.noTelp}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Jenis Kelamin</label>
+                              <label htmlFor="dt-jk" className="text-[10px] font-bold text-stone-500 uppercase">Jenis Kelamin</label>
                               {isEditing ? (
-                                <select value={editedRecord.jenisKelamin} onChange={(e) => editField('jenisKelamin', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
+                                <select id="dt-jk" value={editedRecord.jenisKelamin} onChange={(e) => editField('jenisKelamin', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
                                   <option value="Laki-laki">Laki-laki</option>
                                   <option value="Perempuan">Perempuan</option>
                                 </select>
@@ -1218,17 +1763,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Agama</label>
+                              <label htmlFor="dt-agama" className="text-[10px] font-bold text-stone-500 uppercase">Agama</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.agama} onChange={(e) => editField('agama', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-agama" type="text" value={editedRecord.agama} onChange={(e) => editField('agama', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800">{editedRecord.agama}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Status Pernikahan</label>
+                              <label htmlFor="dt-nikah" className="text-[10px] font-bold text-stone-500 uppercase">Status Pernikahan</label>
                               {isEditing ? (
-                                <select value={editedRecord.statusPernikahan} onChange={(e) => editField('statusPernikahan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
+                                <select id="dt-nikah" value={editedRecord.statusPernikahan} onChange={(e) => editField('statusPernikahan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs outline-hidden cursor-pointer">
                                   <option value="Single">Single</option>
                                   <option value="Tunangan">Tunangan</option>
                                   <option value="Menikah">Menikah</option>
@@ -1241,25 +1786,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Golongan Darah</label>
+                              <label htmlFor="dt-goldar" className="text-[10px] font-bold text-stone-500 uppercase">Golongan Darah</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.golonganDarah} onChange={(e) => editField('golonganDarah', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-goldar" type="text" value={editedRecord.golonganDarah} onChange={(e) => editField('golonganDarah', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800">{editedRecord.golonganDarah || '-'}</p>
                               )}
                             </div>
                             <div className="md:col-span-2 space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Tempat Tinggal</label>
+                              <label htmlFor="dt-alamat-tinggal" className="text-[10px] font-bold text-stone-500 uppercase">Alamat Tempat Tinggal</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alamatTinggal} onChange={(e) => editField('alamatTinggal', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-alamat-tinggal" value={editedRecord.alamatTinggal} onChange={(e) => editField('alamatTinggal', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatTinggal}</p>
                               )}
                             </div>
                             <div className="md:col-span-2 space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Sesuai KTP</label>
+                              <label htmlFor="dt-alamat-ktp" className="text-[10px] font-bold text-stone-500 uppercase">Alamat Sesuai KTP</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alamatKtp} onChange={(e) => editField('alamatKtp', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-alamat-ktp" value={editedRecord.alamatKtp} onChange={(e) => editField('alamatKtp', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatKtp}</p>
                               )}
@@ -1271,24 +1816,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 2: Keluarga & Lingkungan */}
                       {activeDetailTab === 2 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">2. Keluarga & Lingkungan</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">2. Keluarga & Lingkungan</h3>
 
                           {/* Pasangan (If Married or Divorced) */}
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Data Pasangan</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Suami / Istri</label>
+                                <label htmlFor="dt-pasangan" className="text-[10px] font-bold text-stone-500 uppercase">Nama Suami / Istri</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.namaPasangan || ''} onChange={(e) => editField('namaPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input id="dt-pasangan" type="text" value={editedRecord.namaPasangan || ''} onChange={(e) => editField('namaPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
                                   <p className="text-sm text-stone-800">{editedRecord.namaPasangan || '-'}</p>
                                 )}
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">TTL Pasangan</label>
+                                <label htmlFor="dt-ttl-pasangan" className="text-[10px] font-bold text-stone-500 uppercase">TTL Pasangan</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.ttlPasangan || ''} onChange={(e) => editField('ttlPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input id="dt-ttl-pasangan" type="text" value={editedRecord.ttlPasangan || ''} onChange={(e) => editField('ttlPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
                                   <p className="text-sm text-stone-800">{editedRecord.ttlPasangan || '-'}</p>
                                 )}
@@ -1301,7 +1846,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Anak</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('anak', { nama: '', ttl: '', pendidikan: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('anak', { nama: '', ttl: '', pendidikan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Tambah Anak
                                 </button>
                               )}
@@ -1333,25 +1878,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Data Orang Tua / Wali</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Nama Ayah / Ibu / Wali</label>
+                                <label htmlFor="dt-ortu" className="text-[10px] font-bold text-stone-500 uppercase">Nama Ayah / Ibu / Wali</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.namaOrtu} onChange={(e) => editField('namaOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input id="dt-ortu" type="text" value={editedRecord.namaOrtu} onChange={(e) => editField('namaOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
                                   <p className="text-sm font-semibold text-stone-900">{editedRecord.namaOrtu}</p>
                                 )}
                               </div>
                               <div className="space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Pekerjaan Orang Tua</label>
+                                <label htmlFor="dt-pekerjaan-ortu" className="text-[10px] font-bold text-stone-500 uppercase">Pekerjaan Orang Tua</label>
                                 {isEditing ? (
-                                  <input type="text" value={editedRecord.pekerjaanOrtu} onChange={(e) => editField('pekerjaanOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input id="dt-pekerjaan-ortu" type="text" value={editedRecord.pekerjaanOrtu} onChange={(e) => editField('pekerjaanOrtu', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
                                   <p className="text-sm text-stone-800">{editedRecord.pekerjaanOrtu}</p>
                                 )}
                               </div>
                               <div className="md:col-span-2 space-y-1">
-                                <label className="text-[10px] font-bold text-stone-500 uppercase">Alamat Orang Tua</label>
+                                <label htmlFor="dt-alamat-ortu" className="text-[10px] font-bold text-stone-500 uppercase">Alamat Orang Tua</label>
                                 {isEditing ? (
-                                  <textarea value={editedRecord.alamatOrtu} onChange={(e) => editField('alamatOrtu', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <textarea id="dt-alamat-ortu" value={editedRecord.alamatOrtu} onChange={(e) => editField('alamatOrtu', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
                                   <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatOrtu}</p>
                                 )}
@@ -1364,7 +1909,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Saudara Kandung</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('saudara', { nama: '', kakakAdik: '', usia: '', pendidikanPekerjaan: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('saudara', { nama: '', kakakAdik: '', usia: '', pendidikanPekerjaan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Tambah Saudara
                                 </button>
                               )}
@@ -1401,7 +1946,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 3: Riwayat Pendidikan */}
                       {activeDetailTab === 3 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">3. Riwayat Pendidikan</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">3. Riwayat Pendidikan</h3>
 
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Pendidikan Formal (Terakhir)</h4>
@@ -1444,7 +1989,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Kursus & Pelatihan</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('kursus', { bidang: '', lamanya: '', tempat: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('kursus', { bidang: '', lamanya: '', tempat: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Tambah Kursus
                                 </button>
                               )}
@@ -1476,13 +2021,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 4: Riwayat Pekerjaan */}
                       {activeDetailTab === 4 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">4. Pengalaman Kerja</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">4. Pengalaman Kerja</h3>
 
                           <div className="space-y-4">
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Pekerjaan Sebelumnya</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('pengalamanKerja', { perusahaan: '', dari: '', sampai: '', jabatan: '', gaji: '', alasanPindah: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('pengalamanKerja', { perusahaan: '', dari: '', sampai: '', jabatan: '', gaji: '', alasanPindah: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Riwayat Kerja
                                 </button>
                               )}
@@ -1493,26 +2038,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                 <div key={idx} className="p-4 bg-stone-50 rounded-2xl border border-stone-200 flex space-x-4 items-start">
                                   <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <div className="space-y-0.5">
-                                      <span className="text-[9px] text-stone-500 font-bold uppercase">Perusahaan</span>
+                                      <span className="text-[10px] text-stone-500 font-bold uppercase">Perusahaan</span>
                                       <input type="text" disabled={!isEditing} value={pk.perusahaan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'perusahaan', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
                                     </div>
                                     <div className="space-y-0.5">
-                                      <span className="text-[9px] text-stone-500 font-bold uppercase">Periode</span>
+                                      <span className="text-[10px] text-stone-500 font-bold uppercase">Periode</span>
                                       <div className="flex space-x-1">
                                         <input type="text" placeholder="Dari" disabled={!isEditing} value={pk.dari} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'dari', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
                                         <input type="text" placeholder="Hingga" disabled={!isEditing} value={pk.sampai} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'sampai', e.target.value)} className="w-1/2 bg-white border text-xs p-1.5 rounded-lg" />
                                       </div>
                                     </div>
                                     <div className="space-y-0.5">
-                                      <span className="text-[9px] text-stone-500 font-bold uppercase">Jabatan Dituju</span>
+                                      <span className="text-[10px] text-stone-500 font-bold uppercase">Jabatan Dituju</span>
                                       <input type="text" disabled={!isEditing} value={pk.jabatan} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'jabatan', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
                                     </div>
                                     <div className="space-y-0.5">
-                                      <span className="text-[9px] text-stone-500 font-bold uppercase">Gaji Akhir</span>
+                                      <span className="text-[10px] text-stone-500 font-bold uppercase">Gaji Akhir</span>
                                       <input type="text" disabled={!isEditing} value={pk.gaji} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'gaji', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
                                     </div>
                                     <div className="md:col-span-2 space-y-0.5">
-                                      <span className="text-[9px] text-stone-500 font-bold uppercase">Alasan Mengundurkan Diri</span>
+                                      <span className="text-[10px] text-stone-500 font-bold uppercase">Alasan Mengundurkan Diri</span>
                                       <input type="text" disabled={!isEditing} value={pk.alasanPindah} onChange={(e) => handleEditNested('pengalamanKerja', idx, 'alasanPindah', e.target.value)} className="w-full bg-white border text-xs p-1.5 rounded-lg" />
                                     </div>
                                   </div>
@@ -1527,9 +2072,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           </div>
 
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-stone-500 uppercase">Uraian Jobdesk Terakhir</label>
+                            <label htmlFor="dt-jobdesk" className="text-[10px] font-bold text-stone-500 uppercase">Uraian Jobdesk Terakhir</label>
                             {isEditing ? (
-                              <textarea value={editedRecord.jobdeskTerakhir} onChange={(e) => editField('jobdeskTerakhir', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                              <textarea id="dt-jobdesk" value={editedRecord.jobdeskTerakhir} onChange={(e) => editField('jobdeskTerakhir', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                             ) : (
                               <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.jobdeskTerakhir || '-'}</p>
                             )}
@@ -1540,7 +2085,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Referensi Atasan / Perusahaan Sebelumnya</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('referensiPerusahaan', { perusahaan: '', kontak: '', telp: '', hubungan: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('referensiPerusahaan', { perusahaan: '', kontak: '', telp: '', hubungan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Referensi Kerja
                                 </button>
                               )}
@@ -1570,58 +2115,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 5: Minat & Konsep Diri */}
                       {activeDetailTab === 5 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">5. Minat & Konsep Diri</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">5. Minat & Konsep Diri</h3>
 
                           <div className="space-y-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Jabatan yang Dituju</label>
+                              <label htmlFor="dt-jabatan" className="text-[10px] font-bold text-stone-500 uppercase">Jabatan yang Dituju</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.jabatanDituju} onChange={(e) => editField('jabatanDituju', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-jabatan" type="text" value={editedRecord.jabatanDituju} onChange={(e) => editField('jabatanDituju', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-sm font-bold text-brand-650">{getOfficialPositionName(editedRecord.jabatanDituju) || '-'}</p>
+                                <p className="text-sm font-bold text-brand-700">{getOfficialPositionName(editedRecord.jabatanDituju) || '-'}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Alasan melamar jabatan tersebut</label>
+                              <label htmlFor="dt-alasan" className="text-[10px] font-bold text-stone-500 uppercase">Alasan melamar jabatan tersebut</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.alasanJabatan} onChange={(e) => editField('alasanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-alasan" value={editedRecord.alasanJabatan} onChange={(e) => editField('alasanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.alasanJabatan}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mengerti tugas dan tanggung jawab jabatan tersebut?</label>
+                              <label htmlFor="dt-tugas" className="text-[10px] font-bold text-stone-500 uppercase">Mengerti tugas dan tanggung jawab jabatan tersebut?</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.pengetahuanJabatan} onChange={(e) => editField('pengetahuanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-tugas" value={editedRecord.pengetahuanJabatan} onChange={(e) => editField('pengetahuanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.pengetahuanJabatan}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Lingkungan kerja yang disenangi dan sebabnya</label>
+                              <label htmlFor="dt-lingkungan" className="text-[10px] font-bold text-stone-500 uppercase">Lingkungan kerja yang disenangi dan sebabnya</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.lingkunganKerja} onChange={(e) => editField('lingkunganKerja', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-lingkungan" value={editedRecord.lingkunganKerja} onChange={(e) => editField('lingkunganKerja', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.lingkunganKerja}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Cita-Cita Hidup</label>
+                              <label htmlFor="dt-cita" className="text-[10px] font-bold text-stone-500 uppercase">Cita-Cita Hidup</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.citaCita} onChange={(e) => editField('citaCita', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-cita" value={editedRecord.citaCita} onChange={(e) => editField('citaCita', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.citaCita}</p>
                               )}
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Hal paling sulit untuk mengambil keputusan</label>
+                              <label htmlFor="dt-sulit" className="text-[10px] font-bold text-stone-500 uppercase">Hal paling sulit untuk mengambil keputusan</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kesulitanKeputusan} onChange={(e) => editField('kesulitanKeputusan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-sulit" value={editedRecord.kesulitanKeputusan} onChange={(e) => editField('kesulitanKeputusan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.kesulitanKeputusan}</p>
                               )}
@@ -1633,37 +2178,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 6: Sosial & Kegiatan */}
                       {activeDetailTab === 6 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">6. Kegiatan Sosial & Organisasi</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">6. Kegiatan Sosial & Organisasi</h3>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kekuatan Diri</label>
+                              <label htmlFor="dt-kuat" className="text-[10px] font-bold text-stone-500 uppercase">Kekuatan Diri</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kekuatanDiri} onChange={(e) => editField('kekuatanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-kuat" value={editedRecord.kekuatanDiri} onChange={(e) => editField('kekuatanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-900 whitespace-pre-wrap">{editedRecord.kekuatanDiri}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kelemahan Diri</label>
+                              <label htmlFor="dt-lemah" className="text-[10px] font-bold text-stone-500 uppercase">Kelemahan Diri</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.kelemahanDiri} onChange={(e) => editField('kelemahanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-lemah" value={editedRecord.kelemahanDiri} onChange={(e) => editField('kelemahanDiri', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
-                                <p className="text-xs text-stone-855 whitespace-pre-wrap">{editedRecord.kelemahanDiri}</p>
+                                <p className="text-xs text-stone-900 whitespace-pre-wrap">{editedRecord.kelemahanDiri}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Hobby</label>
+                              <label htmlFor="dt-hobi" className="text-[10px] font-bold text-stone-500 uppercase">Hobby</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.hobby} onChange={(e) => editField('hobby', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-hobi" type="text" value={editedRecord.hobby} onChange={(e) => editField('hobby', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-900">{editedRecord.hobby}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mengisi Waktu Luang</label>
+                              <label htmlFor="dt-luang" className="text-[10px] font-bold text-stone-500 uppercase">Mengisi Waktu Luang</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.waktuLuang} onChange={(e) => editField('waktuLuang', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-luang" type="text" value={editedRecord.waktuLuang} onChange={(e) => editField('waktuLuang', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-900">{editedRecord.waktuLuang}</p>
                               )}
@@ -1674,7 +2219,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Organisasi yang Pernah Diikuti</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('organisasi', { nama: '', periode: '', jabatan: '', keterangan: '' })} className="text-xs text-brand-600 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('organisasi', { nama: '', periode: '', jabatan: '', keterangan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Organisasi
                                 </button>
                               )}
@@ -1704,37 +2249,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 7: Ekspektasi & Kesehatan */}
                       {activeDetailTab === 7 && (
                         <div className="space-y-4">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">7. Ekspektasi & Kesehatan</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">7. Ekspektasi & Kesehatan</h3>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Gaji yang Diinginkan</label>
+                              <label htmlFor="dt-gaji" className="text-[10px] font-bold text-stone-500 uppercase">Gaji yang Diinginkan</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.gajiDiinginkan} onChange={(e) => editField('gajiDiinginkan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-gaji" type="text" value={editedRecord.gajiDiinginkan} onChange={(e) => editField('gajiDiinginkan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm font-semibold text-stone-900">Rp {editedRecord.gajiDiinginkan}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Mulai Bisa Bekerja</label>
+                              <label htmlFor="dt-mulai" className="text-[10px] font-bold text-stone-500 uppercase">Mulai Bisa Bekerja</label>
                               {isEditing ? (
-                                <input type="date" value={editedRecord.dapatMulaiBekerja} onChange={(e) => editField('dapatMulaiBekerja', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-mulai" type="date" value={editedRecord.dapatMulaiBekerja} onChange={(e) => editField('dapatMulaiBekerja', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-900 font-medium">{editedRecord.dapatMulaiBekerja}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Fasilitas yang Diharapkan</label>
+                              <label htmlFor="dt-fasilitas" className="text-[10px] font-bold text-stone-500 uppercase">Fasilitas yang Diharapkan</label>
                               {isEditing ? (
-                                <textarea value={editedRecord.fasilitasDiharapkan} onChange={(e) => editField('fasilitasDiharapkan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <textarea id="dt-fasilitas" value={editedRecord.fasilitasDiharapkan} onChange={(e) => editField('fasilitasDiharapkan', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.fasilitasDiharapkan || '-'}</p>
                               )}
                             </div>
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-stone-500 uppercase">Kendaraan yang Dimiliki</label>
+                              <label htmlFor="dt-kendaraan" className="text-[10px] font-bold text-stone-500 uppercase">Kendaraan yang Dimiliki</label>
                               {isEditing ? (
-                                <input type="text" value={editedRecord.kendaraanDimiliki} onChange={(e) => editField('kendaraanDimiliki', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                <input id="dt-kendaraan" type="text" value={editedRecord.kendaraanDimiliki} onChange={(e) => editField('kendaraanDimiliki', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-xs text-stone-800">{editedRecord.kendaraanDimiliki || '-'}</p>
                               )}
@@ -1743,16 +2288,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                               <label className="text-xs font-bold text-stone-600 block">Kondisi Medis</label>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                  <label className="text-[9px] text-stone-500 font-bold uppercase block">Pernah Sakit Keras / Lama?</label>
+                                  <label className="text-[10px] text-stone-500 font-bold uppercase block">Pernah Sakit Keras / Lama?</label>
                                   <p className="text-xs font-medium text-stone-800">{editedRecord.pernahSakitKeras === 'Ya' ? `Ya (${editedRecord.detailSakitKeras})` : 'Tidak'}</p>
                                 </div>
                                 <div className="space-y-1">
-                                  <label className="text-[9px] text-stone-500 font-bold uppercase block">Kesehatan Keluarga Baik?</label>
+                                  <label className="text-[10px] text-stone-500 font-bold uppercase block">Kesehatan Keluarga Baik?</label>
                                   <p className="text-xs font-medium text-stone-800">{editedRecord.kesehatanKeluargaBaik === 'Tidak' ? `Tidak (${editedRecord.detailKesehatanKeluarga})` : 'Ya'}</p>
                                 </div>
                                 <div className="space-y-1 md:col-span-2">
-                                  <label className="text-[9px] text-stone-500 font-bold uppercase block">Alamat Media Sosial</label>
-                                  <p className="text-xs font-semibold text-brand-600 underline">{editedRecord.alamatMediaSosial || '-'}</p>
+                                  <label className="text-[10px] text-stone-500 font-bold uppercase block">Alamat Media Sosial</label>
+                                  <p className="text-xs font-semibold text-brand-700 underline">{editedRecord.alamatMediaSosial || '-'}</p>
                                 </div>
                               </div>
                             </div>
@@ -1763,7 +2308,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       {/* Step 8: Referensi Darurat */}
                       {activeDetailTab === 8 && (
                         <div className="space-y-6">
-                          <h3 className="text-base font-bold text-brand-600 border-b border-stone-100 pb-2">8. Referensi</h3>
+                          <h3 className="text-base font-bold text-brand-700 border-b border-stone-100 pb-2">8. Referensi</h3>
 
                           <div className="space-y-4">
                             <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">3 Kontak Darurat Terkait (Wajib)</h4>
@@ -1890,6 +2435,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           </div>
         )}
       </main>
+
+      {/* Destructive confirm (non-blocking, replaces native confirm) */}
+      <ConfirmDialog
+        open={confirmState !== null}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel ?? 'Hapus'}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() => confirmState?.onConfirm()}
+      />
     </div>
   );
 };

@@ -81,7 +81,7 @@ export function toICS(ev: Interview): string {
   const dtstamp =
     new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
   const summary = `Wawancara ${ev.stage || ''} - ${ev.candidateName || ''} (${ev.position || ''})`;
-  const description = [ev.notes, ev.link].filter(Boolean).join('\n');
+  const description = [ev.notes, buildWaInvite(ev)].filter(Boolean).join('\n\n');
   const location = ev.location || '';
   const uid = `${ev.id || `iv-${Date.now()}`}@luzie-group`;
   return [
@@ -125,8 +125,7 @@ export function toGCalUrl(ev: Interview): string {
   return `https://calendar.google.com/calendar/render?${q}`;
 }
 
-export function downloadICS(ev: Interview): void {
-  const blob = new Blob([toICS(ev)], { type: 'text/calendar;charset=utf-8' });
+export function downloadICS(ev: Interview): void {  const blob = new Blob([toICS(ev)], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -135,4 +134,75 @@ export function downloadICS(ev: Interview): void {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function formatTanggalID(dateStr: string): string {
+  const d = new Date(`${String(dateStr || '').slice(0, 10)}T00:00:00`);
+  if (isNaN(d.getTime())) return String(dateStr || '-');
+  try {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(d);
+  } catch {
+    return String(dateStr);
+  }
+}
+
+/** Formal-ID WhatsApp invitation text for an interview (channel HR actually uses). */
+export function buildWaInvite(ev: Interview): string {
+  const lines = [
+    `Yth. Sdr/i ${ev.candidateName || 'Bapak/Ibu'},`,
+    ``,
+    `Anda diundang ${ev.stage || 'wawancara'} untuk posisi ${ev.position || '-'} di Luzie Group:`,
+    `Hari/Tanggal: ${formatTanggalID(ev.date)}`,
+    `Pukul: ${getStart(ev) || '-'}–${getEnd(ev) || '-'} WIB`,
+    `Pewawancara: ${ev.interviewer || '-'}`,
+  ];
+  if (ev.location) lines.push(`Lokasi: ${ev.location}`);
+  if (ev.link) lines.push(`Link meeting: ${ev.link}`);
+  lines.push(
+    ``,
+    `Mohon konfirmasi kehadiran dengan membalas pesan ini. Terima kasih.`,
+    `— Tim Rekrutmen Luzie Group`
+  );
+  return lines.join('\n');
+}
+
+/** Monday (00:00) of the week containing a YYYY-MM-DD date; null when invalid. */
+export function mondayOfISO(dateStr: string): Date | null {
+  const d = new Date(`${String(dateStr || '').slice(0, 10)}T00:00:00`);
+  if (isNaN(d.getTime())) return null;
+  const dow = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - dow);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Interviewer load: schedules on the same day + in the same week (excluding one id). */
+export function interviewerLoad(
+  list: Interview[],
+  interviewer: string,
+  dateStr: string,
+  excludeId?: string
+): { day: number; week: number } {
+  const name = String(interviewer || '').trim().toLowerCase();
+  const day = String(dateStr || '').slice(0, 10);
+  if (!name || !day) return { day: 0, week: 0 };
+  const monday = mondayOfISO(day);
+  let dayCount = 0;
+  let weekCount = 0;
+  for (const ev of list || []) {
+    if (excludeId && String(ev.id) === String(excludeId)) continue;
+    if (String(ev.interviewer || '').trim().toLowerCase() !== name) continue;
+    const d = String(ev.date || '').slice(0, 10);
+    if (d === day) dayCount++;
+    if (monday && d) {
+      const evMonday = mondayOfISO(d);
+      if (evMonday && evMonday.getTime() === monday.getTime()) weekCount++;
+    }
+  }
+  return { day: dayCount, week: weekCount };
 }

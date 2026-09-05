@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { AdminModal } from './dashboard/AdminModal';
 
 interface TrackerModalProps {
   open: boolean;
@@ -10,7 +10,7 @@ interface TrackerModalProps {
 }
 
 const inputCls =
-  'w-full bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-brand-700';
+  'w-full bg-stone-50 border border-editorial-border rounded-(--radius-input) px-3 py-2.5 min-h-[44px] text-xs outline-none focus:border-brand-700';
 const labelCls = 'block text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1';
 
 const PRIORITIES = ['Normal', 'High'];
@@ -69,8 +69,6 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
     }
   }, [open, initial]);
 
-  if (!open) return null;
-
   const handleSave = () => {
     if (!form.title.trim()) {
       setError('Nama Posisi wajib diisi.');
@@ -100,123 +98,117 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-950/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl border border-stone-200 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 sticky top-0 bg-white rounded-t-2xl">
-          <h3 className="font-serif font-black text-sm text-stone-900">
-            {isEdit ? 'Ubah Posisi Tracker' : 'Tambah Posisi Tracker'}
-          </h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-400 cursor-pointer" aria-label="Tutup">
-            <X className="h-4 w-4" />
-          </button>
+    <AdminModal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Ubah Posisi Tracker' : 'Tambah Posisi Tracker'}
+      subtitle="Treker posisi tersimpan di tab Treker pada Google Sheets."
+    >
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="trk-title" className={labelCls}>Nama Posisi *</label>
+          <input
+            id="trk-title"
+            type="text"
+            value={form.title}
+            onChange={(e) => set('title', e.target.value)}
+            placeholder="cth: Staff Admin"
+            className={inputCls}
+          />
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Nama Posisi *</label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => set('title', e.target.value)}
-              placeholder="cth: Staff Admin"
-              className={inputCls}
-            />
+            <label htmlFor="trk-dept" className={labelCls}>Department</label>
+            <input id="trk-dept" type="text" value={form.category} onChange={(e) => set('category', e.target.value)} className={inputCls} placeholder="cth: Operasional" />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Department</label>
-              <input type="text" value={form.category} onChange={(e) => set('category', e.target.value)} className={inputCls} placeholder="cth: Operasional" />
-            </div>
-            <div>
-              <label className={labelCls}>User</label>
-              <input type="text" value={form.user} onChange={(e) => set('user', e.target.value)} className={inputCls} placeholder="User / hiring manager" />
-            </div>
-          </div>
-
           <div>
-            <label className={labelCls}>Recruiter</label>
-            <input type="text" value={form.recruiter} onChange={(e) => set('recruiter', e.target.value)} className={inputCls} placeholder="Nama recruiter" />
+            <label htmlFor="trk-user" className={labelCls}>User</label>
+            <input id="trk-user" type="text" value={form.user} onChange={(e) => set('user', e.target.value)} className={inputCls} placeholder="User / hiring manager" />
           </div>
+        </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>Tgl Dibuka</label>
-              <input type="date" value={form.tanggalDibuka} onChange={(e) => set('tanggalDibuka', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Tgl Terakhir</label>
-              <input type="date" value={form.tanggalTerakhir} onChange={(e) => set('tanggalTerakhir', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>Tgl Selesai</label>
-              <input type="date" value={form.tanggalSelesai} onChange={(e) => set('tanggalSelesai', e.target.value)} className={inputCls} />
-            </div>
+        <div>
+          <label htmlFor="trk-recruiter" className={labelCls}>Recruiter</label>
+          <input id="trk-recruiter" type="text" value={form.recruiter} onChange={(e) => set('recruiter', e.target.value)} className={inputCls} placeholder="Nama recruiter" />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label htmlFor="trk-open" className={labelCls}>Tgl Dibuka</label>
+            <input id="trk-open" type="date" value={form.tanggalDibuka} onChange={(e) => set('tanggalDibuka', e.target.value)} className={inputCls} />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Priority</label>
-              <select value={form.priority} onChange={(e) => set('priority', e.target.value)} className={`${inputCls} cursor-pointer`}>
-                {PRIORITIES.map((p) => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Status</label>
-              <select value={form.status} onChange={(e) => set('status', e.target.value)} className={`${inputCls} cursor-pointer`}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+          <div>
+            <label htmlFor="trk-last" className={labelCls}>Tgl Terakhir</label>
+            <input id="trk-last" type="date" value={form.tanggalTerakhir} onChange={(e) => set('tanggalTerakhir', e.target.value)} className={inputCls} />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Jumlah</label>
-              <input value={form.jumlah} onChange={(e) => set('jumlah', e.target.value)} className={inputCls} inputMode="numeric" placeholder="1" />
-            </div>
-            <div>
-              <label className={labelCls}>Gender</label>
-              <input value={form.gender} onChange={(e) => set('gender', e.target.value)} className={inputCls} placeholder="L / P / Bebas" />
-            </div>
+          <div>
+            <label htmlFor="trk-done" className={labelCls}>Tgl Selesai</label>
+            <input id="trk-done" type="date" value={form.tanggalSelesai} onChange={(e) => set('tanggalSelesai', e.target.value)} className={inputCls} />
           </div>
+        </div>
 
-          {error && (
-            <p className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
-          )}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="trk-priority" className={labelCls}>Priority</label>
+            <select id="trk-priority" value={form.priority} onChange={(e) => set('priority', e.target.value)} className={`${inputCls} cursor-pointer`}>
+              {PRIORITIES.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="trk-status" className={labelCls}>Status</label>
+            <select id="trk-status" value={form.status} onChange={(e) => set('status', e.target.value)} className={`${inputCls} cursor-pointer`}>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <div>
-              {isEdit && onDelete && (initial?.id ?? initial?.title) && (
-                <button
-                  onClick={() => onDelete(String(initial.id ?? initial.title))}
-                  className="text-[11px] font-bold px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                >
-                  Hapus
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="trk-jumlah" className={labelCls}>Jumlah</label>
+            <input id="trk-jumlah" value={form.jumlah} onChange={(e) => set('jumlah', e.target.value)} className={inputCls} inputMode="numeric" placeholder="1" />
+          </div>
+          <div>
+            <label htmlFor="trk-gender" className={labelCls}>Gender</label>
+            <input id="trk-gender" value={form.gender} onChange={(e) => set('gender', e.target.value)} className={inputCls} placeholder="L / P / Bebas" />
+          </div>
+        </div>
+
+        {error && (
+          <p role="alert" className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+        )}
+
+        <div className="flex items-center justify-between pt-1">
+          <div>
+            {isEdit && onDelete && (initial?.id ?? initial?.title) && (
               <button
-                onClick={onClose}
-                className="text-[11px] font-bold px-4 py-2 rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
+                onClick={() => onDelete(String(initial.id ?? initial.title))}
+                className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
               >
-                Batal
+                Hapus
               </button>
-              <button
-                onClick={handleSave}
-                className="text-[11px] font-bold px-4 py-2 rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer min-h-[44px]"
-              >
-                Simpan
-              </button>
-            </div>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSave}
+              className="text-[11px] font-bold px-4 py-2.5 rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer min-h-[44px]"
+            >
+              Simpan
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </AdminModal>
   );
 };

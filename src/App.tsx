@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { FormWizard } from './components/FormWizard';
 import { AdminPanel } from './components/AdminPanel';
+import { ToastProvider } from './components/ui/Toast';
 import { StatusLookupPage } from './components/StatusLookupPage';
 import { ShieldAlert, KeyRound, CheckCircle2, Copy, FileText, ExternalLink, HelpCircle, User, Users, ArrowLeft, Search } from 'lucide-react';
 
@@ -484,7 +485,9 @@ export default function App() {
           path="/admin"
           element={
             <ProtectedRoute>
-              <AdminPanel onLogout={handleAdminLogout} adminEmail="" />
+              <ToastProvider>
+                <AdminPanel onLogout={handleAdminLogout} adminEmail="" />
+              </ToastProvider>
             </ProtectedRoute>
           }
         />

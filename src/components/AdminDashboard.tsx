@@ -24,6 +24,7 @@ import {
 import { Applicant } from '../types';
 import type { Interview } from '../lib/interview-links';
 import { GreetingBar } from './dashboard/GreetingBar';
+import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { CountUp } from './dashboard/CountUp';
 import { Sparkline } from './dashboard/Sparkline';
 import { RecruitmentFunnel } from './dashboard/RecruitmentFunnel';
@@ -64,7 +65,7 @@ const ChartTooltip: React.FC<ChartTooltipProps> = ({ active, payload, label }) =
     : Math.round((delta / previous) * 100);
 
   return (
-    <div className="bg-slate-800 text-white rounded-xl p-3 shadow-2xl text-xs space-y-1.5 min-w-[160px]">
+    <div className="bg-editorial-navy text-white rounded-xl p-3 shadow-2xl text-xs space-y-1.5 min-w-[160px] border border-white/10">
       <div className="font-extrabold text-stone-200 uppercase tracking-wider text-[10px]">
         {fullLabel}
       </div>
@@ -248,12 +249,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
     };
   }, [filteredApplicants]);
 
-  const todayFormatted = useMemo(() => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const d = new Date();
-    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
-  }, []);
-
   // Sparkline data: 7-day daily counts per KPI filter
   const sparklineData = useMemo(() => {
     const now = new Date();
@@ -297,8 +292,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
     });
 
     if (male === 0 && female === 0) {
-      male = Math.max(1, Math.floor(applicants.length * 0.55)) || 15;
-      female = Math.max(1, Math.floor(applicants.length * 0.45)) || 12;
+      return [
+        { name: 'Laki-laki', value: 0, percent: 0, color: '#C2410C' },
+        { name: 'Perempuan', value: 0, percent: 0, color: '#1A1F2E' },
+      ];
     }
 
     const total = male + female;
@@ -465,7 +462,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl border border-stone-200 shadow-xl p-5 z-50 space-y-4 text-xs animate-in fade-in slide-in-from-top-3 duration-200">
               <div className="flex items-center justify-between border-b border-stone-100 pb-2">
                 <h4 className="font-bold text-stone-900 flex items-center space-x-1.5">
-                  <Filter className="h-3.5 w-3.5 text-brand-600" />
+                  <Filter className="h-3.5 w-3.5 text-brand-700" />
                   <span>Konfigurasi Filter</span>
                 </h4>
                 {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
@@ -483,8 +480,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Sesuai Bulan</label>
+                <label htmlFor="dash-month" className="block text-[10px] font-bold text-stone-500 uppercase tracking-wide">Filter Sesuai Bulan</label>
                 <select
+                  id="dash-month"
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
@@ -497,8 +495,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Jabatan Posisi</label>
+                <label htmlFor="dash-job" className="block text-[10px] font-bold text-stone-500 uppercase tracking-wide">Filter Jabatan Posisi</label>
                 <select
+                  id="dash-job"
                   value={selectedJob}
                   onChange={(e) => setSelectedJob(e.target.value)}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
@@ -511,8 +510,9 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-wide">Filter Status Pelamar</label>
+                <label htmlFor="dash-status" className="block text-[10px] font-bold text-stone-500 uppercase tracking-wide">Filter Status Pelamar</label>
                 <select
+                  id="dash-status"
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 font-semibold focus:ring-2 focus:ring-brand-200 text-xs"
@@ -579,7 +579,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% dari bulan lalu
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
@@ -613,7 +612,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% dari bulan lalu
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
@@ -647,7 +645,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% dari bulan lalu
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
@@ -681,7 +678,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% dari bulan lalu
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
 
@@ -715,7 +711,6 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             <span className="text-[10px] text-stone-400 font-bold block pt-1">
               {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% dari bulan lalu
             </span>
-            <span className="text-[8px] text-stone-400 font-medium block">Update: {todayFormatted}</span>
           </div>
         </div>
       </div>
@@ -774,7 +769,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            <div className="h-64 antialiased">
+            <div
+              className="h-64 antialiased"
+              role="img"
+              aria-label={`Tren lamaran masuk: total periode ini ${timelineData.reduce((s, p) => s + p.application, 0)} lamaran, periode sebelumnya ${timelineData.reduce((s, p) => s + p.previous, 0)} lamaran.`}
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                   <defs>
@@ -873,11 +872,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <tbody className="divide-y divide-stone-100 text-stone-700">
                     {latestApplicants.map((app, idx) => {
                       const bgColors = [
-                        'bg-amber-100 text-amber-800',
-                        'bg-stone-200 text-editorial-navy',
-                        'bg-orange-100 text-brand-800',
-                        'bg-green-100 text-editorial-green',
-                        'bg-red-100 text-editorial-red'
+                        'bg-editorial-navy text-white',
+                        'bg-bento-sand text-editorial-navy'
                       ];
                       const initials = (app.namaLengkap || 'PL').substring(0, 2).toUpperCase();
 
@@ -911,12 +907,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                         <tr key={app.id || idx} className="hover:bg-stone-50 transition-colors">
                           <td className="py-3 font-bold text-stone-950">
                             <div className="flex items-center space-x-3">
-                              <div className={`h-8 w-8 rounded-full ${bgColors[idx % 5]} text-[10px] font-extrabold flex items-center justify-center shadow-xs`}>
+                              <div className={`h-8 w-8 rounded-full ${bgColors[idx % 2]} text-[10px] font-extrabold flex items-center justify-center shadow-xs`}>
                                 {initials}
                               </div>
                               <div className="text-left">
                                 <span className="block leading-tight font-bold">{app.namaLengkap}</span>
-                                <span className="text-[9px] font-medium text-stone-400 mt-0.5 block">{app.id || 'N/A'}</span>
+                                <span className="text-[10px] font-medium text-stone-400 mt-0.5 block">{app.id || 'N/A'}</span>
                               </div>
                             </div>
                           </td>
@@ -965,7 +961,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="h-32 w-32 relative shrink-0">
+              <div
+                className="h-32 w-32 relative shrink-0"
+                role="img"
+                aria-label={`Komposisi jenis kelamin: Laki-laki ${genderStats[0].value} pelamar, Perempuan ${genderStats[1].value} pelamar.`}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -984,8 +984,8 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                     <Tooltip
                       contentStyle={{
                         borderRadius: '8px',
-                        backgroundColor: '#1E293B',
-                        border: 'none',
+                        backgroundColor: '#1A1F2E',
+                        border: '1px solid rgba(255,255,255,0.1)',
                         color: '#FFFFFF',
                         fontSize: '11px',
                         padding: '4px 8px'
@@ -998,7 +998,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <span className="text-lg font-black text-stone-900 leading-none">
                     {(genderStats[0].value + genderStats[1].value).toLocaleString('id-ID')}
                   </span>
-                  <span className="text-[8px] font-black text-stone-400 mt-0.5 uppercase tracking-wider">Total</span>
+                  <span className="text-[10px] font-black text-stone-400 mt-0.5 uppercase tracking-wider">Total</span>
                 </div>
               </div>
 
@@ -1012,7 +1012,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                       </div>
                       <div className="text-right">
                         <span className="font-black text-stone-900 block">{item.value} Pelamar</span>
-                        <span className="text-[9px] font-bold text-stone-400 block">{item.percent}%</span>
+                        <span className="text-[10px] font-bold text-stone-400 block">{item.percent}%</span>
                       </div>
                     </div>
                   );
@@ -1037,9 +1037,14 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
             <div className="space-y-3">
               {scheduleList.length === 0 ? (
-                <p className="text-xs text-stone-500 font-medium border border-dashed border-stone-200 rounded-xl px-3 py-6 text-center">
-                  Belum ada jadwal wawancara mendatang.
-                </p>
+                <AdminEmptyState
+                  compact
+                  icon={<Calendar className="h-7 w-7" />}
+                  title="Belum ada jadwal wawancara"
+                  body="Belum ada jadwal wawancara mendatang. Buka agenda untuk menjadwalkan wawancara pelamar."
+                  actionLabel="Buka Agenda"
+                  onAction={onViewCalendar}
+                />
               ) : (
                 scheduleList.map((sch) => (
                 <div
@@ -1054,12 +1059,12 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black tracking-normal uppercase whitespace-nowrap block">{sch.time}</span>
                     {sch.applicantId && (
-                      <span className="text-[8px] font-bold bg-editorial-navy/10 text-editorial-navy px-1.5 py-0.5 rounded-md uppercase">Tindakan</span>
+                      <span className="text-[10px] font-bold bg-editorial-navy/10 text-editorial-navy px-1.5 py-0.5 rounded-md uppercase">Tindakan</span>
                     )}
                   </div>
                   <span className="text-[11px] font-bold tracking-tight block leading-normal">{sch.title}</span>
                   {sch.applicantId && (
-                    <span className="text-[9px] opacity-80 font-medium block mt-1 underline">Mulai Tinjau Profil &rarr;</span>
+                    <span className="text-[10px] opacity-80 font-medium block mt-1 underline">Mulai Tinjau Profil &rarr;</span>
                   )}
                 </div>
                 ))

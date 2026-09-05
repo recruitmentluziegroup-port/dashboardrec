@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Briefcase, Plus, Trash2, Save, RefreshCw, Layers, MapPin, DollarSign, ListChecks, Check, X } from 'lucide-react';
+import { AdminEmptyState } from './dashboard/AdminEmptyState';
+import { useToast, ConfirmDialog } from './ui/Toast';
 
 interface Vacancy {
   title: string;
@@ -13,6 +15,7 @@ interface Vacancy {
 
 interface VacancyManagerProps {
   vacancies: Vacancy[];
+  pipelineCounts?: Record<string, { total: number; pending: number }>;
   onSave: (updatedVacancies: Vacancy[]) => Promise<void>;
   loading: boolean;
   successMessage: string | null;
@@ -22,6 +25,7 @@ interface VacancyManagerProps {
 
 export const VacancyManager: React.FC<VacancyManagerProps> = ({
   vacancies,
+  pipelineCounts,
   onSave,
   loading,
   successMessage,
@@ -31,6 +35,8 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   const [localVacancies, setLocalVacancies] = useState<Vacancy[]>([]);
   const [isEditingList, setIsEditingList] = useState(false);
   const [activeTab, setActiveTab] = useState<number | null>(null);
+  const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
+  const toast = useToast();
 
   // Sync with prop when edit mode is first clicked
   const startEditing = () => {
@@ -87,7 +93,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   const handleSave = async () => {
     const invalid = localVacancies.some(v => !v.title.trim());
     if (invalid) {
-      alert('Nama Posisi / Jabatan tidak boleh kosong.');
+      toast('error', 'Nama Posisi / Jabatan tidak boleh kosong.');
       return;
     }
     const cleaned = localVacancies.map(v => ({
@@ -187,34 +193,25 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
       )}
 
       {displayList.length === 0 ? (
-        <div className="py-24 text-center space-y-4">
-          <div className="h-16 w-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto border border-stone-200">
-            <Briefcase className="h-8 w-8 text-stone-400" />
-          </div>
-          <div className="space-y-1.5 max-w-sm mx-auto">
-            <h3 className="font-extrabold text-stone-900">Belum Ada Lowongan Terdaftar</h3>
-            <p className="text-xs text-stone-500 leading-relaxed font-semibold">Toko formasi masih bersih. Klik tombol di bawah pimpinan untuk membuat list formasi lowongan aktif yang pertama.</p>
-          </div>
-          {isEditingList && (
-            <button
-              onClick={addVacancy}
-              className="px-4 py-2 bg-brand-600 text-white hover:bg-brand-700 font-extrabold text-xs rounded-xl shadow-sm transition-all inline-flex items-center space-x-1.5 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Tambah Lowongan Perdana</span>
-            </button>
-          )}
+        <div className="p-6">
+          <AdminEmptyState
+            icon={<Briefcase className="h-7 w-7" />}
+            title="Belum Ada Lowongan Terdaftar"
+            body="Belum ada formasi terdaftar. Buat formasi lowongan aktif yang pertama agar muncul di portal pelamar."
+            actionLabel={isEditingList ? 'Tambah Lowongan Perdana' : undefined}
+            onAction={isEditingList ? addVacancy : undefined}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 border-t border-stone-100">
           {/* Left Navigation Sidepanel */}
           <div className="lg:col-span-4 border-r border-stone-100 bg-stone-50/50 p-4 space-y-3 max-h-[550px] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest block">Daftar Lowongan ({displayList.length})</span>
+              <span className="text-[10px] font-extrabold text-stone-500 uppercase tracking-widest block">Daftar Lowongan ({displayList.length})</span>
               {isEditingList && (
                 <button
                   onClick={addVacancy}
-                  className="p-1 hover:bg-stone-200 rounded text-brand-600 font-bold text-[10px] flex items-center space-x-0.5 cursor-pointer"
+                  className="p-1 hover:bg-stone-200 rounded text-brand-700 font-bold text-[10px] flex items-center space-x-0.5 cursor-pointer"
                 >
                   <Plus className="h-3 w-3" />
                   <span>Tambah</span>
@@ -233,25 +230,30 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                       : 'bg-white hover:bg-stone-100 border-editorial-border text-stone-700'
                   }`}
                 >
-                  <div className="space-y-1 truncate flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span className="text-xs font-black truncate leading-tight block">{vac.title || '(Tanpa Nama)'}</span>
-                      {vac.archived && (
-                        <span className="shrink-0 text-[8px] bg-amber-100 text-amber-800 border border-amber-200 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">Arsip</span>
-                      )}
+                    <div className="space-y-1 truncate flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-xs font-black truncate leading-tight block">{vac.title || '(Tanpa Nama)'}</span>
+                        {vac.archived && (
+                          <span className="shrink-0 text-[10px] bg-amber-100 text-amber-800 border border-amber-200 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">Arsip</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-semibold text-stone-500 block truncate">{vac.category || 'Belum diisi'}</span>
+                      {(() => {
+                        const pipe = pipelineCounts?.[String(vac.title || '').toLowerCase().trim()];
+                        return pipe && pipe.total > 0 ? (
+                          <span className="text-[10px] font-bold text-brand-700 block tabular-nums">
+                            {pipe.total} pelamar · {pipe.pending} menunggu
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
-                    <span className="text-[10px] font-semibold text-stone-400 block truncate">{vac.category || 'Belum diisi'}</span>
-                  </div>
                   {isEditingList && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Ask confirmation manually as it is destructive
-                        if (confirm(`Anda yakin ingin menghapus formasi lowongan "${vac.title || 'ini'}"?`)) {
-                          deleteVacancy(idx);
-                        }
+                        setPendingDeleteIdx(idx);
                       }}
-                      className="p-1 bg-stone-50 hover:bg-rose-50 text-stone-400 hover:text-rose-600 rounded-md transition-colors"
+                      className="p-1 bg-stone-50 hover:bg-rose-50 text-stone-500 hover:text-rose-600 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
                       title="Hapus Lowongan"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -333,7 +335,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                       <button
                         type="button"
                         disabled
-                        className="text-stone-400 bg-stone-100 border border-stone-200 text-xs font-semibold px-3.5 py-1.5 rounded-lg cursor-not-allowed opacity-75 animate-fade-in"
+                        className="text-stone-500 bg-stone-100 border border-stone-200 text-xs font-semibold px-3.5 py-1.5 rounded-lg cursor-not-allowed opacity-75 animate-fade-in"
                         title="Klik 'Edit Formasi Lowongan' di atas terlebih dahulu untuk mengubah status arsip"
                       >
                         {selectedVacancy.archived ? 'Buka Lowongan ini' : 'Arsipkan Lowongan ini'}
@@ -350,7 +352,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                       <MapPin className="h-4 w-4" />
                     </div>
                     <div className="flex-1 space-y-1">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-stone-400 block">Penempatan Kerja</span>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-stone-500 block">Penempatan Kerja</span>
                       {isEditingList ? (
                         <input
                           type="text"
@@ -360,7 +362,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                           placeholder="Solo / Remote"
                         />
                       ) : (
-                        <span className="text-xs font-bold text-stone-800 block">{selectedVacancy.location || 'Not Configured'}</span>
+                        <span className="text-xs font-bold text-stone-800 block">{selectedVacancy.location || 'Belum dikonfigurasi'}</span>
                       )}
                     </div>
                   </div>
@@ -368,9 +370,9 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
 
                 {/* Job Description row */}
                 <div className="bg-stone-50 border border-editorial-border rounded-xl p-4 space-y-2">
-                  <div className="flex items-center space-x-2 text-stone-400">
+                  <div className="flex items-center space-x-2 text-stone-500">
                     <Layers className="h-3.5 w-3.5" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Deskripsi Formasi Jabatan / Tugas Pokok</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Deskripsi Formasi Jabatan / Tugas Pokok</span>
                   </div>
                   {isEditingList ? (
                     <textarea
@@ -390,12 +392,12 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                 {/* Primary Qualifications bullet lists mapping */}
                 <div className="bg-stone-50 border border-editorial-border rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between border-b border-editorial-border pb-2">
-                    <div className="flex items-center space-x-2 text-stone-400">
+                    <div className="flex items-center space-x-2 text-stone-500">
                       <ListChecks className="h-3.5 w-3.5" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Kualifikasi & Persyaratan Khusus</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest">Kualifikasi & Persyaratan Khusus</span>
                     </div>
                     {isEditingList && (
-                      <span className="text-[9px] text-[#4F46E5] font-black">Satu kualifikasi per baris</span>
+                      <span className="text-[10px] text-brand-700 font-black">Satu kualifikasi per baris</span>
                     )}
                   </div>
 
@@ -414,20 +416,31 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                           <li key={rIdx}>{req}</li>
                         ))
                       ) : (
-                        <p className="text-stone-400 font-medium">Bebas kualifikasi khusus.</p>
+                        <p className="text-stone-500 font-medium">Bebas kualifikasi khusus.</p>
                       )}
                     </ul>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="py-24 text-center text-stone-400 font-medium">
+              <div className="py-24 text-center text-stone-500 font-medium">
                 Pilih lowongan di panel kiri untuk melihat kriteria selengkapnya.
               </div>
             )}
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={pendingDeleteIdx !== null}
+        title="Hapus formasi lowongan?"
+        body={`Formasi "${pendingDeleteIdx !== null ? localVacancies[pendingDeleteIdx]?.title || 'ini' : 'ini'}" akan dihapus dari daftar edit. Perubahan tersimpan saat Anda menekan Terapkan Perubahan.`}
+        confirmLabel="Hapus Formasi"
+        onCancel={() => setPendingDeleteIdx(null)}
+        onConfirm={() => {
+          if (pendingDeleteIdx !== null) deleteVacancy(pendingDeleteIdx);
+          setPendingDeleteIdx(null);
+        }}
+      />
     </div>
   );
 };

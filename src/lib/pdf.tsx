@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { Applicant } from '../types';
+import { formatTanggalID } from './format';
 
 const styles = StyleSheet.create({
   page: {
@@ -12,13 +13,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    backgroundColor: '#F97316',
+    backgroundColor: '#1A1F2E',
     padding: 15,
     borderRadius: 6,
-    marginBottom: 20,
+    marginBottom: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  stripe: {
+    height: 3,
+    backgroundColor: '#C2410C',
+    borderRadius: 2,
+    marginTop: 0,
+    marginBottom: 20,
+  },
+  eyebrow: {
+    color: '#FDBA74',
+    fontSize: 7,
+    fontWeight: 'bold',
   },
   headerLeft: {
     flex: 1,
@@ -42,6 +55,12 @@ const styles = StyleSheet.create({
     fontSize: 8,
     opacity: 0.9,
   },
+  metaId: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontFamily: 'Courier',
+    fontWeight: 'bold',
+  },
   section: {
     marginBottom: 15,
     padding: 10,
@@ -53,12 +72,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F97316',
+    borderBottomColor: '#C2410C',
     paddingBottom: 4,
     marginBottom: 8,
   },
   sectionTitle: {
-    color: '#EA580C',
+    color: '#C2410C',
     fontSize: 11,
     fontWeight: 'bold',
   },
@@ -141,32 +160,26 @@ interface PdfProps {
 }
 
 export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    try {
-      return dateStr.split('T')[0];
-    } catch {
-      return dateStr;
-    }
-  };
+  const formatDate = (dateStr: string) => formatTanggalID(dateStr);
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Document Header */}
+        {/* Berkas header — ink + stripe + mono ID, parity with screen detail */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.companyName}>
-              LUZIE GROUP
+            <Text style={styles.eyebrow}>
+              LUZIE GROUP · RECRUITMENT
             </Text>
-            <Text style={styles.docTitle}>DATA PERSONAL KARYAWAN</Text>
+            <Text style={styles.docTitle}>DATA PERSONAL PELAMAR</Text>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.metaText}>ID: {applicant.id}</Text>
+            <Text style={styles.metaId}>ID: {applicant.id}</Text>
             <Text style={styles.metaText}>Status: {applicant.status}</Text>
             <Text style={styles.metaText}>Sub: {formatDate(applicant.submissionDate)}</Text>
           </View>
         </View>
+        <View style={styles.stripe} />
 
         {/* Step 1: Identitas Pribadi */}
         <View style={styles.section}>
@@ -587,7 +600,7 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
 
         {/* Document Footer */}
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Rekrutmen Luzie Group - Dicetak secara otomatis</Text>
+          <Text style={styles.footerText}>Luzie Group — Sistem Rekrutmen Internal</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => (
             `${pageNumber} / ${totalPages}`
           )} />
