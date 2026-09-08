@@ -5,6 +5,42 @@ const VACANCY_TAB = 'Vacancies';
 const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
 const VACANCY_EXTRA = { user: '', recruiter: 'All', tanggalDibuka: '', tanggalTerakhir: '', tanggalSelesai: '', priority: 'Normal', jumlah: '1', gender: '', status: 'Open' };
 
+// Normalize a date cell coming back from Google Sheets into YYYY-MM-DD.
+// Our write path is RAW (plain strings), but dates typed directly in the Sheet UI
+// become real date values and the default FORMATTED_VALUE read returns them in
+// the cell's display format (locale strings or serial numbers), which the admin
+// table could not render (dates showed as garbage glyphs).
+function normalizeSheetDate(v: any): string {
+  if (v === undefined || v === null) return '';
+  const s = String(v).replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // Pure number → Sheets date serial (days since 1899-12-30), ignore junk numbers
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + n * 86400000).toISOString().slice(0, 10);
+    return s;
+  }
+  // dd/mm/yyyy — Indonesian display order (Sheets id-ID locale)
+  const dmy = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const mon = Number(dmy[2]);
+    if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31) {
+      return `${dmy[3]}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  // Long locale forms ("8 September 2026", "September 8, 2026", ISO datetimes)
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    if (y >= 1900 && y <= 2200) {
+      return `${y}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return s;
+}
+
 // ─── Trackers (decoupled Treker Posisi — own Sheet tab, own cache) ──────────
 // Served from this same file via ?store=trackers so the Hobby 12-function cap
 // is not exceeded. Starts empty, never seeded from vacancies.
@@ -47,8 +83,8 @@ async function readTrackers(): Promise<any[]> {
     }
     cachedTrackers = data.values.map((row) => ({
       id: row[0] || '', title: row[1] || '', category: row[2] || '', user: row[3] || '',
-      recruiter: row[4] || '', tanggalDibuka: row[5] || '', tanggalTerakhir: row[6] || '',
-      tanggalSelesai: row[7] || '', priority: row[8] || 'Normal', jumlah: row[9] || '',
+      recruiter: row[4] || '', tanggalDibuka: normalizeSheetDate(row[5]), tanggalTerakhir: normalizeSheetDate(row[6]),
+      tanggalSelesai: normalizeSheetDate(row[7]), priority: row[8] || 'Normal', jumlah: row[9] || '',
       gender: row[10] || '', status: row[11] || 'Open',
     })).filter((t) => t.id !== '' || t.title.trim() !== '');
     return cachedTrackers;
@@ -174,8 +210,8 @@ async function readVacancies(): Promise<any[]> {
     cachedVacancies = rows.map((row) => ({
       title: row[0] || '', category: row[1] || '', location: row[2] || '', salary: row[3] || '',
       description: row[4] || '', requirements: parseJsonSafe<string[]>(row[5], []), archived: row[6] === 'true',
-      user: row[7] || '', recruiter: row[8] || '', tanggalDibuka: row[9] || '', tanggalTerakhir: row[10] || '',
-      tanggalSelesai: row[11] || '', priority: row[12] || 'Normal', jumlah: row[13] || '', gender: row[14] || '',
+      user: row[7] || '', recruiter: row[8] || '', tanggalDibuka: normalizeSheetDate(row[9]), tanggalTerakhir: normalizeSheetDate(row[10]),
+      tanggalSelesai: normalizeSheetDate(row[11]), priority: row[12] || 'Normal', jumlah: row[13] || '', gender: row[14] || '',
       status: row[15] || (row[6] === 'true' ? 'Closed-Filled' : 'Open'),
     })).filter((v) => v.title.trim() !== '');
     return cachedVacancies;

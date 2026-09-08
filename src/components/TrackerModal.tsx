@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AdminModal } from './dashboard/AdminModal';
 
 interface TrackerModalProps {
@@ -7,6 +7,8 @@ interface TrackerModalProps {
   onClose: () => void;
   onSave: (data: any) => void;
   onDelete?: (id: string) => void;
+  /** Active vacancies from Kelola Lowongan — used to sync the position picker */
+  vacancies?: any[];
 }
 
 const inputCls =
@@ -37,10 +39,35 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
   onClose,
   onSave,
   onDelete,
+  vacancies,
 }) => {
   const isEdit = Boolean(initial?.id ?? initial?.title);
   const [form, setForm] = useState(emptyForm());
   const [error, setError] = useState<string | null>(null);
+  // True once the user opts out of the vacancy picker to type a manual title
+  const [customTitle, setCustomTitle] = useState(false);
+
+  // Synced positions — only non-archived vacancies are selectable so that
+  // "Tinjau" (positionFilter by title) always finds the portal applicants.
+  const activeVacancies = useMemo(
+    () => (vacancies || []).filter((v) => !v.archived && String(v.title || '').trim() !== ''),
+    [vacancies]
+  );
+  const knownTitle = activeVacancies.some(
+    (v) => String(v.title).toLowerCase().trim() === form.title.toLowerCase().trim()
+  );
+  // Editing a legacy row whose title is not a vacancy → fall back to manual input
+  const showManualInput = customTitle || (form.title !== '' && !knownTitle);
+
+  const pickVacancy = (title: string) => {
+    if (title === '__custom__') {
+      setCustomTitle(true);
+      set('title', '');
+      return;
+    }
+    const v = activeVacancies.find((x) => String(x.title) === title);
+    setForm((p) => ({ ...p, title, category: v?.category ? String(v.category) : p.category }));
+  };
 
   const set = (k: keyof ReturnType<typeof emptyForm>, v: string) =>
     setForm((p) => ({ ...p, [k]: v }));
@@ -48,6 +75,7 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setCustomTitle(false);
     if (initial) {
       const f = emptyForm();
       setForm({
@@ -135,14 +163,52 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
       <div className="space-y-4">
         <div>
           <label htmlFor="trk-title" className={labelCls}>Nama Posisi *</label>
-          <input
-            id="trk-title"
-            type="text"
-            value={form.title}
-            onChange={(e) => set('title', e.target.value)}
-            placeholder="cth: Staff Admin"
-            className={inputCls}
-          />
+          {activeVacancies.length > 0 && !showManualInput ? (
+            <select
+              id="trk-title"
+              value={knownTitle ? form.title : ''}
+              onChange={(e) => pickVacancy(e.target.value)}
+              className={`${inputCls} cursor-pointer`}
+            >
+              <option value="" disabled>— Pilih posisi dari Kelola Lowongan —</option>
+              {activeVacancies.map((v) => (
+                <option key={String(v.title)} value={String(v.title)}>{String(v.title)}</option>
+              ))}
+              <option value="__custom__">Lainnya (ketik manual)…</option>
+            </select>
+          ) : (
+            <>
+              <input
+                id="trk-title"
+                type="text"
+                value={form.title}
+                onChange={(e) => set('title', e.target.value)}
+                placeholder="cth: Staff Admin"
+                className={inputCls}
+              />
+              {activeVacancies.length > 0 && form.title.trim() !== '' && !knownTitle && (
+                <p className="text-[10px] text-amber-700 font-semibold mt-1">
+                  Posisi ini belum terdaftar di Kelola Lowongan — tombol Tinjau mungkin tidak menemukan pelamar.{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setCustomTitle(false); set('title', ''); }}
+                    className="underline cursor-pointer hover:text-brand-700"
+                  >
+                    Pilih dari lowongan aktif
+                  </button>
+                </p>
+              )}
+              {activeVacancies.length > 0 && form.title.trim() === '' && (
+                <button
+                  type="button"
+                  onClick={() => { setCustomTitle(false); set('title', ''); }}
+                  className="text-[10px] text-stone-400 font-semibold mt-1 underline cursor-pointer hover:text-brand-700"
+                >
+                  Pilih dari lowongan aktif
+                </button>
+              )}
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">

@@ -615,9 +615,9 @@ export async function getVacancies(): Promise<Vacancy[]> {
       archived: row[6] === 'true',
       user: row[7] || '',
       recruiter: row[8] || '',
-      tanggalDibuka: row[9] || '',
-      tanggalTerakhir: row[10] || '',
-      tanggalSelesai: row[11] || '',
+      tanggalDibuka: normalizeSheetDate(row[9]),
+      tanggalTerakhir: normalizeSheetDate(row[10]),
+      tanggalSelesai: normalizeSheetDate(row[11]),
       priority: (row[12] || 'Normal') as VacancyPriority,
       jumlah: row[13] || '',
       gender: row[14] || '',
@@ -739,6 +739,37 @@ function readLocalTrackers(): TrackerItem[] {
   return [];
 }
 
+// Normalize a date cell coming back from Google Sheets into YYYY-MM-DD.
+// Mirrors normalizeSheetDate in api/admin/vacancies.ts (kept self-contained there
+// because Vercel serverless functions cannot import from src/lib at runtime).
+function normalizeSheetDate(v: any): string {
+  if (v === undefined || v === null) return '';
+  const s = String(v).replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + n * 86400000).toISOString().slice(0, 10);
+    return s;
+  }
+  const dmy = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const mon = Number(dmy[2]);
+    if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31) {
+      return `${dmy[3]}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+  }
+  const parsed = new Date(s);
+  if (!isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    if (y >= 1900 && y <= 2200) {
+      return `${y}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return s;
+}
+
 function trackerToRow(t: TrackerItem): any[] {
   return [
     t.id || '', t.title || '', t.category || '', t.user || '', t.recruiter || '',
@@ -754,9 +785,9 @@ function rowToTracker(row: any[]): TrackerItem {
     category: row[2] || '',
     user: row[3] || '',
     recruiter: row[4] || '',
-    tanggalDibuka: row[5] || '',
-    tanggalTerakhir: row[6] || '',
-    tanggalSelesai: row[7] || '',
+    tanggalDibuka: normalizeSheetDate(row[5]),
+    tanggalTerakhir: normalizeSheetDate(row[6]),
+    tanggalSelesai: normalizeSheetDate(row[7]),
     priority: (row[8] || 'Normal') as VacancyPriority,
     jumlah: row[9] || '',
     gender: row[10] || '',

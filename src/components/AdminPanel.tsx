@@ -1233,6 +1233,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 <TrackerModal
                   open={isTrackerModalOpen}
                   initial={editingTracker}
+                  vacancies={vacancies}
                   onClose={() => {
                     setIsTrackerModalOpen(false);
                     setEditingTracker(null);
@@ -1605,7 +1606,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                 compact
                                 icon={<Inbox className="h-7 w-7" />}
                                 title="Tidak ada pelamar yang cocok"
-                                body="Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda. Longgarkan filter untuk melihat berkas lainnya."
+                                body={positionFilter
+                                  ? `Belum ada pelamar untuk posisi "${positionFilter}". Pastikan posisi ini tayang di Kelola Lowongan agar dapat dilamar.`
+                                  : 'Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda. Longgarkan filter untuk melihat berkas lainnya.'}
                                 actionLabel="Atur Ulang Filter"
                                 onAction={resetListFilters}
                               />
@@ -1672,7 +1675,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                       compact
                       icon={<Inbox className="h-7 w-7" />}
                       title="Tidak ada pelamar yang cocok"
-                      body="Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda."
+                      body={positionFilter
+                        ? `Belum ada pelamar untuk posisi "${positionFilter}". Pastikan posisi ini tayang di Kelola Lowongan.`
+                        : 'Tidak ada data pelamar yang cocok dengan kriteria pencarian atau filter Anda.'}
                       actionLabel="Atur Ulang Filter"
                       onAction={resetListFilters}
                     />

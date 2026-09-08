@@ -39,8 +39,19 @@ function priorityBadge(priority: string): string {
 
 const fmtDate = (v: unknown): string => {
   if (!v) return '-';
-  const d = new Date(String(v));
-  if (isNaN(d.getTime())) return String(v);
+  const raw = String(v).replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+  if (!raw) return '-';
+  // ISO YYYY-MM-DD — format directly (no Date parsing → no UTC drift, no locale re-parse)
+  const iso = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (iso) return `${Number(iso[3])}/${Number(iso[2])}/${iso[1]}`;
+  // Sheets date serial (days since 1899-12-30)
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    const n = Number(raw);
+    if (n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + n * 86400000).toLocaleDateString('id-ID');
+    return raw;
+  }
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
   return d.toLocaleDateString('id-ID');
 };
 
