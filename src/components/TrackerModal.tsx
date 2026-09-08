@@ -103,6 +103,34 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
       onClose={onClose}
       title={isEdit ? 'Ubah Posisi Tracker' : 'Tambah Posisi Tracker'}
       subtitle="Treker posisi tersimpan di tab Treker pada Google Sheets."
+      footer={
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            {isEdit && onDelete && (initial?.id ?? initial?.title) && (
+              <button
+                onClick={() => onDelete(String(initial.id ?? initial.title))}
+                className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSave}
+              className="text-[11px] font-bold px-4 py-2.5 rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer min-h-[44px]"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      }
     >
       <div className="space-y-4">
         <div>
@@ -181,33 +209,6 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
         {error && (
           <p role="alert" className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
         )}
-
-        <div className="flex items-center justify-between pt-1">
-          <div>
-            {isEdit && onDelete && (initial?.id ?? initial?.title) && (
-              <button
-                onClick={() => onDelete(String(initial.id ?? initial.title))}
-                className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-              >
-                Hapus
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSave}
-              className="text-[11px] font-bold px-4 py-2.5 rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer min-h-[44px]"
-            >
-              Simpan
-            </button>
-          </div>
-        </div>
       </div>
     </AdminModal>
   );

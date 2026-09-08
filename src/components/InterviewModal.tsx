@@ -170,6 +170,55 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
       onClose={onClose}
       title={isEdit ? 'Ubah Jadwal Wawancara' : 'Jadwalkan Wawancara'}
       subtitle="Jam kerja 08.00–18.00 · bentrok otomatis terdeteksi per pewawancara."
+      footer={
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => downloadICS(draft)}
+              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 cursor-pointer"
+            >
+              Unduh .ics
+            </button>
+            <a
+              href={toGCalUrl(draft)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 inline-flex items-center"
+            >
+              GCal
+            </a>
+            <button
+              onClick={handleCopyWa}
+              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 cursor-pointer"
+              title="Salin teks undangan WhatsApp"
+            >
+              Salin WA
+            </button>
+            {isEdit && onDelete && initial?.id && (
+              <button
+                onClick={() => onDelete(initial.id)}
+                className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+              >
+                Hapus
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleSave}
+              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer"
+            >
+              Simpan
+            </button>
+          </div>
+        </div>
+      }
     >
       <div className="space-y-4">
         <div>
@@ -252,54 +301,6 @@ export const InterviewModal: React.FC<InterviewModalProps> = ({
         {error && (
           <p role="alert" className="text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
         )}
-
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => downloadICS(draft)}
-              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 cursor-pointer"
-            >
-              Unduh .ics
-            </button>
-            <a
-              href={toGCalUrl(draft)}
-              target="_blank"
-              rel="noreferrer"
-              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 inline-flex items-center"
-            >
-              GCal
-            </a>
-            <button
-              onClick={handleCopyWa}
-              className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-stone-200 hover:border-brand-700 hover:text-brand-700 cursor-pointer"
-              title="Salin teks undangan WhatsApp"
-            >
-              Salin WA
-            </button>
-            {isEdit && onDelete && initial?.id && (
-              <button
-                onClick={() => onDelete(initial.id)}
-                className="text-[11px] font-bold px-3 py-2.5 min-h-[44px] rounded-lg border border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-              >
-                Hapus
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg border border-stone-200 text-stone-600 hover:bg-stone-50 cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSave}
-              className="text-[11px] font-bold px-4 py-2.5 min-h-[44px] rounded-lg bg-brand-700 text-white hover:bg-brand-800 cursor-pointer"
-            >
-              Simpan
-            </button>
-          </div>
-        </div>
       </div>
     </AdminModal>
   );

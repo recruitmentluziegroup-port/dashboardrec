@@ -7,6 +7,8 @@ interface AdminModalProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  /** Pinned action row rendered below the scrollable body — always visible even on short viewports */
+  footer?: React.ReactNode;
 }
 
 const FOCUSABLE =
@@ -14,7 +16,7 @@ const FOCUSABLE =
 
 // Shared admin dialog shell — stripe + serif title, Esc/scrim close,
 // focus trap with return-focus, 180ms enter / 120ms exit (off under reduced-motion)
-export const AdminModal: React.FC<AdminModalProps> = ({ open, onClose, title, subtitle, children }) => {
+export const AdminModal: React.FC<AdminModalProps> = ({ open, onClose, title, subtitle, children, footer }) => {
   const [render, setRender] = useState(open);
   const [leaving, setLeaving] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -96,11 +98,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({ open, onClose, title, su
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`berkas-stripe relative bg-white rounded-2xl border border-editorial-border shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto outline-none ${
+        className={`berkas-stripe relative bg-white rounded-2xl border border-editorial-border shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col outline-none ${
           leaving ? 'opacity-0 scale-[0.97] transition-all duration-120' : 'animate-scale-in'
         }`}
       >
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-editorial-border sticky top-0 bg-white rounded-t-2xl z-10">
+        {/* Header is shrink-0 (not sticky): the body below scrolls independently. Do NOT put
+            overflow-y-auto on this box — .berkas-stripe's unlayered `overflow: hidden`
+            overrides the utility and silently clips tall content on short viewports. */}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-editorial-border shrink-0 bg-white rounded-t-2xl">
           <div className="min-w-0">
             <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">{title}</h3>
             {subtitle && <p className="text-[11px] text-stone-500 font-medium mt-0.5">{subtitle}</p>}
@@ -113,7 +118,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({ open, onClose, title, su
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-5 overflow-y-auto flex-1 min-h-0">{children}</div>
+        {footer && (
+          <div className="shrink-0 border-t border-editorial-border bg-white rounded-b-2xl px-5 py-4">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
