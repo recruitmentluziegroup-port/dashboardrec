@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import {
   Sliders,
   MapPin,
@@ -46,6 +46,9 @@ interface TimelinePoint {
   previous: number;
   fullLabel: string;
 }
+
+// Token-derived multi-hue palette for per-position bars & education bars
+const POSITION_BAR_COLORS = ['#C2410C', '#F59E0B', '#2D6A4F', '#1A1F2E', '#9B2226', '#B45309', '#57534E'];
 
 interface ChartTooltipProps {
   active?: boolean;
@@ -190,6 +193,53 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       interviewHR: interviewHRActual,
       interviewUser: interviewUserActual,
     };
+  }, [filteredApplicants]);
+
+  // Applications per position (respects dashboard filters) — top 7 for the bar chart
+  const positionChartData = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredApplicants.forEach((a) => {
+      const name = getOfficialPositionName(a.jabatanDituju || '') || 'Tanpa Posisi';
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 7);
+  }, [filteredApplicants, vacancies]);
+
+  // Review speed — how long berkas sit in Pending/Reviewed triage
+  const reviewSpeed = useMemo(() => {
+    const triage = filteredApplicants.filter((a) => a.status === 'Pending' || a.status === 'Reviewed');
+    if (triage.length === 0) return { avg: 0, oldest: 0, count: 0 };
+    const now = Date.now();
+    const days = triage.map((a) => {
+      const d = parseSubmissionDate(a.submissionDate);
+      return d ? Math.max(0, Math.floor((now - d.getTime()) / 86400000)) : 0;
+    });
+    return {
+      avg: Math.round(days.reduce((s, x) => s + x, 0) / days.length),
+      oldest: Math.max(...days),
+      count: triage.length,
+    };
+  }, [filteredApplicants]);
+
+  // Education mix — heuristic level detection from the last formal education row
+  const educationStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredApplicants.forEach((a) => {
+      const rows = a.pendidikanFormal || [];
+      const raw = (rows[rows.length - 1]?.sekolah || '').toUpperCase();
+      let level = 'Lainnya';
+      if (/S1|SARJANA|UNIVERS|SEKOLAH TINGGI|INSTITUT|AKADEMI|POLTEK/.test(raw)) level = 'S1';
+      else if (/D3|D.III|D-III/.test(raw)) level = 'D3';
+      else if (/SMK/.test(raw)) level = 'SMK';
+      else if (/SMA|SMP|SEKOLAH MENENGAH|MAN |MAS /.test(raw)) level = 'SMA/SMP';
+      counts.set(level, (counts.get(level) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
   }, [filteredApplicants]);
 
   // Compute real period-over-period statistics per KPI (this month vs last month)
@@ -551,20 +601,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       >
         {/* Total Lamaran Card */}
         <div
-          className="p-5 bg-brand-50 rounded-2xl border border-brand-200 shadow-xs flex flex-col justify-between space-y-3 relative"
+          className="p-5 rounded-2xl border border-brand-500/40 shadow-sm flex flex-col justify-between space-y-3 relative bg-linear-to-br from-brand-700 via-brand-600 to-amber-600 text-white"
           style={{ ['--i' as any]: 0 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Total Lamaran</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-brand-100">Total Lamaran</span>
+            <ArrowUpRight className="h-4 w-4 text-white/70" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="kpi-stat-value text-2xl text-stone-900">
+              <span className="kpi-stat-value text-2xl text-white">
                 <CountUp value={stats.totalApps} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.total.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                kpiStats.total.pct >= 0 ? 'bg-white/25 text-white' : 'bg-stone-900/25 text-white'
               }`}>
                 {kpiStats.total.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.total.pct).toFixed(1)}%
@@ -572,11 +622,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.total}
-              color="#C2410C"
+              color="#FFEDD5"
               height={28}
               className="-mx-1"
             />
-            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+            <span className="text-[10px] text-brand-100 font-bold block pt-1">
               {kpiStats.total.pct >= 0 ? '+' : ''}{kpiStats.total.pct.toFixed(0)}% dari bulan lalu
             </span>
           </div>
@@ -584,20 +634,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Menunggu Review Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
+          className="p-5 rounded-2xl border border-amber-500/40 shadow-sm flex flex-col justify-between space-y-3 relative bg-linear-to-br from-amber-700 via-amber-700 to-orange-700 text-white"
           style={{ ['--i' as any]: 1 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Menunggu Review</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-amber-100">Menunggu Review</span>
+            <ArrowUpRight className="h-4 w-4 text-white/70" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="kpi-stat-value text-2xl text-stone-900">
+              <span className="kpi-stat-value text-2xl text-white">
                 <CountUp value={stats.pending} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.pending.pct >= 0 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'
+                kpiStats.pending.pct >= 0 ? 'bg-white/25 text-white' : 'bg-stone-900/25 text-white'
               }`}>
                 {kpiStats.pending.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.pending.pct).toFixed(1)}%
@@ -605,11 +655,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.pending}
-              color="#F59E0B"
+              color="#FDE68A"
               height={24}
               className="-mx-1"
             />
-            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+            <span className="text-[10px] text-amber-100 font-bold block pt-1">
               {kpiStats.pending.pct >= 0 ? '+' : ''}{kpiStats.pending.pct.toFixed(0)}% dari bulan lalu
             </span>
           </div>
@@ -617,20 +667,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Sedang di Review Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
+          className="p-5 rounded-2xl border border-slate-500/30 shadow-sm flex flex-col justify-between space-y-3 relative bg-linear-to-br from-editorial-navy via-slate-800 to-slate-700 text-white"
           style={{ ['--i' as any]: 2 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Sedang di Review</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-slate-300">Sedang di Review</span>
+            <ArrowUpRight className="h-4 w-4 text-white/70" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="kpi-stat-value text-2xl text-stone-900">
+              <span className="kpi-stat-value text-2xl text-white">
                 <CountUp value={stats.shortlisted} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.shortlisted.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                kpiStats.shortlisted.pct >= 0 ? 'bg-white/25 text-white' : 'bg-stone-900/25 text-white'
               }`}>
                 {kpiStats.shortlisted.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.shortlisted.pct).toFixed(1)}%
@@ -638,11 +688,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.shortlisted}
-              color="#1A1F2E"
+              color="#E2E8F0"
               height={24}
               className="-mx-1"
             />
-            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+            <span className="text-[10px] text-slate-300 font-bold block pt-1">
               {kpiStats.shortlisted.pct >= 0 ? '+' : ''}{kpiStats.shortlisted.pct.toFixed(0)}% dari bulan lalu
             </span>
           </div>
@@ -650,20 +700,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Lolos Seleksi Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
+          className="p-5 rounded-2xl border border-emerald-500/30 shadow-sm flex flex-col justify-between space-y-3 relative bg-linear-to-br from-editorial-green via-emerald-700 to-emerald-600 text-white"
           style={{ ['--i' as any]: 3 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Lolos Seleksi</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-emerald-100">Lolos Seleksi</span>
+            <ArrowUpRight className="h-4 w-4 text-white/70" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="kpi-stat-value text-2xl text-stone-900">
+              <span className="kpi-stat-value text-2xl text-white">
                 <CountUp value={stats.hired} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.hired.pct >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+                kpiStats.hired.pct >= 0 ? 'bg-white/25 text-white' : 'bg-stone-900/25 text-white'
               }`}>
                 {kpiStats.hired.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.hired.pct).toFixed(1)}%
@@ -671,11 +721,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.hired}
-              color="#10B981"
+              color="#D1FAE5"
               height={24}
               className="-mx-1"
             />
-            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+            <span className="text-[10px] text-emerald-100 font-bold block pt-1">
               {kpiStats.hired.pct >= 0 ? '+' : ''}{kpiStats.hired.pct.toFixed(0)}% dari bulan lalu
             </span>
           </div>
@@ -683,20 +733,20 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
         {/* Rejected Card */}
         <div
-          className="p-5 bg-white rounded-2xl border border-editorial-border shadow-xs flex flex-col justify-between space-y-3 relative berkas-stripe"
+          className="p-5 rounded-2xl border border-rose-500/30 shadow-sm flex flex-col justify-between space-y-3 relative bg-linear-to-br from-editorial-red via-rose-800 to-rose-700 text-white"
           style={{ ['--i' as any]: 4 }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-stone-500">Gugur Seleksi</span>
-            <ArrowUpRight className="h-4 w-4 text-stone-400" />
+            <span className="text-xs font-bold text-rose-100">Gugur Seleksi</span>
+            <ArrowUpRight className="h-4 w-4 text-white/70" />
           </div>
           <div className="space-y-1">
             <div className="flex items-baseline space-x-2">
-              <span className="kpi-stat-value text-2xl text-stone-900">
+              <span className="kpi-stat-value text-2xl text-white">
                 <CountUp value={stats.rejected} />
               </span>
               <span className={`text-[10px] font-extrabold flex items-center px-1.5 py-0.5 rounded-md ${
-                kpiStats.rejected.pct >= 0 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                kpiStats.rejected.pct >= 0 ? 'bg-white/25 text-white' : 'bg-stone-900/25 text-white'
               }`}>
                 {kpiStats.rejected.pct >= 0 ? <ArrowUp className="h-3 w-3 mr-0.5 shrink-0" /> : <ArrowDown className="h-3 w-3 mr-0.5 shrink-0" />}
                 {Math.abs(kpiStats.rejected.pct).toFixed(1)}%
@@ -704,11 +754,11 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
             <Sparkline
               data={sparklineData.rejected}
-              color="#F43F5E"
+              color="#FECDD3"
               height={24}
               className="-mx-1"
             />
-            <span className="text-[10px] text-stone-400 font-bold block pt-1">
+            <span className="text-[10px] text-rose-100 font-bold block pt-1">
               {kpiStats.rejected.pct >= 0 ? '+' : ''}{kpiStats.rejected.pct.toFixed(0)}% dari bulan lalu
             </span>
           </div>
@@ -726,6 +776,116 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           rejected: stats.rejected,
         }}
       />
+
+      {/* 3b. Lamaran per Posisi + Kecepatan Triage + Pendidikan */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
+        {/* Bar chart: applications per position */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Lamaran per Posisi</h3>
+              <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                Distribusi lamaran pada 7 posisi teratas (mengikuti filter aktif)
+              </p>
+            </div>
+          </div>
+          <div className="h-72" role="img" aria-label={`Distribusi lamaran per posisi, total ${positionChartData.reduce((s, p) => s + p.value, 0)} lamaran pada ${positionChartData.length} posisi.`}>
+            {positionChartData.length === 0 ? (
+              <AdminEmptyState
+                compact
+                icon={<Briefcase className="h-7 w-7" />}
+                title="Belum ada data posisi"
+                body="Distribusi lamaran per posisi akan muncul setelah ada berkas masuk."
+              />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={positionChartData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
+                  <XAxis type="number" allowDecimals={false} fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={150} fontSize={10} stroke="#64748B" axisLine={false} tickLine={false} tickFormatter={(v: string) => (v.length > 20 ? `${v.slice(0, 19)}…` : v)} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(194, 65, 12, 0.06)' }}
+                    contentStyle={{ background: '#1A1F2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff', fontSize: 12 }}
+                    labelStyle={{ color: '#E7E5E4', fontWeight: 800 }}
+                    itemStyle={{ color: '#fff' }}
+                  />
+                  <Bar dataKey="value" name="Lamaran" radius={[0, 6, 6, 0]} barSize={18}>
+                    {positionChartData.map((_, i) => (
+                      <Cell key={i} fill={POSITION_BAR_COLORS[i % POSITION_BAR_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+        {/* Right column: review speed + education mix */}
+        <div className="space-y-6">
+          {/* Review speed KPI */}
+          <div
+            className={`p-6 rounded-2xl border shadow-xs space-y-3 berkas-stripe bg-white ${
+              reviewSpeed.avg >= 14 ? 'border-red-200' : reviewSpeed.avg >= 7 ? 'border-amber-200' : 'border-editorial-border'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Kecepatan Triage</h3>
+                <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                  Rata-rata berkas menunggu di triage (Belum/Sedang direview)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className={`kpi-stat-value text-3xl ${reviewSpeed.avg >= 14 ? 'text-editorial-red' : reviewSpeed.avg >= 7 ? 'text-amber-600' : 'text-editorial-green'}`}>
+                {reviewSpeed.avg}
+              </span>
+              <span className="text-xs font-extrabold text-stone-500 uppercase tracking-wider">hari</span>
+              <span className="ml-auto text-[10px] font-extrabold text-stone-400 bg-stone-100 rounded-md px-2 py-1">
+                {reviewSpeed.count} berkas
+              </span>
+            </div>
+            {reviewSpeed.count > 0 && (
+              <p className={`text-[10px] font-bold ${reviewSpeed.oldest >= 14 ? 'text-editorial-red' : 'text-stone-400'}`}>
+                Berkas tertua menunggu {reviewSpeed.oldest} hari
+                {reviewSpeed.avg >= 7 ? ' — pertimbangkan review segera.' : '.'}
+              </p>
+            )}
+          </div>
+
+          {/* Education mix */}
+          <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-3 berkas-stripe">
+            <div>
+              <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Komposisi Pendidikan</h3>
+              <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                Estimasi jenjang dari riwayat pendidikan terakhir
+              </p>
+            </div>
+            {educationStats.length === 0 ? (
+              <p className="text-xs text-stone-400 font-bold italic py-2">Belum ada data pendidikan.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {educationStats.map((edu, idx) => {
+                  const pct = Math.round((edu.value / Math.max(1, filteredApplicants.length)) * 100);
+                  return (
+                    <div key={edu.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-stone-600">{edu.name}</span>
+                        <span className="font-black text-stone-900 tabular-nums">{edu.value} <span className="text-stone-400 font-bold">({pct}%)</span></span>
+                      </div>
+                      <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${pct}%`, backgroundColor: POSITION_BAR_COLORS[idx % POSITION_BAR_COLORS.length] }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* 4. Main Split Widgets Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">

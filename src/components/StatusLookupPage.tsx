@@ -22,6 +22,7 @@ import {
   Search,
   AlertCircle,
   CheckCircle2,
+  Check,
   Clock,
   XCircle,
   Hourglass,
@@ -121,6 +122,27 @@ const STATUS_META: Record<
 };
 
 const APP_ID_REGEX = /^APP-[A-Z0-9]{8}$/;
+
+// -----------------------------------------------------------------
+// Pipeline timeline — maps ApplicationStatus to a 5-stage journey so
+// candidates see WHERE they are, not just a single verdict badge.
+// -----------------------------------------------------------------
+const PIPELINE_STAGES = [
+  { key: 'submitted', label: 'Berkas Diterima' },
+  { key: 'review', label: 'Review Berkas' },
+  { key: 'hr', label: 'Wawancara HR' },
+  { key: 'user', label: 'Wawancara User' },
+  { key: 'final', label: 'Hasil Akhir' },
+];
+
+const STAGE_INDEX: Record<ApplicationStatus, { current: number; rejected?: boolean }> = {
+  Pending: { current: 0 },
+  Reviewed: { current: 1 },
+  'Interview HR': { current: 2 },
+  'Interview User': { current: 3 },
+  Accepted: { current: 4 },
+  Rejected: { current: 4, rejected: true },
+};
 
 function formatDateId(iso: string): string {
   try {
@@ -329,6 +351,69 @@ export const StatusLookupPage: React.FC = () => {
   );
 };
 
+// Vertical pipeline timeline — past stages checked, current stage pulsing,
+// final stage resolved green (Accepted) or red (Rejected).
+const StatusTimeline: React.FC<{ status: ApplicationStatus }> = ({ status }) => {
+  const { current, rejected } = STAGE_INDEX[status];
+  const resolved = status === 'Accepted' || rejected;
+
+  return (
+    <div className="text-left bg-bento-cream border border-bento-sand rounded-[--radius-bento] p-5">
+      <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-widest block mb-3">
+        Perjalanan Lamaran Anda
+      </span>
+      <ol>
+        {PIPELINE_STAGES.map((s, i) => {
+          const isPast = i < current || (i === current && status === 'Accepted');
+          const isCurrent = i === current && !resolved;
+          const isRejected = i === current && !!rejected;
+          return (
+            <li key={s.key} className="relative flex items-start gap-3 pb-4 last:pb-0">
+              {i < PIPELINE_STAGES.length - 1 && (
+                <span
+                  aria-hidden
+                  className={`absolute left-[13px] top-7 bottom-0 w-0.5 rounded-full ${isPast ? 'bg-green-400' : 'bg-bento-sand'}`}
+                />
+              )}
+              <span
+                className={`relative z-10 h-7 w-7 shrink-0 rounded-full grid place-items-center text-[10px] font-black border-2 transition-colors ${
+                  isRejected
+                    ? 'bg-red-100 border-red-300 text-state-error'
+                    : isPast
+                    ? 'bg-green-500 border-green-500 text-white'
+                    : isCurrent
+                    ? 'bg-white border-brand-500 text-brand-600 shadow-[--shadow-bento]'
+                    : 'bg-white border-bento-sand text-stone-300'
+                }`}
+              >
+                {isRejected ? (
+                  <XCircle className="h-4 w-4" />
+                ) : isPast ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : isCurrent ? (
+                  <span className="h-2 w-2 rounded-full bg-brand-500 animate-pulse" aria-hidden />
+                ) : (
+                  i + 1
+                )}
+              </span>
+              <div className="pt-1 min-w-0">
+                <span className={`block text-xs font-extrabold ${isPast || isCurrent || isRejected ? (isRejected ? 'text-state-error' : 'text-stone-800') : 'text-stone-400'}`}>
+                  {s.label}
+                </span>
+                {isCurrent && (
+                  <span className="block text-[10px] font-bold text-brand-600 uppercase tracking-wider">
+                    Tahap saat ini
+                  </span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+};
+
 const SuccessView: React.FC<{ record: StatusRecord; onReset: () => void }> = ({
   record,
   onReset,
@@ -359,6 +444,8 @@ const SuccessView: React.FC<{ record: StatusRecord; onReset: () => void }> = ({
           </p>
         </div>
       </div>
+
+      <StatusTimeline status={record.status} />
 
       <div className="text-left bg-bento-cream border border-bento-sand rounded-[--radius-bento] p-5 space-y-3 text-sm font-medium">
         <DetailRow label="Jabatan yang dilamar" value={record.jabatanDituju || '—'} />

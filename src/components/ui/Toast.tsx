@@ -1,15 +1,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Info, X, Undo2 } from 'lucide-react';
 
 export type ToastTone = 'success' | 'error' | 'info';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 interface ToastItem {
   id: number;
   tone: ToastTone;
   message: string;
+  action?: ToastAction;
 }
 
-type PushToast = (tone: ToastTone, message: string) => void;
+type PushToast = (tone: ToastTone, message: string, action?: ToastAction) => void;
 
 const ToastContext = createContext<PushToast>(() => {});
 
@@ -30,10 +36,11 @@ const TONE_ICON = {
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const push = useCallback<PushToast>((tone, message) => {
+  const push = useCallback<PushToast>((tone, message, action) => {
     const id = Date.now() + Math.random();
-    setToasts((prev) => [...prev.slice(-2), { id, tone, message }]);
-    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+    setToasts((prev) => [...prev.slice(-2), { id, tone, message, action }]);
+    // Toasts with an action (e.g. Undo) stay longer so the user can react.
+    window.setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), action ? 8000 : 4000);
   }, []);
 
   const dismiss = useCallback((id: number) => {
@@ -56,6 +63,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             >
               <Icon className="h-4 w-4 shrink-0 mt-0.5" />
               <p className="text-xs font-bold leading-relaxed flex-1">{t.message}</p>
+              {t.action && (
+                <button
+                  onClick={() => {
+                    t.action!.onClick();
+                    dismiss(t.id);
+                  }}
+                  className="flex items-center gap-1 shrink-0 bg-white/70 hover:bg-white text-[10px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-lg border border-black/5 transition-colors cursor-pointer"
+                >
+                  <Undo2 className="h-3 w-3" />
+                  {t.action.label}
+                </button>
+              )}
               <button
                 onClick={() => dismiss(t.id)}
                 className="p-1 -m-1 hover:opacity-70 min-h-[24px] min-w-[24px] flex items-center justify-center cursor-pointer"

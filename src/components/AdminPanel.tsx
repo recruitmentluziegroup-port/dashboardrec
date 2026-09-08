@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal } from 'lucide-react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
@@ -11,6 +11,7 @@ import { InterviewModal } from './InterviewModal';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { AdminSkeleton } from './dashboard/AdminSkeleton';
 import { BerkasIdChip } from './dashboard/BerkasIdChip';
+import { CommandPalette } from './dashboard/CommandPalette';
 import { useToast, ConfirmDialog } from './ui/Toast';
 import type { Interview } from '../lib/interview-links';
 
@@ -32,6 +33,29 @@ const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
   Rejected: 'bg-red-50 text-editorial-red border border-red-200',
   'Interview HR': 'bg-amber-50 text-amber-800 border border-amber-200',
   'Interview User': 'bg-orange-50 text-brand-700 border border-brand-200',
+};
+
+// Pipeline aging — days waiting in Pending/Reviewed (drives warning chips)
+const agingDays = (c: Applicant): number | null => {
+  if (c.status !== 'Pending' && c.status !== 'Reviewed') return null;
+  const t = new Date(c.submissionDate).getTime();
+  if (!Number.isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+};
+
+// Aging chip — amber after 7 days in triage, red after 14 (shared table + mobile)
+const AgingChip: React.FC<{ c: Applicant }> = ({ c }) => {
+  const d = agingDays(c);
+  if (d === null || d < 7) return null;
+  return (
+    <span
+      className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold align-middle ${d >= 14 ? 'bg-red-50 text-editorial-red' : 'bg-amber-100 text-amber-700'}`}
+      title={`Berkas menunggu ${d} hari tanpa perubahan status`}
+    >
+      <Clock className="h-2.5 w-2.5" />
+      {d} hari
+    </span>
+  );
 };
 
 interface AdminPanelProps {
@@ -74,6 +98,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const [statusFilter, setStatusFilter] = useState(() => readAdminParams().status);
   const [positionFilter, setPositionFilter] = useState(() => readAdminParams().pos);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>(() => readAdminParams().sort);
+
+  // ⌘K / Ctrl+K command palette
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // URL sync flags (skip push on first render + on browser back/forward)
   const skipPush = useRef(true);
@@ -474,6 +511,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     const headers: any = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     let ok = 0;
+    // Capture prior statuses so a single Undo can restore all of them
+    const prevStatuses = new Map<string, ApplicationStatus>(
+      candidates.filter(c => selectedSet.has(c.id)).map(c => [c.id, c.status] as [string, ApplicationStatus])
+    );
     for (const id of selectedIds) {
       try {
         const res = await fetch(`/api/admin/applications/${id}`, {
@@ -493,8 +534,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       );
     }
     setBulkWorking(false);
+    const targetStatus = bulkStatus as ApplicationStatus;
     if (ok === selectedIds.length) {
-      toast('success', `${ok} berkas berhasil diubah ke ${STATUS_LABELS[bulkStatus as ApplicationStatus]}.`);
+      toast('success', `${ok} berkas berhasil diubah ke ${STATUS_LABELS[targetStatus]}.`, {
+        label: 'Urungkan',
+        onClick: () => {
+          for (const [id, prev] of prevStatuses) revertStatus(id, prev);
+        },
+      });
     } else {
       toast('error', `${ok} dari ${selectedIds.length} berkas berhasil diubah. Sisanya gagal tersinkron.`);
     }
@@ -552,6 +599,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     setHealthFilter('');
   };
 
+  // Revert a single record back to a previous status (Undo path)
+  const revertStatus = async (targetId: string, prevStatus: ApplicationStatus) => {
+    try {
+      const token = localStorage.getItem('luzie_admin_token');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`/api/admin/applications/${targetId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: prevStatus }),
+      });
+      if (res.ok) {
+        setCandidates(prev =>
+          prev.map(c => c.id === targetId ? { ...c, status: prevStatus, lastUpdated: new Date().toISOString() } : c)
+        );
+        if (editedRecord && editedRecord.id === targetId) {
+          setEditedRecord(p => p ? { ...p, status: prevStatus } : null);
+        }
+        toast('info', 'Perubahan status dibatalkan — status sebelumnya dipulihkan.');
+      } else {
+        toast('error', 'Gagal mengembalikan status sebelumnya.');
+      }
+    } catch {
+      toast('error', 'Kegagalan jaringan saat mengembalikan status.');
+    }
+  };
+
   // Handle Quick Status Change
   const handleStatusChange = async (targetId: string, newStatus: ApplicationStatus) => {
     try {
@@ -559,6 +633,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const prevStatus = candidates.find(c => c.id === targetId)?.status;
       const res = await fetch(`/api/admin/applications/${targetId}`, {
         method: 'PATCH',
         headers,
@@ -572,6 +647,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
         );
         if (editedRecord && editedRecord.id === targetId) {
           setEditedRecord(prev => prev ? { ...prev, status: newStatus } : null);
+        }
+        if (prevStatus && prevStatus !== newStatus) {
+          toast('success', `Status diubah ke ${STATUS_LABELS[newStatus]}.`, {
+            label: 'Urungkan',
+            onClick: () => revertStatus(targetId, prevStatus),
+          });
         }
       } else {
         toast('error', 'Gagal memperbaharui status pendaftar.');
@@ -1401,7 +1482,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 <div className="hidden md:block bg-white rounded-2xl border border-editorial-border shadow-sm overflow-hidden berkas-stripe">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                      <thead>
+                      <thead className="sticky top-0 z-10">
                         <tr className="border-b border-editorial-border text-[11px] font-bold uppercase text-stone-500 bg-editorial-cream">
                           <th className="py-4 px-5 w-10">
                             <input
@@ -1455,7 +1536,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                 <span className="block">{c.emailPribadi}</span>
                                 <span className="block text-stone-500 text-[10px] mt-0.5">{c.noTelp}</span>
                               </td>
-                              <td className="py-4 px-5 text-stone-500 tabular-nums">{new Date(c.submissionDate).toLocaleDateString('id-ID')}</td>
+                              <td className="py-4 px-5 text-stone-500 tabular-nums">{new Date(c.submissionDate).toLocaleDateString('id-ID')}<AgingChip c={c} /></td>
                               <td className="py-4 px-5">
                                 <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold ${STATUS_BADGE_CLASS[c.status]}`}>
                                   {STATUS_LABELS[c.status]}
@@ -1575,6 +1656,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                           >
                             {STATUS_LABELS[c.status]}
                           </span>
+                          <AgingChip c={c} />
                         </div>
                         <button
                           onClick={() => setSelectedId(c.id)}
@@ -2435,6 +2517,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
           </div>
         )}
       </main>
+
+      {/* ⌘K command palette */}
+      <CommandPalette
+        open={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        applicants={candidates}
+        onSelectApplicant={(id) => { setViewMode('list'); setSelectedId(id); }}
+        onSwitchTab={(tab) => { setViewMode(tab); setSelectedId(null); }}
+        onRefresh={() => fetchApplicants()}
+      />
 
       {/* Destructive confirm (non-blocking, replaces native confirm) */}
       <ConfirmDialog
