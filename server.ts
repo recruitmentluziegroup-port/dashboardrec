@@ -12,7 +12,7 @@ import { createServer as createViteServer } from 'vite';
 
 import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
-import { Applicant, ApplicationStatus, StatusLabelId } from './src/types';
+import { Applicant, ApplicationStatus, StatusLabelId, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from './src/types';
 
 const app = express();
 const PORT = 3000;
@@ -415,12 +415,32 @@ app.use(express.json({ limit: '10mb' }));
         return res.status(400).json({ error: 'Field wajib seperti Nama Lengkap, Email, dan No. HP harus diisi.' });
       }
 
+      // ── Sumber Info Lowongan validation (design 2026-09-08 §2) ─────────────
+      const sumber = typeof data.sumberInfoLowongan === 'string' ? data.sumberInfoLowongan.trim() : '';
+      // Invalid values are rejected outright. Missing/empty is tolerated during
+      // the rollout window so stale open form tabs don't get bricked.
+      // ponytail: flip to required after rollout window (~2026-09-22)
+      if (sumber && !(SUMBER_OPTIONS as readonly string[]).includes(sumber)) {
+        return res.status(400).json({ error: 'Sumber informasi lowongan tidak valid. Silakan muat ulang halaman dan pilih ulang.' });
+      }
+      const keteranganSumber = typeof data.keteranganSumber === 'string' ? data.keteranganSumber.trim() : '';
+      if (keteranganSumber) {
+        if (!SUMBER_WARRANTS_KETERANGAN.includes(sumber)) {
+          return res.status(400).json({ error: 'Keterangan sumber hanya diisi untuk sumber Teman/Keluarga/Karyawan Luzie atau Lainnya.' });
+        }
+        if (keteranganSumber.length > 100) {
+          return res.status(400).json({ error: 'Keterangan sumber maksimal 100 karakter.' });
+        }
+      }
+
       // Generate server-side metadata to guarantee integrity
       const applicantId = `APP-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
       const timestamp = new Date().toISOString();
 
       const newApplicant: Applicant = {
         ...data,
+        sumberInfoLowongan: sumber,
+        keteranganSumber: keteranganSumber,
         id: applicantId,
         submissionDate: timestamp,
         status: 'Pending',

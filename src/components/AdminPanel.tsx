@@ -549,16 +549,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     setBulkStatus('');
   };
 
-  // CSV export of selected rows (triage columns only, not the full 62-col sheet)
+  // CSV export of selected rows (triage columns only, not the full 64-col sheet)
   const handleExportSelected = () => {
     const rows = candidates.filter((c) => selectedSet.has(c.id));
     if (rows.length === 0) return;
-    const head = ['ID Berkas', 'Nama Lengkap', 'Jabatan Dituju', 'No. HP', 'Email', 'Status', 'Tanggal Daftar'];
+    const head = ['ID Berkas', 'Nama Lengkap', 'Jabatan Dituju', 'No. HP', 'Email', 'Status', 'Sumber', 'Tanggal Daftar'];
     const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [
       head.join(','),
       ...rows.map((c) =>
-        [c.id, c.namaLengkap, c.jabatanDituju, c.noTelp, c.emailPribadi, STATUS_LABELS[c.status], c.submissionDate]
+        [c.id, c.namaLengkap, c.jabatanDituju, c.noTelp, c.emailPribadi, STATUS_LABELS[c.status], c.sumberInfoLowongan || 'Belum tercatat', c.submissionDate]
           .map(esc)
           .join(',')
       ),
@@ -1206,6 +1206,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 adminEmail={adminEmail}
                 lastSyncAt={lastSyncAt}
                 interviews={interviews}
+                trackers={trackers}
                 onViewCalendar={() => setViewMode('calendar')}
               />
             ) : viewMode === 'tracker' ? (
@@ -2385,6 +2386,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                 <div className="space-y-1 md:col-span-2">
                                   <label className="text-[10px] text-stone-500 font-bold uppercase block">Alamat Media Sosial</label>
                                   <p className="text-xs font-semibold text-brand-700 underline">{editedRecord.alamatMediaSosial || '-'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] text-stone-500 font-bold uppercase block">Sumber Info Lowongan</label>
+                                  <p className="text-xs font-medium text-stone-800">{editedRecord.sumberInfoLowongan || 'Belum tercatat'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] text-stone-500 font-bold uppercase block">Keterangan Sumber</label>
+                                  <p className="text-xs font-medium text-stone-800">{editedRecord.keteranganSumber || '-'}</p>
                                 </div>
                               </div>
                             </div>

@@ -66,7 +66,7 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 
 ## Google Sheets conventions
 
-- Column layout is fixed at 62 columns (defined in `HEADERS` array in `sheets.ts`). Array-type fields (anak, saudara, pendidikanFormal, etc.) are stored as JSON strings.
+- Column layout is fixed at 64 columns (defined in `HEADERS` array in `sheets.ts`; cols 63–64 are `Sumber Info Lowongan`/`Keterangan Sumber`, appended 2026-09). Array-type fields (anak, saudara, pendidikanFormal, etc.) are stored as JSON strings.
 - The first sheet tab name is dynamically detected at runtime and cached. Do not hardcode `Sheet1`.
 - Vacancies are stored in a separate `Vacancies` tab in the same Google Sheet. Local dev fallback reads/writes `src/data/vacancies.json`.
 - The Sheets auth client is a module-level singleton — reused across calls for efficiency.

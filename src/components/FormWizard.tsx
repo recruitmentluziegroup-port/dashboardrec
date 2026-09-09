@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check, Plus, Trash2, Calendar, FileText, Send, User, AlertCircle, ChevronDown, Clock } from 'lucide-react';
-import { Applicant, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
+import { Applicant, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from '../types';
 import { useFormDraft } from '../hooks/useFormDraft';
 
 interface FormWizardProps {
@@ -72,6 +72,8 @@ const DEFAULT_FORM_STATE: Applicant = {
   kesehatanKeluargaBaik: 'Ya',
   detailKesehatanKeluarga: '',
   alamatMediaSosial: '',
+  sumberInfoLowongan: '',
+  keteranganSumber: '',
   referensiKontak: [
     { nama: '', hubungan: '', telp: '' },
     { nama: '', hubungan: '', telp: '' },
@@ -151,6 +153,7 @@ const FIELD_RULES: Record<string, FieldRule> = {
   // Step 7 — Intern Perusahaan
   gajiDiinginkan: f => (f.gajiDiinginkan.trim() ? null : 'Harapan Gaji yang diinginkan wajib ditentukan.'),
   dapatMulaiBekerja: f => (f.dapatMulaiBekerja.trim() ? null : 'Tanggal Dapat Mulai Bekerja wajib ditentukan.'),
+  sumberInfoLowongan: f => (f.sumberInfoLowongan.trim() ? null : 'Pilih sumber informasi lowongan.'),
   // Step 8 — Referensi & Pengesahan
   referensiKontak: f =>
     f.referensiKontak.filter(c => c.nama.trim() && c.hubungan.trim() && c.telp.trim()).length < 1
@@ -169,7 +172,7 @@ const STEP_KEYS: Record<number, string[]> = {
   4: ['jobdeskTerakhir'],
   5: ['jabatanDituju', 'alasanJabatan', 'pengetahuanJabatan', 'lingkunganKerja', 'citaCita', 'kesulitanKeputusan'],
   6: ['hobby', 'waktuLuang', 'kekuatanDiri', 'kelemahanDiri'],
-  7: ['gajiDiinginkan', 'dapatMulaiBekerja'],
+  7: ['gajiDiinginkan', 'dapatMulaiBekerja', 'sumberInfoLowongan'],
   8: ['referensiKontak', 'kotaTgl', 'namaTerang'],
 };
 
@@ -543,6 +546,17 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
     }
   };
 
+  // Source select change — clears the keterangan detail when the newly
+  // selected source does not warrant it (design 2026-09-08 §1).
+  const handleSumberChange = (value: string) => {
+    setForm(prev => ({
+      ...prev,
+      sumberInfoLowongan: value,
+      keteranganSumber: SUMBER_WARRANTS_KETERANGAN.includes(value) ? prev.keteranganSumber : '',
+    }));
+    validateField('sumberInfoLowongan');
+  };
+
   const handleBack = () => {
     setErrors({});
     setSubmitError(null);
@@ -576,7 +590,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          ...form,
+          // Trimmed on submit per design 2026-09-08 §1
+          sumberInfoLowongan: form.sumberInfoLowongan.trim(),
+          keteranganSumber: form.keteranganSumber.trim(),
+        })
       });
 
       const json = await res.json();
@@ -630,7 +649,10 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                       onClick={() => {
                         const d = loadDraft();
                         if (d && d.selectedPosition) {
-                          setForm(d.form);
+                          // Merge over DEFAULT_FORM_STATE so drafts saved before
+                          // the "Sumber Info Lowongan" fields existed resume with
+                          // '' (controlled select) instead of undefined.
+                          setForm({ ...DEFAULT_FORM_STATE, ...d.form });
                           setCurrentStep(d.currentStep);
                           setSelectedPosition(d.selectedPosition);
                           loadedThisSession.current = true;
@@ -1780,6 +1802,41 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                   <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Alamat Akun Media Sosial Aktif (Instagram / LinkedIn / TikTok / Berkas)</label>
                   <input type="text" value={form.alamatMediaSosial} onChange={(e) => setField('alamatMediaSosial', e.target.value)} placeholder="Sebutkan link tautan akun sosmed Anda (IG: @luzie, LinkedIn: Luzie, dsb)" className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
                 </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="fw-sumberInfoLowongan" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Dapat Informasi Lowongan Ini dari Mana? <span className="text-state-error">*</span></label>
+                  <select
+                    id="fw-sumberInfoLowongan"
+                    value={form.sumberInfoLowongan}
+                    onChange={(e) => handleSumberChange(e.target.value)}
+                    onBlur={() => validateField('sumberInfoLowongan')}
+                    aria-invalid={!!errors.sumberInfoLowongan}
+                    className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('sumberInfoLowongan')}`}
+                  >
+                    <option value="">Pilih sumber informasi lowongan…</option>
+                    {SUMBER_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  <FieldMsg msg={errors.sumberInfoLowongan} />
+                </div>
+
+                {SUMBER_WARRANTS_KETERANGAN.includes(form.sumberInfoLowongan) && (
+                  <div className="space-y-1.5 animate-fade-in">
+                    <label htmlFor="fw-keteranganSumber" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+                      {form.sumberInfoLowongan === 'Lainnya' ? 'Sebutkan Sumber Lainnya' : 'Nama yang Mereferensikan'}
+                    </label>
+                    <input
+                      id="fw-keteranganSumber"
+                      type="text"
+                      maxLength={100}
+                      value={form.keteranganSumber}
+                      onChange={(e) => setField('keteranganSumber', e.target.value)}
+                      placeholder={form.sumberInfoLowongan === 'Lainnya' ? 'Sebutkan sumber lainnya' : 'Nama yang mereferensikan'}
+                      className="w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

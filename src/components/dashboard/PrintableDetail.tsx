@@ -236,6 +236,18 @@ export const PrintableDetail: React.FC<PrintableDetailProps> = ({ applicant }) =
           <div className="col-span-2">
             <Field label="Alamat Media Sosial" value={a.alamatMediaSosial} />
           </div>
+          <div className="col-span-2">
+            <Field
+              label="Sumber Info Lowongan"
+              value={
+                a.sumberInfoLowongan
+                  ? a.keteranganSumber
+                    ? `${a.sumberInfoLowongan} — ${a.keteranganSumber}`
+                    : a.sumberInfoLowongan
+                  : 'Belum tercatat'
+              }
+            />
+          </div>
         </div>
       </Section>
 

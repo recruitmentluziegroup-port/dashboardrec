@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus } from '../types';
 
-// Columns mapping mapping to Google Sheets. Total 62 columns.
+// Columns mapping mapping to Google Sheets. Total 64 columns (BK/BL appended 2026-09).
 const HEADERS = [
   'Applicant ID', 'Submission Date', 'Status', 'Last Updated',
   'Nama Lengkap', 'Tempat Lahir', 'Tanggal Lahir', 'Kewarganegaraan',
@@ -21,7 +21,8 @@ const HEADERS = [
   'Kelemahan Diri', 'Gaji Diinginkan', 'Fasilitas Diharapkan', 'Dapat Mulai Bekerja',
   'Kendaraan Dimiliki', 'Pernah Sakit Keras', 'Detail Sakit Keras',
   'Gangguan Jasmani', 'Kesehatan Keluarga Baik', 'Detail Kesehatan Keluarga',
-  'Alamat Media Sosial', 'Referensi Kontak (JSON)', 'Kota Tgl', 'Nama Terang'
+  'Alamat Media Sosial', 'Referensi Kontak (JSON)', 'Kota Tgl', 'Nama Terang',
+  'Sumber Info Lowongan', 'Keterangan Sumber'
 ];
 
 let sheetsClient: any = null;
@@ -187,7 +188,9 @@ function applicantToRow(app: Applicant): any[] {
     app.alamatMediaSosial || '',
     JSON.stringify(app.referensiKontak || []),
     app.kotaTgl || '',
-    app.namaTerang || ''
+    app.namaTerang || '',
+    app.sumberInfoLowongan || '',
+    app.keteranganSumber || ''
   ];
 }
 
@@ -266,7 +269,10 @@ function rowToApplicant(row: any[]): Applicant {
     alamatMediaSosial: row[58] || '',
     referensiKontak: parseJsonSafe(row[59], []),
     kotaTgl: row[60] || '',
-    namaTerang: row[61] || ''
+    namaTerang: row[61] || '',
+    // BK/BL — appended 2026-09; short historical rows fall back to blank
+    sumberInfoLowongan: row[62] || '',
+    keteranganSumber: row[63] || ''
   };
 }
 

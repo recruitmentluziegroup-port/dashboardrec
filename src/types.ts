@@ -3,6 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * Controlled taxonomy for "Sumber Info Lowongan" (Sheets col BK).
+ * Stored values — never renamed after launch; display labels may change later.
+ */
+export const SUMBER_OPTIONS = [
+  'Instagram',
+  'TikTok',
+  'LinkedIn',
+  'JobStreet',
+  'Glints/Portal Lain',
+  'Google/Website Luzie',
+  'WhatsApp/Grup Komunitas',
+  'Teman/Keluarga/Karyawan Luzie',
+  'Kampus/Job Fair',
+  'Lainnya',
+] as const;
+
+export type SumberInfoLowongan = (typeof SUMBER_OPTIONS)[number];
+
+/** Sources that warrant the conditional "Keterangan Sumber" detail field. */
+export const SUMBER_WARRANTS_KETERANGAN: readonly string[] = [
+  'Teman/Keluarga/Karyawan Luzie',
+  'Lainnya',
+];
+
 export interface Anak {
   nama: string;
   ttl: string;
@@ -166,6 +191,10 @@ export interface Applicant {
   kesehatanKeluargaBaik: 'Ya' | 'Tidak' | '';
   detailKesehatanKeluarga: string;
   alamatMediaSosial: string;
+
+  // "Dapat informasi lowongan ini dari mana?" (Step 7) — Sheets col BK/BL
+  sumberInfoLowongan: string;
+  keteranganSumber: string;
 
   // Step 8: Referensi Kontak (WAJIB)
   referensiKontak: ReferensiKontak[]; // JSON column in Sheets

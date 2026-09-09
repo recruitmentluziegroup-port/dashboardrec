@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, LabelList } from 'recharts';
 import {
   Sliders,
   MapPin,
@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   FileText,
   ChevronDown,
+  ChevronUp,
   Plus,
   Briefcase,
   CheckCircle2,
@@ -22,6 +23,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import { Applicant } from '../types';
+import type { TrackerItem } from '../lib/sheets';
 import type { Interview } from '../lib/interview-links';
 import { GreetingBar } from './dashboard/GreetingBar';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
@@ -37,6 +39,7 @@ interface DashboardProps {
   adminEmail?: string;
   lastSyncAt?: Date | null;
   interviews?: Interview[];
+  trackers?: TrackerItem[];
   onViewCalendar?: () => void;
 }
 
@@ -49,6 +52,32 @@ interface TimelinePoint {
 
 // Token-derived multi-hue palette for per-position bars & education bars
 const POSITION_BAR_COLORS = ['#C2410C', '#F59E0B', '#2D6A4F', '#1A1F2E', '#9B2226', '#B45309', '#57534E'];
+
+// ── Analitik & Aktivitas collapse persistence (design 2026-09-08 §4) ────────
+// Key: luzie_dashboard_collapsed_v1 = { _v: 1, collapsed: boolean }
+// Default OPEN (dashboard shown by default per requirement).
+const ANALYTICS_STORAGE_KEY = 'luzie_dashboard_collapsed_v1';
+const ANALYTICS_WIDGET_COUNT = 14;
+
+function readAnalyticsCollapsed(): boolean | null {
+  try {
+    const raw = localStorage.getItem(ANALYTICS_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed._v !== 1 || typeof parsed.collapsed !== 'boolean') return null;
+    return parsed.collapsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeAnalyticsCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(ANALYTICS_STORAGE_KEY, JSON.stringify({ _v: 1, collapsed }));
+  } catch {
+    // storage full/blocked — collapse state simply won't persist
+  }
+}
 
 interface ChartTooltipProps {
   active?: boolean;
@@ -101,6 +130,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
   adminEmail = '',
   lastSyncAt = null,
   interviews = [],
+  trackers = [],
   onViewCalendar,
 }) => {
   const [timeRange, setTimeRange] = useState<'12m' | '30d' | '7l'>('12m');
@@ -455,6 +485,137 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
     return sorted.slice(0, 5);
   }, [filteredApplicants]);
 
+  // ── Sumber Pelamar (design 2026-09-08 §5a) — volume per source ────────────
+  const sourceVolumeData = useMemo(() => {
+    const counts = new Map<string, number>();
+    filteredApplicants.forEach((app) => {
+      const key = (app.sumberInfoLowongan || '').trim() || 'Belum tercatat';
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    const total = filteredApplicants.length;
+    const entries = Array.from(counts.entries()).map(([name, value]) => ({
+      name,
+      value,
+      label: `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
+    }));
+    entries.sort((a, b) => b.value - a.value);
+    // Top 7 categories; remainder grouped into one bucket (kept separate from
+    // the taxonomy's own "Lainnya" value and from "Belum tercatat").
+    if (entries.length > 8) {
+      const top = entries.slice(0, 7);
+      const restValue = entries.slice(7).reduce((s, e) => s + e.value, 0);
+      top.push({ name: 'Lainnya (gabungan)', value: restValue, label: `${restValue} (${total > 0 ? Math.round((restValue / total) * 100) : 0}%)` });
+      return top;
+    }
+    return entries;
+  }, [filteredApplicants]);
+
+  // ── Kualitas Sumber (§5b) — Diterima vs total per source, n≥3 gate ────────
+  const sourceQualityData = useMemo(() => {
+    const map = new Map<string, { total: number; accepted: number }>();
+    filteredApplicants.forEach((app) => {
+      const key = (app.sumberInfoLowongan || '').trim() || 'Belum tercatat';
+      const entry = map.get(key) || { total: 0, accepted: 0 };
+      entry.total += 1;
+      if (app.status === 'Accepted') entry.accepted += 1;
+      map.set(key, entry);
+    });
+    return Array.from(map.entries())
+      .map(([name, { total, accepted }]) => ({
+        name,
+        total,
+        accepted,
+        rate: total >= 3 ? Math.round((accepted / total) * 100) : null,
+      }))
+      .sort((a, b) => b.accepted - a.accepted || b.total - a.total);
+  }, [filteredApplicants]);
+
+  // ── Treker Posisi metrics (§5c–f). Title-string join with applicants —
+  // accepted risk inherited from existing tracker behavior (§7). ─────────────
+  const trackerStats = useMemo(() => {
+    const openReqs = trackers.filter((t) => (t.status || 'Open') === 'Open');
+    const target = openReqs.reduce((s, t) => s + (parseInt(String(t.jumlah ?? ''), 10) || 0), 0);
+
+    const acceptedByTitle = new Map<string, number>();
+    applicants.forEach((a) => {
+      if (a.status !== 'Accepted') return;
+      const key = (a.jabatanDituju || '').toLowerCase().trim();
+      if (!key) return;
+      acceptedByTitle.set(key, (acceptedByTitle.get(key) || 0) + 1);
+    });
+
+    const quota = trackers
+      .map((t) => {
+        const jumlah = parseInt(String(t.jumlah ?? ''), 10) || 0;
+        const accepted = acceptedByTitle.get((t.title || '').toLowerCase().trim()) || 0;
+        return {
+          title: t.title || '(tanpa nama)',
+          status: t.status || 'Open',
+          jumlah,
+          accepted,
+          remaining: Math.max(0, jumlah - accepted),
+          overQuota: accepted > jumlah,
+        };
+      })
+      .sort((a, b) => b.remaining - a.remaining);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const parseDate = (s?: string) => {
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    const aging = trackers
+      .filter((t) => (t.status || 'Open') === 'Open' || t.status === 'On Hold')
+      .map((t) => {
+        const dibuka = parseDate(t.tanggalDibuka);
+        const terakhir = parseDate(t.tanggalTerakhir);
+        return {
+          title: t.title || '(tanpa nama)',
+          daysOpen: dibuka ? Math.max(0, Math.floor((today.getTime() - dibuka.getTime()) / 86400000)) : null,
+          overdue: !!terakhir && terakhir < today,
+          onHold: t.status === 'On Hold',
+        };
+      })
+      .sort((a, b) => (b.daysOpen ?? -1) - (a.daysOpen ?? -1));
+
+    const daysToFill: number[] = [];
+    trackers.forEach((t) => {
+      if (t.status !== 'Closed-Filled' && t.status !== 'Closed-Unfilled') return;
+      const d0 = parseDate(t.tanggalDibuka);
+      const d1 = parseDate(t.tanggalSelesai);
+      if (d0 && d1) daysToFill.push(Math.max(0, Math.floor((d1.getTime() - d0.getTime()) / 86400000)));
+    });
+
+    return {
+      openCount: openReqs.length,
+      target,
+      slotsRemaining: quota.reduce((s, q) => s + q.remaining, 0),
+      quota,
+      filled: trackers.filter((t) => t.status === 'Closed-Filled').length,
+      unfilled: trackers.filter((t) => t.status === 'Closed-Unfilled').length,
+      avgDaysToFill: daysToFill.length > 0 ? Math.round(daysToFill.reduce((s, d) => s + d, 0) / daysToFill.length) : null,
+      aging,
+    };
+  }, [trackers, applicants]);
+
+  // ── Analitik & Aktivitas collapse state (§4) — default open ───────────────
+  const [analyticsOpen, setAnalyticsOpen] = useState<boolean>(true);
+  const [analyticsHydrated, setAnalyticsHydrated] = useState<boolean>(false);
+  useEffect(() => {
+    const collapsed = readAnalyticsCollapsed();
+    if (collapsed !== null) setAnalyticsOpen(!collapsed);
+    setAnalyticsHydrated(true);
+  }, []);
+  const toggleAnalytics = () => {
+    setAnalyticsOpen(prev => {
+      const next = !prev;
+      writeAnalyticsCollapsed(!next);
+      return next;
+    });
+  };
+
   // Upcoming interviews (real data): today onwards, sorted, max 5
   const scheduleList = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -765,6 +926,38 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
+      {/* 2b. Analitik & Aktivitas — collapse toggle (design 2026-09-08 §4).
+          Renders even in the dashboard empty-state; region defaults OPEN. */}
+      <div className="flex items-center justify-between gap-3 pb-1">
+        <div>
+          <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Analitik &amp; Aktivitas</h3>
+          <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+            Corong, tren, sumber pelamar, dan metrik Treker Posisi
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAnalytics}
+          aria-expanded={analyticsOpen}
+          aria-controls="analytics-region"
+          className="inline-flex items-center gap-1.5 min-h-[44px] px-3 py-1.5 rounded-lg border border-stone-200 bg-white text-stone-600 hover:border-brand-300 hover:text-brand-700 text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer"
+          title={analyticsOpen ? 'Sembunyikan analitik' : 'Tampilkan analitik'}
+        >
+          {analyticsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          <span>{analyticsOpen ? 'Sembunyikan Analitik' : 'Tampilkan Analitik'}</span>
+        </button>
+      </div>
+
+      {analyticsHydrated && !analyticsOpen && (
+        <p className="text-[10px] text-stone-400 font-bold text-center border border-dashed border-stone-200 rounded-xl bg-stone-50/50 py-2">
+          {ANALYTICS_WIDGET_COUNT} widget analitik disembunyikan
+        </p>
+      )}
+
+      <div id="analytics-region" className={`funnel-collapse ${analyticsOpen ? 'open' : ''}`}>
+        <div>
+          <div className="space-y-6 pt-2">
+
       {/* 3. Recruitment Funnel */}
       <RecruitmentFunnel
         stats={{
@@ -886,6 +1079,213 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 3c. Sumber Pelamar — volume (design 2026-09-08 §5a) */}
+      <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
+        <div>
+          <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Sumber Pelamar</h3>
+          <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+            Volume lamaran per sumber informasi lowongan (mengikuti filter aktif)
+          </p>
+        </div>
+        <div className="h-80" role="img" aria-label={`Sumber pelamar: ${sourceVolumeData.map((s) => `${s.name} ${s.value}`).join(', ')}.`}>
+          {sourceVolumeData.length === 0 ? (
+            <AdminEmptyState
+              compact
+              icon={<Users className="h-7 w-7" />}
+              title="Belum ada data sumber"
+              body="Sumber lamaran akan muncul setelah pelamar mengisi pertanyaan sumber info lowongan."
+            />
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sourceVolumeData} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#F1F5F9" />
+                <XAxis type="number" allowDecimals={false} fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="name" width={160} fontSize={10} stroke="#64748B" axisLine={false} tickLine={false} tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 21)}…` : v)} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(194, 65, 12, 0.06)' }}
+                  contentStyle={{ background: '#1A1F2E', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: '#fff', fontSize: 12 }}
+                  labelStyle={{ color: '#E7E5E4', fontWeight: 800 }}
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Bar dataKey="value" name="Lamaran" radius={[0, 6, 6, 0]} barSize={16}>
+                  <LabelList dataKey="label" position="right" fontSize={10} fill="#57534E" fontWeight={700} />
+                  {sourceVolumeData.map((_, i) => (
+                    <Cell key={i} fill={POSITION_BAR_COLORS[i % POSITION_BAR_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+
+      {/* 3d. Kualitas Sumber — source-to-hire (§5b) */}
+      <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
+        <div>
+          <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Kualitas Sumber</h3>
+          <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+            Tingkat penerimaan per sumber — rasio disembunyikan untuk sampel kecil (n &lt; 3)
+          </p>
+        </div>
+        {sourceQualityData.length === 0 ? (
+          <AdminEmptyState
+            compact
+            icon={<Users className="h-7 w-7" />}
+            title="Belum ada data"
+            body="Kualitas sumber muncul setelah ada berkas dengan sumber tercatat."
+          />
+        ) : (
+          <div className="space-y-2">
+            <div className="grid grid-cols-[1fr_64px_64px_72px] gap-2 text-[10px] font-extrabold text-stone-400 uppercase tracking-wider border-b border-stone-100 pb-1.5">
+              <span>Sumber</span>
+              <span className="text-center">Diterima</span>
+              <span className="text-center">Total</span>
+              <span className="text-center">Rate</span>
+            </div>
+            {sourceQualityData.map((row) => (
+              <div key={row.name} className="grid grid-cols-[1fr_64px_64px_72px] gap-2 items-center text-xs border-b border-stone-50 pb-1.5 last:border-none last:pb-0">
+                <span className="font-bold text-stone-700 truncate" title={row.name}>{row.name}</span>
+                <span className="text-center font-black text-editorial-green tabular-nums">{row.accepted}</span>
+                <span className="text-center font-bold text-stone-600 tabular-nums">{row.total}</span>
+                <span className="text-center font-bold tabular-nums">
+                  {row.rate === null ? (
+                    <span className="text-stone-400 text-[10px]">n={row.total}</span>
+                  ) : (
+                    <span className={row.rate >= 20 ? 'text-editorial-green' : row.rate > 0 ? 'text-amber-600' : 'text-stone-400'}>{row.rate}%</span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+
+      {/* 3e. Headcount strip + Kuota per Posisi + Aging + Fill rate (§5c–f).
+          Tracker widgets render an empty state while the Trackers tab has no rows. */}
+      {trackers.length === 0 ? (
+        <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs">
+          <AdminEmptyState
+            icon={<Briefcase className="h-8 w-8" />}
+            title="Treker Posisi belum diisi"
+            body="Metrik kuota, aging posisi, dan fill rate muncul setelah Treker Posisi memiliki data."
+          />
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Headcount gap summary strip (§5c) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-5 rounded-2xl border border-editorial-border bg-white shadow-xs space-y-1">
+              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Rekrutmen Terbuka</span>
+              <span className="kpi-stat-value text-2xl text-editorial-navy block">{trackerStats.openCount}</span>
+              <span className="text-[10px] text-stone-400 font-bold block">posisi berstatus Open</span>
+            </div>
+            <div className="p-5 rounded-2xl border border-editorial-border bg-white shadow-xs space-y-1">
+              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Target Headcount</span>
+              <span className="kpi-stat-value text-2xl text-editorial-navy block">{trackerStats.target}</span>
+              <span className="text-[10px] text-stone-400 font-bold block">total kuota posisi Open</span>
+            </div>
+            <div className={`p-5 rounded-2xl border bg-white shadow-xs space-y-1 ${trackerStats.slotsRemaining === 0 ? 'border-amber-200' : 'border-editorial-border'}`}>
+              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Sisa Kuota</span>
+              <span className={`kpi-stat-value text-2xl block ${trackerStats.slotsRemaining === 0 ? 'text-amber-600' : 'text-editorial-green'}`}>{trackerStats.slotsRemaining}</span>
+              <span className="text-[10px] text-stone-400 font-bold block">target − Diterima per posisi</span>
+            </div>
+          </div>
+
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Kuota per Posisi (§5d) */}
+            <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4 berkas-stripe">
+              <div>
+                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Kuota per Posisi</h3>
+                <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                  Diterima dibanding kuota Treker Posisi — diurutkan dari sisa kuota terbesar
+                </p>
+              </div>
+              <div className="space-y-3">
+                {trackerStats.quota.map((q) => {
+                  const pct = q.jumlah > 0 ? Math.min(100, Math.round((q.accepted / q.jumlah) * 100)) : 0;
+                  return (
+                    <div key={q.title} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs gap-2">
+                        <span className="font-bold text-stone-700 truncate" title={q.title}>
+                          {q.title}
+                          {q.status === 'On Hold' && <span className="ml-1.5 text-[9px] bg-stone-100 text-stone-500 font-extrabold px-1.5 py-0.5 rounded-md uppercase align-middle">On Hold</span>}
+                        </span>
+                        <span className={`font-black tabular-nums shrink-0 ${q.overQuota ? 'text-amber-600' : 'text-stone-900'}`}>
+                          {q.accepted}/{q.jumlah || '—'}
+                          {q.overQuota && <span className="ml-1 text-[9px] bg-amber-100 text-amber-700 font-extrabold px-1.5 py-0.5 rounded-md uppercase">Lewat Kuota</span>}
+                        </span>
+                      </div>
+                      <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${q.overQuota ? 'bg-amber-500' : 'bg-editorial-green'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+
+            {/* Right column: Aging + Fill rate */}
+            <div className="space-y-6">
+              {/* Aging Posisi (§5e) */}
+              <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-3 berkas-stripe">
+                <div>
+                  <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Aging Posisi</h3>
+                  <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                    Lama posisi terbuka — tertua lebih dulu
+                  </p>
+                </div>
+                {trackerStats.aging.length === 0 ? (
+                  <p className="text-xs text-stone-400 font-bold italic py-2">Tidak ada posisi berstatus Open / On-Hold.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {trackerStats.aging.slice(0, 6).map((t) => (
+                      <div key={t.title} className="flex items-center justify-between text-xs border-b border-stone-50 pb-1.5 last:border-none last:pb-0 gap-2">
+                        <span className="font-bold text-stone-700 truncate" title={t.title}>
+                          {t.title}
+                          {t.onHold && <span className="ml-1.5 text-[9px] bg-stone-100 text-stone-500 font-extrabold px-1.5 py-0.5 rounded-md uppercase align-middle">Hold</span>}
+                        </span>
+                        <span className="flex items-center gap-1.5 shrink-0 font-bold tabular-nums">
+                          {t.overdue && <span className="text-[9px] bg-red-50 text-editorial-red font-extrabold px-1.5 py-0.5 rounded-md uppercase">Tenggat Lewat</span>}
+                          <span className={t.daysOpen !== null && t.daysOpen >= 14 ? 'text-editorial-red' : t.daysOpen !== null && t.daysOpen >= 7 ? 'text-amber-600' : 'text-stone-500'}>
+                            {t.daysOpen === null ? '—' : `${t.daysOpen} hari`}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Fill rate & speed (§5f) */}
+              <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-3 berkas-stripe">
+                <div>
+                  <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Fill Rate &amp; Kecepatan</h3>
+                  <p className="text-[10px] text-stone-400 font-semibold leading-none mt-1">
+                    Posisi terisi penuh vs gagal isi
+                  </p>
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <span className="kpi-stat-value text-3xl text-editorial-green">{trackerStats.filled}</span>
+                  <span className="text-xs font-extrabold text-stone-400">/</span>
+                  <span className="kpi-stat-value text-3xl text-editorial-red">{trackerStats.unfilled}</span>
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Closed-Filled / Closed-Unfilled</span>
+                </div>
+                <p className="text-[10px] font-bold text-stone-500">
+                  {trackerStats.avgDaysToFill === null
+                    ? 'Belum ada posisi closed untuk menghitung kecepatan isi.'
+                    : `Rata-rata waktu mengisi posisi: ${trackerStats.avgDaysToFill} hari.`}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* 4. Main Split Widgets Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-sans">
@@ -1237,6 +1637,10 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             >
               Lihat Agenda
             </button>
+          </div>
+        </div>
+      </div>
+
           </div>
         </div>
       </div>

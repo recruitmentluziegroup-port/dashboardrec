@@ -562,6 +562,16 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
               <Text style={styles.label}>Alamat Media Sosial (IG/LinkedIn/dll)</Text>
               <Text style={styles.value}>{applicant.alamatMediaSosial || '-'}</Text>
             </View>
+            <View style={styles.gridCol12}>
+              <Text style={styles.label}>Sumber Info Lowongan</Text>
+              <Text style={styles.value}>
+                {applicant.sumberInfoLowongan
+                  ? applicant.keteranganSumber
+                    ? `${applicant.sumberInfoLowongan} — ${applicant.keteranganSumber}`
+                    : applicant.sumberInfoLowongan
+                  : 'Belum tercatat'}
+              </Text>
+            </View>
           </View>
         </View>
 
