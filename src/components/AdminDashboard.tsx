@@ -767,7 +767,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
       {/* 2. KPI Row with sparklines, count-up, Playfair numbers, staggered entrance */}
       <div
-        className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4"
+        className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-5 gap-4"
         style={{ counterReset: 'kpi' } as React.CSSProperties}
       >
         {/* Total Lamaran Card */}
