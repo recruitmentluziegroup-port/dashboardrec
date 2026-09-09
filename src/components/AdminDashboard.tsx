@@ -30,6 +30,7 @@ import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { CountUp } from './dashboard/CountUp';
 import { Sparkline } from './dashboard/Sparkline';
 import { RecruitmentFunnel } from './dashboard/RecruitmentFunnel';
+import { ActionList } from './dashboard/ActionList';
 
 interface DashboardProps {
   applicants: Applicant[];
@@ -41,6 +42,7 @@ interface DashboardProps {
   interviews?: Interview[];
   trackers?: TrackerItem[];
   onViewCalendar?: () => void;
+  onOpenTrackers?: () => void;
 }
 
 interface TimelinePoint {
@@ -57,7 +59,7 @@ const POSITION_BAR_COLORS = ['#C2410C', '#F59E0B', '#2D6A4F', '#1A1F2E', '#9B222
 // Key: luzie_dashboard_collapsed_v1 = { _v: 1, collapsed: boolean }
 // Default OPEN (dashboard shown by default per requirement).
 const ANALYTICS_STORAGE_KEY = 'luzie_dashboard_collapsed_v1';
-const ANALYTICS_WIDGET_COUNT = 14;
+const ANALYTICS_WIDGET_COUNT = 13;
 
 function readAnalyticsCollapsed(): boolean | null {
   try {
@@ -132,6 +134,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
   interviews = [],
   trackers = [],
   onViewCalendar,
+  onOpenTrackers,
 }) => {
   const [timeRange, setTimeRange] = useState<'12m' | '30d' | '7l'>('12m');
 
@@ -647,6 +650,13 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       {/* 1. Greeting bar with live sync indicator */}
       <GreetingBar adminEmail={adminEmail} lastSyncAt={lastSyncAt} />
 
+      {/* 1b. Two-column shell: main content left, Perlu Tindakan rail right (≥lg).
+          The rail lives OUTSIDE the analytics collapse region so it stays visible
+          when analytics is hidden. Below lg the rail stacks after the content. */}
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
+        {/* Left: main column */}
+        <div className="space-y-8 min-w-0">
+
       {/* Filter & Kustomisasi trigger (kept as-is, but pulled out of greeting block) */}
       <div className="flex items-center justify-end font-sans text-xs relative -mt-4" style={{ zIndex: 100 }}>
         {(selectedMonth !== 'all' || selectedJob !== 'all' || selectedStatus !== 'all') && (
@@ -757,7 +767,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
 
       {/* 2. KPI Row with sparklines, count-up, Playfair numbers, staggered entrance */}
       <div
-        className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+        className="dashboard-stagger grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4"
         style={{ counterReset: 'kpi' } as React.CSSProperties}
       >
         {/* Total Lamaran Card */}
@@ -1506,7 +1516,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* Right Column: Gender + Today's Schedule */}
+        {/* Right Column: Gender */}
         <div className="space-y-6">
           {/* Widget: Jenis Kelamin */}
           <div className="bg-white p-6 rounded-2xl border border-editorial-border shadow-xs space-y-4">
@@ -1581,68 +1591,28 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* Widget 3: Jadwal Hari Ini */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-xs space-y-4 berkas-stripe">
-            <div className="flex justify-between items-center pb-1">
-              <div className="flex items-center space-x-2">
-                <h3 className="font-serif font-black text-sm text-stone-900 tracking-tight">Jadwal Hari Ini</h3>
-                <span className="h-5 w-5 bg-brand-700 text-white font-extrabold text-[10px] rounded-full flex items-center justify-center">
-                  {scheduleList.filter(s => s.isLive).length || scheduleList.length}
-                </span>
-              </div>
-              <button className="text-stone-300 hover:text-stone-600">
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {scheduleList.length === 0 ? (
-                <AdminEmptyState
-                  compact
-                  icon={<Calendar className="h-7 w-7" />}
-                  title="Belum ada jadwal wawancara"
-                  body="Belum ada jadwal wawancara mendatang. Buka agenda untuk menjadwalkan wawancara pelamar."
-                  actionLabel="Buka Agenda"
-                  onAction={onViewCalendar}
-                />
-              ) : (
-                scheduleList.map((sch) => (
-                <div
-                  key={sch.id}
-                  onClick={() => {
-                    if (sch.applicantId) {
-                      onSelectApplicant(sch.applicantId);
-                    }
-                  }}
-                  className={`p-3 rounded-xl border border-stone-50 flex flex-col space-y-1 ${sch.color}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black tracking-normal uppercase whitespace-nowrap block">{sch.time}</span>
-                    {sch.applicantId && (
-                      <span className="text-[10px] font-bold bg-editorial-navy/10 text-editorial-navy px-1.5 py-0.5 rounded-md uppercase">Tindakan</span>
-                    )}
-                  </div>
-                  <span className="text-[11px] font-bold tracking-tight block leading-normal">{sch.title}</span>
-                  {sch.applicantId && (
-                    <span className="text-[10px] opacity-80 font-medium block mt-1 underline">Mulai Tinjau Profil &rarr;</span>
-                  )}
-                </div>
-                ))
-              )}
-            </div>
-
-            <button
-              onClick={onViewCalendar}
-              className="w-full text-center py-2.5 hover:bg-stone-50 border border-dashed border-stone-200 mt-2 text-xs font-bold text-brand-700 rounded-xl transition-all cursor-pointer"
-            >
-              Lihat Agenda
-            </button>
-          </div>
         </div>
       </div>
 
           </div>
         </div>
+      </div>
+
+        </div>
+        {/* /Left: main column */}
+
+        {/* Right rail: Perlu Tindakan + Jadwal Hari Ini (sticky, outside analytics collapse) */}
+        <aside className="lg:sticky lg:top-24 space-y-6" aria-label="Ringkasan tindakan">
+          <ActionList
+            applicants={applicants}
+            trackers={trackers}
+            interviews={interviews}
+            scheduleList={scheduleList}
+            onSelectApplicant={onSelectApplicant}
+            onOpenTrackers={onOpenTrackers}
+            onViewCalendar={onViewCalendar}
+          />
+        </aside>
       </div>
     </div>
   );

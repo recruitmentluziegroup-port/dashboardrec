@@ -1208,6 +1208,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                 interviews={interviews}
                 trackers={trackers}
                 onViewCalendar={() => setViewMode('calendar')}
+                onOpenTrackers={() => setViewMode('tracker')}
               />
             ) : viewMode === 'tracker' ? (
               <>
