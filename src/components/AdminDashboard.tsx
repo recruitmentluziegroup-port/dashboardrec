@@ -653,7 +653,7 @@ export const AdminDashboard: React.FC<DashboardProps> = ({
       {/* 1b. Two-column shell: main content left, Perlu Tindakan rail right (≥lg).
           The rail lives OUTSIDE the analytics collapse region so it stays visible
           when analytics is hidden. Below lg the rail stacks after the content. */}
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-8 items-start">
         {/* Left: main column */}
         <div className="space-y-8 min-w-0">
 

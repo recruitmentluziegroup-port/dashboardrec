@@ -1129,7 +1129,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
       </nav>
 
       {/* Main Body */}
-      <main className="grain-overlay max-w-7xl mx-auto py-8 px-6">
+      <main className="grain-overlay w-full py-8 px-6">
         {!selectedId ? (
           <>
             {/* Header Title and Dynamic Filter view selectors */}
