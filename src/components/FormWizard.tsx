@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronLeft, Check, Plus, Trash2, Calendar, FileText, Send, User, AlertCircle, ChevronDown, Clock } from 'lucide-react';
-import { Applicant, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from '../types';
+import { Applicant, Anak, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from '../types';
 import { useFormDraft } from '../hooks/useFormDraft';
 
 interface FormWizardProps {
@@ -33,14 +33,12 @@ const DEFAULT_FORM_STATE: Applicant = {
   statusPernikahan: '',
   tanggalStatusPernikahan: '',
   namaPasangan: '',
-  ttlPasangan: '',
-  pendidikanPasangan: '',
   pekerjaanPasangan: '',
   anak: [],
   namaOrtu: '',
-  alamatOrtu: '',
   pekerjaanOrtu: '',
-  saudara: [],
+  anakKe: '',
+  jumlahSaudara: '',
   pendidikanFormal: [
     { dari: '', sampai: '', sekolah: '', jurusan: '', kota: '', ijazah: '' },
     { dari: '', sampai: '', sekolah: '', jurusan: '', kota: '', ijazah: '' }
@@ -50,8 +48,6 @@ const DEFAULT_FORM_STATE: Applicant = {
   referensiPerusahaan: [],
   jobdeskTerakhir: '',
   jabatanDituju: '',
-  alasanJabatan: '',
-  pengetahuanJabatan: '',
   lingkunganKerja: '',
   citaCita: '',
   kesulitanKeputusan: '',
@@ -119,7 +115,16 @@ const FIELD_RULES: Record<string, FieldRule> = {
   // Step 2 — Keluarga & Lingkungan
   namaOrtu: f => (f.namaOrtu.trim() ? null : 'Nama Orang Tua/Wali wajib diisi.'),
   pekerjaanOrtu: f => (f.pekerjaanOrtu.trim() ? null : 'Pekerjaan Orang Tua/Wali wajib diisi.'),
-  alamatOrtu: f => (f.alamatOrtu.trim() ? null : 'Alamat Orang Tua/Wali wajib diisi.'),
+  anakKe: f => {
+    if (!f.anakKe.trim()) return 'Anak ke- wajib diisi.';
+    if (!f.jumlahSaudara.trim()) return 'Jumlah saudara kandung wajib diisi.';
+    const ke = Number(f.anakKe);
+    const total = Number(f.jumlahSaudara);
+    if (Number.isFinite(ke) && Number.isFinite(total) && ke > 0 && total > 0 && ke > total)
+      return 'Anak ke- tidak boleh lebih besar dari jumlah saudara kandung.';
+    return null;
+  },
+  jumlahSaudara: f => (f.jumlahSaudara.trim() ? null : 'Jumlah saudara kandung wajib diisi.'),
   namaPasangan: f =>
     f.statusPernikahan === 'Menikah' || f.statusPernikahan === 'Bercerai'
       ? (f.namaPasangan?.trim() ? null : 'Identitas Nama Pasangan wajib jika sudah menikah/bercerai.')
@@ -140,8 +145,6 @@ const FIELD_RULES: Record<string, FieldRule> = {
       : null,
   // Step 5 — Minat & Konsep Diri
   jabatanDituju: f => (f.jabatanDituju.trim() ? null : 'Jabatan yang ingin Saudara tuju wajib diisi.'),
-  alasanJabatan: f => (f.alasanJabatan.trim() ? null : 'Sebab alasan memilih jabatan tersebut wajib diisi.'),
-  pengetahuanJabatan: f => (f.pengetahuanJabatan.trim() ? null : 'Uraian pengetahuan tugas tanggung jawab jabatan tersebut wajib diisi.'),
   lingkunganKerja: f => (f.lingkunganKerja.trim() ? null : 'Lingkungan kerja yang disenangi beserta alasan wajib diisi.'),
   citaCita: f => (f.citaCita.trim() ? null : 'Cita-cita dalam hidup Anda wajib dicantumkan.'),
   kesulitanKeputusan: f => (f.kesulitanKeputusan.trim() ? null : 'Tulis kesulitan yang dialami jika mengambil keputusan.'),
@@ -167,10 +170,10 @@ const FIELD_RULES: Record<string, FieldRule> = {
 // the section rail error badges, and the error summary chips).
 const STEP_KEYS: Record<number, string[]> = {
   1: ['namaLengkap', 'nomorKtp', 'tempatLahir', 'tanggalLahir', 'alamatTinggal', 'alamatKtp', 'emailPribadi', 'noTelp', 'jenisKelamin', 'statusPernikahan'],
-  2: ['namaOrtu', 'pekerjaanOrtu', 'alamatOrtu', 'namaPasangan', 'pekerjaanPasangan'],
+  2: ['namaOrtu', 'pekerjaanOrtu', 'anakKe', 'jumlahSaudara', 'namaPasangan', 'pekerjaanPasangan'],
   3: ['pendidikanFormal'],
   4: ['jobdeskTerakhir'],
-  5: ['jabatanDituju', 'alasanJabatan', 'pengetahuanJabatan', 'lingkunganKerja', 'citaCita', 'kesulitanKeputusan'],
+  5: ['jabatanDituju', 'lingkunganKerja', 'citaCita', 'kesulitanKeputusan'],
   6: ['hobby', 'waktuLuang', 'kekuatanDiri', 'kelemahanDiri'],
   7: ['gajiDiinginkan', 'dapatMulaiBekerja', 'sumberInfoLowongan'],
   8: ['referensiKontak', 'kotaTgl', 'namaTerang'],
@@ -440,7 +443,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
   };
 
   // Nested row additions/deletions handlers
-  const handleEditNested = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number, subField: string, value: any) => {
+  const handleEditNested = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number, subField: string, value: any) => {
     setForm(prev => {
       const arr = [...(prev[field] as any[])];
       arr[index] = { ...arr[index], [subField]: value };
@@ -459,7 +462,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
     });
   };
 
-  const handleAddNested = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', defaultVal: any) => {
+  const handleAddNested = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', defaultVal: any) => {
     setForm(prev => {
       const arr = [...(prev[field] as any[])];
       arr.push(defaultVal);
@@ -468,7 +471,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
     setErrors([]);
   };
 
-  const handleRemoveNested = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number) => {
+  const handleRemoveNested = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number) => {
     setForm(prev => {
       const arr = [...(prev[field] as any[])];
       arr.splice(index, 1);
@@ -1175,14 +1178,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                       <FieldMsg msg={errors.namaPasangan} />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Tempat & Tgl. Lahir Pasangan <span className="text-state-error">*</span></label>
-                      <input type="text" value={form.ttlPasangan} onChange={(e) => setField('ttlPasangan', e.target.value)} placeholder="Contoh: Purwokerto, 15 April 1995" className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Pendidikan Terakhir Pasangan</label>
-                      <input type="text" value={form.pendidikanPasangan} onChange={(e) => setField('pendidikanPasangan', e.target.value)} placeholder="Contoh: S1 Akuntansi" className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                    </div>
-                    <div className="space-y-1.5">
                       <label htmlFor="fw-pekerjaanPasangan" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Pekerjaan Pasangan <span className="text-state-error">*</span></label>
                       <input id="fw-pekerjaanPasangan" type="text" value={form.pekerjaanPasangan} onChange={(e) => setField('pekerjaanPasangan', e.target.value)} onBlur={() => validateField('pekerjaanPasangan')} aria-invalid={!!errors.pekerjaanPasangan} placeholder="Tuliskan profesi pasangan saat ini" className={`w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('pekerjaanPasangan')}`} />
                       <FieldMsg msg={errors.pekerjaanPasangan} />
@@ -1194,7 +1189,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                     <div className="flex justify-between items-center">
                       <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Daftar Anak-Anak (Maksimal 5)</span>
                       {form.anak.length < 5 && (
-                        <button type="button" onClick={() => handleAddNested('anak', { nama: '', ttl: '', pendidikan: '' })} className="flex items-center space-x-2 text-brand-600 font-bold text-xs hover:text-brand-700 transition-colors cursor-pointer">
+                        <button type="button" onClick={() => handleAddNested('anak', { nama: '', ttl: '' })} className="flex items-center space-x-2 text-brand-600 font-bold text-xs hover:text-brand-700 transition-colors cursor-pointer">
                           <Plus className="h-4 w-4" />
                           <span>Tambah Anak</span>
                         </button>
@@ -1207,12 +1202,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                           key={idx}
                           index={idx}
                           title={ch.nama.trim() || `Anak ${idx + 1}`}
-                          subtitle={[ch.ttl.trim(), ch.pendidikan.trim()].filter(Boolean).join(' · ') || 'Belum ada rincian'}
+                          subtitle={ch.ttl.trim() || 'Belum ada rincian'}
                           expanded={isCardOpen(`anak-${idx}`, idx === 0)}
                           onToggle={() => toggleCard(`anak-${idx}`, idx === 0)}
                           onRemove={() => handleRemoveNested('anak', idx)}
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div className="space-y-1">
                               <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Nama Anak</label>
                               <input type="text" placeholder="Nama lengkap anak" value={ch.nama} onChange={(e) => handleEditNested('anak', idx, 'nama', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
@@ -1220,10 +1215,6 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                             <div className="space-y-1">
                               <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Tempat & Tgl Lahir</label>
                               <input type="text" placeholder="Contoh: Purwokerto, 12 Mei 2018" value={ch.ttl} onChange={(e) => handleEditNested('anak', idx, 'ttl', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                            </div>
-                            <div className="space-y-1">
-                              <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Pendidikan</label>
-                              <input type="text" placeholder="Contoh: TK Amanah / SD N 2" value={ch.pendidikan} onChange={(e) => handleEditNested('anak', idx, 'pendidikan', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
                             </div>
                           </div>
                         </RepeatableCard>
@@ -1248,69 +1239,24 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
                     <input id="fw-pekerjaanOrtu" type="text" value={form.pekerjaanOrtu} onChange={(e) => setField('pekerjaanOrtu', e.target.value)} onBlur={() => validateField('pekerjaanOrtu')} aria-invalid={!!errors.pekerjaanOrtu} placeholder="Tuliskan profesi pekerjaan orang tua" className={`w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('pekerjaanOrtu')}`} />
                     <FieldMsg msg={errors.pekerjaanOrtu} />
                   </div>
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label htmlFor="fw-alamatOrtu" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Alamat Lengkap Orang Tua <span className="text-state-error">*</span></label>
-                    <textarea id="fw-alamatOrtu" rows={2} value={form.alamatOrtu} onChange={(e) => setField('alamatOrtu', e.target.value)} onBlur={() => validateField('alamatOrtu')} aria-invalid={!!errors.alamatOrtu} placeholder="Tuliskan alamat tinggal orang tua saat ini..." className={`w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('alamatOrtu')}`} />
-                    <FieldMsg msg={errors.alamatOrtu} />
-                  </div>
                 </div>
               </div>
 
-              {/* SIBLINGS (Saudara Kandung) */}
+              {/* Birth order — replaces the retired "Saudara Kandung" block */}
               <div className="space-y-4 p-5 bg-bento-cream rounded-xl border border-bento-sand">
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Saudara Kandung (Maksimal 4)</span>
-                  {form.saudara.length < 4 && (
-                    <button type="button" onClick={() => handleAddNested('saudara', { nama: '', kakakAdik: '', usia: '', pendidikanPekerjaan: '' })} className="flex items-center space-x-2 text-brand-600 font-bold text-xs hover:text-brand-700 transition-colors cursor-pointer">
-                      <Plus className="h-4 w-4" />
-                      <span>Tambah Saudara</span>
-                    </button>
-                  )}
-                </div>
+                <span className="text-[11px] font-bold text-brand-600 uppercase tracking-wider">Posisi Dalam Keluarga</span>
 
-                <div className="space-y-3">
-                  {form.saudara.map((sd, idx) => (
-                    <RepeatableCard
-                      key={idx}
-                      index={idx}
-                      title={sd.nama.trim() || `Saudara ${idx + 1}`}
-                      subtitle={[sd.kakakAdik, sd.usia ? `${sd.usia} th` : '', sd.pendidikanPekerjaan].filter(Boolean).join(' · ') || 'Belum ada rincian'}
-                      expanded={isCardOpen(`saudara-${idx}`, idx === 0)}
-                      onToggle={() => toggleCard(`saudara-${idx}`, idx === 0)}
-                      onRemove={() => handleRemoveNested('saudara', idx)}
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Nama Saudara</label>
-                          <input type="text" placeholder="Nama lengkap saudara" value={sd.nama} onChange={(e) => handleEditNested('saudara', idx, 'nama', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Status</label>
-                          <div className="relative">
-                            <select value={sd.kakakAdik} onChange={(e) => handleEditNested('saudara', idx, 'kakakAdik', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 cursor-pointer appearance-none">
-                              <option value="">Status</option>
-                              <option value="Kakak">Kakak</option>
-                              <option value="Adik">Adik</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                              <svg className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Usia (th)</label>
-                          <input type="text" inputMode="numeric" placeholder="Contoh: 24" value={sd.usia} onChange={(e) => handleEditNested('saudara', idx, 'usia', e.target.value.replace(/\D/g, ''))} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                        </div>
-                        <div className="space-y-1 md:col-span-3">
-                          <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Pendidikan / Pekerjaan</label>
-                          <input type="text" placeholder="Contoh: SMK lulus, bekerja sebagai kasir" value={sd.pendidikanPekerjaan} onChange={(e) => handleEditNested('saudara', idx, 'pendidikanPekerjaan', e.target.value)} className="w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200" />
-                        </div>
-                      </div>
-                    </RepeatableCard>
-                  ))}
-                  {form.saudara.length === 0 && (
-                    <p className="text-xs text-stone-500 font-medium italic">Anda belum mencantumkan data saudara kandung.</p>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="fw-anakKe" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Anak ke- <span className="text-state-error">*</span></label>
+                    <input id="fw-anakKe" type="number" min={1} value={form.anakKe} onChange={(e) => setField('anakKe', e.target.value)} onBlur={() => validateField('anakKe')} aria-invalid={!!errors.anakKe} placeholder="Contoh: 2" className={`w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('anakKe')}`} />
+                    <FieldMsg msg={errors.anakKe} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="fw-jumlahSaudara" className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Dari Berapa Saudara Kandung? <span className="text-state-error">*</span></label>
+                    <input id="fw-jumlahSaudara" type="number" min={1} value={form.jumlahSaudara} onChange={(e) => setField('jumlahSaudara', e.target.value)} onBlur={() => validateField('jumlahSaudara')} aria-invalid={!!errors.jumlahSaudara} placeholder="Contoh: 4" className={`w-full bg-white border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('jumlahSaudara')}`} />
+                    <FieldMsg msg={errors.jumlahSaudara} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1590,31 +1536,19 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">2. Mengapa Saudara ingin bekerja pada jabatan tersebut? <span className="text-state-error">*</span></label>
-                <textarea id="fw-alasanJabatan" rows={2.5} value={form.alasanJabatan} onChange={(e) => setField('alasanJabatan', e.target.value)} onBlur={() => validateField('alasanJabatan')} aria-invalid={!!errors.alasanJabatan} placeholder="Tuliskan motivasi dasar mengapa melamar posisi lowongan tersebut..." className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('alasanJabatan')}`} />
-                <FieldMsg msg={errors.alasanJabatan} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">3. Apa yang Saudara ketahui tentang jabatan tersebut? (tugas dan tanggung jawabnya) <span className="text-state-error">*</span></label>
-                <textarea id="fw-pengetahuanJabatan" rows={3} value={form.pengetahuanJabatan} onChange={(e) => setField('pengetahuanJabatan', e.target.value)} onBlur={() => validateField('pengetahuanJabatan')} aria-invalid={!!errors.pengetahuanJabatan} placeholder="Urai pemahaman Anda mengenai tupoksi (tugas pokok dan fungsi) jabatan yang dituju..." className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('pengetahuanJabatan')}`} />
-                <FieldMsg msg={errors.pengetahuanJabatan} />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">4. Lingkungan kerja apa yang Saudara senangi? Apa sebabnya? <span className="text-state-error">*</span></label>
+                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">2. Lingkungan kerja apa yang Saudara senangi? Apa sebabnya? <span className="text-state-error">*</span></label>
                 <textarea id="fw-lingkunganKerja" rows={2.5} value={form.lingkunganKerja} onChange={(e) => setField('lingkunganKerja', e.target.value)} onBlur={() => validateField('lingkunganKerja')} aria-invalid={!!errors.lingkunganKerja} placeholder="Sebutkan lingkungan kerja ternyaman Anda (misal: kolaboratif, senyap, rapi)..." className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('lingkunganKerja')}`} />
                 <FieldMsg msg={errors.lingkunganKerja} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">5. Apa cita-cita dalam hidup Anda? <span className="text-state-error">*</span></label>
+                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">3. Apa cita-cita dalam hidup Anda? <span className="text-state-error">*</span></label>
                 <textarea id="fw-citaCita" rows={2.5} value={form.citaCita} onChange={(e) => setField('citaCita', e.target.value)} onBlur={() => validateField('citaCita')} aria-invalid={!!errors.citaCita} placeholder="Tulis visi impian hidup Anda..." className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('citaCita')}`} />
                 <FieldMsg msg={errors.citaCita} />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">6. Terhadap hal-hal apa saja Saudara paling sulit untuk mengambil keputusan? <span className="text-state-error">*</span></label>
+                <label className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">4. Terhadap hal-hal apa saja Saudara paling sulit untuk mengambil keputusan? <span className="text-state-error">*</span></label>
                 <textarea id="fw-kesulitanKeputusan" rows={2.5} value={form.kesulitanKeputusan} onChange={(e) => setField('kesulitanKeputusan', e.target.value)} onBlur={() => validateField('kesulitanKeputusan')} aria-invalid={!!errors.kesulitanKeputusan} placeholder="Tulis rincian kondisi yang membuat Anda goyah atau sulit memutuskan masalah..." className={`w-full bg-bento-cream border border-bento-sand focus:border-brand-400 focus:ring-2 focus:ring-brand-100 p-3 rounded-xl text-sm text-stone-800 font-medium outline-hidden transition-all duration-200 ${errBorder('kesulitanKeputusan')}`} />
                 <FieldMsg msg={errors.kesulitanKeputusan} />
               </div>

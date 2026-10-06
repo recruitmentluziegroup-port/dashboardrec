@@ -4,7 +4,19 @@ import fs from 'fs';
 import path from 'path';
 import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus } from '../types';
 
-// Columns mapping mapping to Google Sheets. Total 64 columns (BK/BL appended 2026-09).
+// Columns mapping mapping to Google Sheets. Total 66 columns (BK/BL appended 2026-09;
+// BM/BN appended 2026-10 for the birth-order pair).
+//
+// ⚠️ RETIRED SLOTS — DO NOT DELETE OR REORDER.
+// The 6 columns below (idx 23, 24, 28, 30, 37, 38) had their candidate-facing
+// inputs deleted. Their headers and positions are intentionally RETAINED so that
+// every index >= 23 stays stable. That keeps all historical rows readable and
+// keeps the independent index map in `api/status.ts` (match[13], match[36]) correct.
+// These slots are written as blanks from now on; their data is retired, not hidden.
+//   23 'TTL Pasangan'        28 'Alamat Orang Tua'   37 'Alasan Jabatan'
+//   24 'Pendidikan Pasangan' 30 'Saudara (JSON)'     38 'Pengetahuan Jabatan'
+// Removing them physically would shift 24..63 and silently mis-map every existing
+// application. See the session notes in progress.md (2026-10-06).
 const HEADERS = [
   'Applicant ID', 'Submission Date', 'Status', 'Last Updated',
   'Nama Lengkap', 'Tempat Lahir', 'Tanggal Lahir', 'Kewarganegaraan',
@@ -22,7 +34,10 @@ const HEADERS = [
   'Kendaraan Dimiliki', 'Pernah Sakit Keras', 'Detail Sakit Keras',
   'Gangguan Jasmani', 'Kesehatan Keluarga Baik', 'Detail Kesehatan Keluarga',
   'Alamat Media Sosial', 'Referensi Kontak (JSON)', 'Kota Tgl', 'Nama Terang',
-  'Sumber Info Lowongan', 'Keterangan Sumber'
+  'Sumber Info Lowongan', 'Keterangan Sumber',
+  // BM/BN — appended 2026-10. Headers must be typed manually into the live Sheet
+  // (ensureHeaders() only writes when A1 is empty, so it will not add these).
+  'Posisi Anak Ke', 'Jumlah Saudara Kandung'
 ];
 
 let sheetsClient: any = null;
@@ -150,22 +165,22 @@ function applicantToRow(app: Applicant): any[] {
     app.statusPernikahan || '',
     app.tanggalStatusPernikahan || '',
     app.namaPasangan || '',
-    app.ttlPasangan || '',
-    app.pendidikanPasangan || '',
+    '', // idx 23 — RETIRED: TTL Pasangan (slot kept for index stability)
+    '', // idx 24 — RETIRED: Pendidikan Pasangan
     app.pekerjaanPasangan || '',
     JSON.stringify(app.anak || []),
     app.namaOrtu || '',
-    app.alamatOrtu || '',
+    '', // idx 28 — RETIRED: Alamat Orang Tua
     app.pekerjaanOrtu || '',
-    JSON.stringify(app.saudara || []),
+    '[]', // idx 30 — RETIRED: Saudara (JSON)
     JSON.stringify(app.pendidikanFormal || []),
     JSON.stringify(app.kursus || []),
     JSON.stringify(app.pengalamanKerja || []),
     JSON.stringify(app.referensiPerusahaan || []),
     app.jobdeskTerakhir || '',
     app.jabatanDituju || '',
-    app.alasanJabatan || '',
-    app.pengetahuanJabatan || '',
+    '', // idx 37 — RETIRED: Alasan Jabatan
+    '', // idx 38 — RETIRED: Pengetahuan Jabatan
     app.lingkunganKerja || '',
     app.citaCita || '',
     app.kesulitanKeputusan || '',
@@ -190,7 +205,10 @@ function applicantToRow(app: Applicant): any[] {
     app.kotaTgl || '',
     app.namaTerang || '',
     app.sumberInfoLowongan || '',
-    app.keteranganSumber || ''
+    app.keteranganSumber || '',
+    // BM/BN — appended 2026-10; short historical rows fall back to blank
+    app.anakKe || '',
+    app.jumlahSaudara || ''
   ];
 }
 
@@ -231,22 +249,20 @@ function rowToApplicant(row: any[]): Applicant {
     statusPernikahan: (row[20] || '') as 'Single' | 'Tunangan' | 'Menikah' | 'Bercerai' | '',
     tanggalStatusPernikahan: row[21] || '',
     namaPasangan: row[22] || '',
-    ttlPasangan: row[23] || '',
-    pendidikanPasangan: row[24] || '',
+    // idx 23, 24 — RETIRED (TTL Pasangan, Pendidikan Pasangan): read but discarded.
     pekerjaanPasangan: row[25] || '',
     anak: parseJsonSafe(row[26], []),
     namaOrtu: row[27] || '',
-    alamatOrtu: row[28] || '',
+    // idx 28 — RETIRED (Alamat Orang Tua): read but discarded.
     pekerjaanOrtu: row[29] || '',
-    saudara: parseJsonSafe(row[30], []),
+    // idx 30 — RETIRED (Saudara JSON): no longer surfaced.
     pendidikanFormal: parseJsonSafe(row[31], []),
     kursus: parseJsonSafe(row[32], []),
     pengalamanKerja: parseJsonSafe(row[33], []),
     referensiPerusahaan: parseJsonSafe(row[34], []),
     jobdeskTerakhir: row[35] || '',
     jabatanDituju: row[36] || '',
-    alasanJabatan: row[37] || '',
-    pengetahuanJabatan: row[38] || '',
+    // idx 37, 38 — RETIRED (Alasan Jabatan, Pengetahuan Jabatan).
     lingkunganKerja: row[39] || '',
     citaCita: row[40] || '',
     kesulitanKeputusan: row[41] || '',
@@ -272,7 +288,10 @@ function rowToApplicant(row: any[]): Applicant {
     namaTerang: row[61] || '',
     // BK/BL — appended 2026-09; short historical rows fall back to blank
     sumberInfoLowongan: row[62] || '',
-    keteranganSumber: row[63] || ''
+    keteranganSumber: row[63] || '',
+    // BM/BN — appended 2026-10; short historical rows fall back to blank
+    anakKe: row[64] || '',
+    jumlahSaudara: row[65] || ''
   };
 }
 

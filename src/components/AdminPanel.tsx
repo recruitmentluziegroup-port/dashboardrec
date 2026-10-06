@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock } from 'lucide-react';
-import { Applicant, ApplicationStatus, Anak, Saudara, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
+import { Applicant, ApplicationStatus, Anak, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
 import { PrintableDetail } from './dashboard/PrintableDetail';
@@ -858,7 +858,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     setEditedRecord(prev => prev ? { ...prev, [key]: val } : null);
   };
 
-  const handleEditNested = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number, subField: string, value: any) => {
+  const handleEditNested = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number, subField: string, value: any) => {
     setEditedRecord(prev => {
       if (!prev) return null;
       const arr = [...(prev[field] as any[])];
@@ -867,7 +867,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     });
   };
 
-  const handleAddNestedRow = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', defaultObj: any) => {
+  const handleAddNestedRow = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', defaultObj: any) => {
     setEditedRecord(prev => {
       if (!prev) return null;
       const arr = [...(prev[field] as any[])];
@@ -876,7 +876,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
     });
   };
 
-  const handleRemoveNestedRow = (field: 'anak' | 'saudara' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number) => {
+  const handleRemoveNestedRow = (field: 'anak' | 'pendidikanFormal' | 'kursus' | 'pengalamanKerja' | 'referensiPerusahaan' | 'organisasi' | 'referensiKontak', index: number) => {
     setEditedRecord(prev => {
       if (!prev) return null;
       const arr = [...(prev[field] as any[])];
@@ -1919,14 +1919,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                   <p className="text-sm text-stone-800">{editedRecord.namaPasangan || '-'}</p>
                                 )}
                               </div>
-                              <div className="space-y-1">
-                                <label htmlFor="dt-ttl-pasangan" className="text-[10px] font-bold text-stone-500 uppercase">TTL Pasangan</label>
-                                {isEditing ? (
-                                  <input id="dt-ttl-pasangan" type="text" value={editedRecord.ttlPasangan || ''} onChange={(e) => editField('ttlPasangan', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
-                                ) : (
-                                  <p className="text-sm text-stone-800">{editedRecord.ttlPasangan || '-'}</p>
-                                )}
-                              </div>
                             </div>
                           </div>
 
@@ -1935,7 +1927,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="flex justify-between items-center">
                               <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Anak</h4>
                               {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('anak', { nama: '', ttl: '', pendidikan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
+                                <button type="button" onClick={() => handleAddNestedRow('anak', { nama: '', ttl: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
                                   + Tambah Anak
                                 </button>
                               )}
@@ -1944,10 +1936,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                             <div className="space-y-3">
                               {(editedRecord.anak || []).map((ch, idx) => (
                                 <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
-                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
                                     <input type="text" placeholder="Nama Anak" disabled={!isEditing} value={ch.nama} onChange={(e) => handleEditNested('anak', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                     <input type="text" placeholder="TTL Anak" disabled={!isEditing} value={ch.ttl} onChange={(e) => handleEditNested('anak', idx, 'ttl', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Pendidikan Anak" disabled={!isEditing} value={ch.pendidikan} onChange={(e) => handleEditNested('anak', idx, 'pendidikan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
                                   </div>
                                   {isEditing && (
                                     <button onClick={() => handleRemoveNestedRow('anak', idx)} className="text-red-500 p-1">
@@ -1982,51 +1973,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                   <p className="text-sm text-stone-800">{editedRecord.pekerjaanOrtu}</p>
                                 )}
                               </div>
-                              <div className="md:col-span-2 space-y-1">
-                                <label htmlFor="dt-alamat-ortu" className="text-[10px] font-bold text-stone-500 uppercase">Alamat Orang Tua</label>
+                              <div className="space-y-1">
+                                <label htmlFor="dt-anak-ke" className="text-[10px] font-bold text-stone-500 uppercase">Anak ke-</label>
                                 {isEditing ? (
-                                  <textarea id="dt-alamat-ortu" value={editedRecord.alamatOrtu} onChange={(e) => editField('alamatOrtu', e.target.value)} rows={2} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                  <input id="dt-anak-ke" type="number" min={1} value={editedRecord.anakKe || ''} onChange={(e) => editField('anakKe', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                                 ) : (
-                                  <p className="text-sm text-stone-800 whitespace-pre-wrap">{editedRecord.alamatOrtu}</p>
+                                  <p className="text-sm text-stone-800">{editedRecord.anakKe || '-'}</p>
                                 )}
                               </div>
-                            </div>
-                          </div>
-
-                          {/* Siblings */}
-                          <div className="space-y-4 pt-4 border-t border-stone-100">
-                            <div className="flex justify-between items-center">
-                              <h4 className="text-xs font-bold text-stone-500 uppercase tracking-wide">Saudara Kandung</h4>
-                              {isEditing && (
-                                <button type="button" onClick={() => handleAddNestedRow('saudara', { nama: '', kakakAdik: '', usia: '', pendidikanPekerjaan: '' })} className="text-xs text-brand-700 px-2 py-1 font-bold">
-                                  + Tambah Saudara
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="space-y-3">
-                              {(editedRecord.saudara || []).map((sd, idx) => (
-                                <div key={idx} className="p-3 bg-stone-50 rounded-xl border border-editorial-border flex items-center space-x-3">
-                                  <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                    <input type="text" placeholder="Nama Saudara" disabled={!isEditing} value={sd.nama} onChange={(e) => handleEditNested('saudara', idx, 'nama', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <select disabled={!isEditing} value={sd.kakakAdik} onChange={(e) => handleEditNested('saudara', idx, 'kakakAdik', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg">
-                                      <option value="">Status</option>
-                                      <option value="Kakak">Kakak</option>
-                                      <option value="Adik">Adik</option>
-                                    </select>
-                                    <input type="text" placeholder="Usia" disabled={!isEditing} value={sd.usia} onChange={(e) => handleEditNested('saudara', idx, 'usia', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                    <input type="text" placeholder="Pendidikan / Pekerjaan" disabled={!isEditing} value={sd.pendidikanPekerjaan} onChange={(e) => handleEditNested('saudara', idx, 'pendidikanPekerjaan', e.target.value)} className="bg-white border text-xs p-1.5 rounded-lg" />
-                                  </div>
-                                  {isEditing && (
-                                    <button onClick={() => handleRemoveNestedRow('saudara', idx)} className="text-red-500 p-1">
-                                      <X className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              ))}
-                              {(!editedRecord.saudara || editedRecord.saudara.length === 0) && (
-                                <p className="text-xs text-stone-500 font-medium italic">Tidak ada data saudara kandung dimasukkan.</p>
-                              )}
+                              <div className="space-y-1">
+                                <label htmlFor="dt-jumlah-saudara" className="text-[10px] font-bold text-stone-500 uppercase">Dari Berapa Saudara Kandung?</label>
+                                {isEditing ? (
+                                  <input id="dt-jumlah-saudara" type="number" min={1} value={editedRecord.jumlahSaudara || ''} onChange={(e) => editField('jumlahSaudara', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
+                                ) : (
+                                  <p className="text-sm text-stone-800">{editedRecord.jumlahSaudara || '-'}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -2213,24 +2175,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                                 <input id="dt-jabatan" type="text" value={editedRecord.jabatanDituju} onChange={(e) => editField('jabatanDituju', e.target.value)} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
                               ) : (
                                 <p className="text-sm font-bold text-brand-700">{getOfficialPositionName(editedRecord.jabatanDituju) || '-'}</p>
-                              )}
-                            </div>
-
-                            <div className="space-y-1">
-                              <label htmlFor="dt-alasan" className="text-[10px] font-bold text-stone-500 uppercase">Alasan melamar jabatan tersebut</label>
-                              {isEditing ? (
-                                <textarea id="dt-alasan" value={editedRecord.alasanJabatan} onChange={(e) => editField('alasanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
-                              ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.alasanJabatan}</p>
-                              )}
-                            </div>
-
-                            <div className="space-y-1">
-                              <label htmlFor="dt-tugas" className="text-[10px] font-bold text-stone-500 uppercase">Mengerti tugas dan tanggung jawab jabatan tersebut?</label>
-                              {isEditing ? (
-                                <textarea id="dt-tugas" value={editedRecord.pengetahuanJabatan} onChange={(e) => editField('pengetahuanJabatan', e.target.value)} rows={3} className="w-full bg-stone-50 border border-stone-200 rounded-lg p-2 text-xs" />
-                              ) : (
-                                <p className="text-xs text-stone-800 whitespace-pre-wrap">{editedRecord.pengetahuanJabatan}</p>
                               )}
                             </div>
 

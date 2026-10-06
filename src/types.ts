@@ -28,17 +28,16 @@ export const SUMBER_WARRANTS_KETERANGAN: readonly string[] = [
   'Lainnya',
 ];
 
+/**
+ * `Anak` is stored as a JSON string in Sheets col AA (index 26).
+ * The historical `pendidikan` sub-field was retired from the candidate form;
+ * it is intentionally absent here. Legacy rows read back from Sheets may still
+ * carry the key inside the stored JSON — it is simply never rendered or written
+ * again, and `parseJsonSafe` preserves it verbatim on re-save.
+ */
 export interface Anak {
   nama: string;
   ttl: string;
-  pendidikan: string;
-}
-
-export interface Saudara {
-  nama: string;
-  kakakAdik: 'Kakak' | 'Adik' | '';
-  usia: string;
-  pendidikanPekerjaan: string;
 }
 
 export interface PendidikanFormal {
@@ -145,14 +144,12 @@ export interface Applicant {
 
   // Step 2: Keluarga & Lingkungan
   namaPasangan: string;
-  ttlPasangan: string;
-  pendidikanPasangan: string;
   pekerjaanPasangan: string;
   anak: Anak[]; // JSON column in Sheets
   namaOrtu: string;
-  alamatOrtu: string;
   pekerjaanOrtu: string;
-  saudara: Saudara[]; // JSON column in Sheets
+  anakKe: string; // Sheets col BM
+  jumlahSaudara: string; // Sheets col BN
 
   // Step 3: Riwayat Pendidikan
   pendidikanFormal: PendidikanFormal[]; // JSON column in Sheets
@@ -165,8 +162,6 @@ export interface Applicant {
 
   // Step 5: Minat & Konsep Diri
   jabatanDituju: string;
-  alasanJabatan: string;
-  pengetahuanJabatan: string;
   lingkunganKerja: string;
   citaCita: string;
   kesulitanKeputusan: string;

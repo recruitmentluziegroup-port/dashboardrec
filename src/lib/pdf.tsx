@@ -251,14 +251,6 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
                   <Text style={styles.value}>{applicant.namaPasangan || '-'}</Text>
                 </View>
                 <View style={styles.gridCol6}>
-                  <Text style={styles.label}>TTL Pasangan</Text>
-                  <Text style={styles.value}>{applicant.ttlPasangan || '-'}</Text>
-                </View>
-                <View style={styles.gridCol6}>
-                  <Text style={styles.label}>Pendidikan Terakhir Pasangan</Text>
-                  <Text style={styles.value}>{applicant.pendidikanPasangan || '-'}</Text>
-                </View>
-                <View style={styles.gridCol6}>
                   <Text style={styles.label}>Pekerjaan Pasangan</Text>
                   <Text style={styles.value}>{applicant.pekerjaanPasangan || '-'}</Text>
                 </View>
@@ -269,15 +261,13 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
                   <Text style={styles.label}>Anak-Anak:</Text>
                   <View style={styles.table}>
                     <View style={styles.tableHeader}>
-                      <Text style={[styles.tableCellHeader, { width: '40%' }]}>Nama Anak</Text>
-                      <Text style={[styles.tableCellHeader, { width: '30%' }]}>Tempat, Tanggal Lahir</Text>
-                      <Text style={[styles.tableCellHeader, { width: '30%' }]}>Pendidikan</Text>
+                      <Text style={[styles.tableCellHeader, { width: '55%' }]}>Nama Anak</Text>
+                      <Text style={[styles.tableCellHeader, { width: '45%' }]}>Tempat, Tanggal Lahir</Text>
                     </View>
                     {applicant.anak.map((a, idx) => (
                       <View style={styles.tableRow} key={idx}>
-                        <Text style={[styles.tableCell, { width: '40%' }]}>{a.nama || '-'}</Text>
-                        <Text style={[styles.tableCell, { width: '30%' }]}>{a.ttl || '-'}</Text>
-                        <Text style={[styles.tableCell, { width: '30%' }]}>{a.pendidikan || '-'}</Text>
+                        <Text style={[styles.tableCell, { width: '55%' }]}>{a.nama || '-'}</Text>
+                        <Text style={[styles.tableCell, { width: '45%' }]}>{a.ttl || '-'}</Text>
                       </View>
                     ))}
                   </View>
@@ -297,34 +287,16 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
                 <Text style={styles.label}>Pekerjaan Orang Tua</Text>
                 <Text style={styles.value}>{applicant.pekerjaanOrtu}</Text>
               </View>
-              <View style={styles.gridCol12}>
-                <Text style={styles.label}>Alamat Orang Tua</Text>
-                <Text style={styles.value}>{applicant.alamatOrtu}</Text>
+              <View style={styles.gridCol6}>
+                <Text style={styles.label}>Anak ke-</Text>
+                <Text style={styles.value}>{applicant.anakKe || '-'}</Text>
+              </View>
+              <View style={styles.gridCol6}>
+                <Text style={styles.label}>Dari Berapa Saudara Kandung?</Text>
+                <Text style={styles.value}>{applicant.jumlahSaudara || '-'}</Text>
               </View>
             </View>
           </View>
-
-          {applicant.saudara && applicant.saudara.length > 0 && (
-            <View>
-              <Text style={styles.label}>Saudara Kandung:</Text>
-              <View style={styles.table}>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableCellHeader, { width: '40%' }]}>Nama Saudara</Text>
-                  <Text style={[styles.tableCellHeader, { width: '15%' }]}>Kakak / Adik</Text>
-                  <Text style={[styles.tableCellHeader, { width: '15%' }]}>Usia</Text>
-                  <Text style={[styles.tableCellHeader, { width: '30%' }]}>Pendidikan / Pekerjaan</Text>
-                </View>
-                {applicant.saudara.map((b, idx) => (
-                  <View style={styles.tableRow} key={idx}>
-                    <Text style={[styles.tableCell, { width: '40%' }]}>{b.nama || '-'}</Text>
-                    <Text style={[styles.tableCell, { width: '15%' }]}>{b.kakakAdik || '-'}</Text>
-                    <Text style={[styles.tableCell, { width: '15%' }]}>{b.usia || '-'}</Text>
-                    <Text style={[styles.tableCell, { width: '30%' }]}>{b.pendidikanPekerjaan || '-'}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
         </View>
 
         {/* Step 3: Riwayat Pendidikan */}
@@ -443,14 +415,6 @@ export const MyPdfDocument: React.FC<PdfProps> = ({ applicant }) => {
             <View style={styles.gridCol12}>
               <Text style={styles.label}>Jabatan yang Dituju</Text>
               <Text style={styles.value}>{applicant.jabatanDituju}</Text>
-            </View>
-            <View style={styles.gridCol12}>
-              <Text style={styles.label}>Mengapa ingin bekerja pada jabatan tersebut?</Text>
-              <Text style={styles.value}>{applicant.alasanJabatan}</Text>
-            </View>
-            <View style={styles.gridCol12}>
-              <Text style={styles.label}>Apa yang Saudara ketahui tentang tugas dan tanggung jawab jabatan tersebut?</Text>
-              <Text style={styles.value}>{applicant.pengetahuanJabatan}</Text>
             </View>
             <View style={styles.gridCol12}>
               <Text style={styles.label}>Lingkungan kerja apa yang Saudara senangi? Apa sebabnya?</Text>

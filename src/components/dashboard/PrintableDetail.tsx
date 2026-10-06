@@ -81,7 +81,7 @@ export const PrintableDetail: React.FC<PrintableDetailProps> = ({ applicant }) =
   const isMarriedOrDivorced = a.statusPernikahan === 'Menikah' || a.statusPernikahan === 'Bercerai';
 
   const anakRows: React.ReactNode[][] = (a.anak || []).map((row: Anak) => [
-    row.nama, row.ttl, row.pendidikan,
+    row.nama, row.ttl,
   ]);
   const pendidikanRows: React.ReactNode[][] = (a.pendidikanFormal || []).map((row: PendidikanFormal) => [
     `${row.dari}–${row.sampai}`, row.sekolah, row.jurusan, row.kota, row.ijazah || '-',
@@ -147,21 +147,18 @@ export const PrintableDetail: React.FC<PrintableDetailProps> = ({ applicant }) =
         {isMarriedOrDivorced && (
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 mb-4">
             <Field label="Nama Pasangan" value={a.namaPasangan} />
-            <Field label="TTL Pasangan" value={a.ttlPasangan} />
-            <Field label="Pendidikan Pasangan" value={a.pendidikanPasangan} />
             <Field label="Pekerjaan Pasangan" value={a.pekerjaanPasangan} />
           </div>
         )}
         <Table
-          headers={['Nama Anak', 'TTL', 'Pendidikan']}
+          headers={['Nama Anak', 'TTL']}
           rows={anakRows}
         />
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-3">
           <Field label="Nama Orang Tua" value={a.namaOrtu} />
           <Field label="Pekerjaan Orang Tua" value={a.pekerjaanOrtu} />
-          <div className="col-span-2">
-            <Field label="Alamat Orang Tua" value={a.alamatOrtu} />
-          </div>
+          <Field label="Anak ke-" value={a.anakKe || '-'} />
+          <Field label="Dari Berapa Saudara Kandung?" value={a.jumlahSaudara || '-'} />
         </div>
       </Section>
 
@@ -193,8 +190,7 @@ export const PrintableDetail: React.FC<PrintableDetailProps> = ({ applicant }) =
       <Section title="5. Minat & Konsep Diri">
         <div className="space-y-3">
           <Field label="Jabatan yang Dituju" value={a.jabatanDituju} />
-          <Field label="Alasan Memilih Jabatan" value={a.alasanJabatan} />
-          <Field label="Pengetahuan tentang Jabatan" value={a.pengetahuanJabatan} />
+          
           <Field label="Lingkungan Kerja yang Diinginkan" value={a.lingkunganKerja} />
           <Field label="Cita-Cita" value={a.citaCita} />
           <Field label="Kesulitan dalam Pengambilan Keputusan" value={a.kesulitanKeputusan} />
