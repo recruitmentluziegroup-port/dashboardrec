@@ -87,7 +87,14 @@ interface Vacancy {
   description: string;
   requirements: string[];
   archived?: boolean;
+  status?: string;
 }
+
+const isVacancyActive = (v: Vacancy): boolean => {
+  if (v.archived === true || String(v.archived).toLowerCase() === 'true') return false;
+  if (v.status === 'Closed-Filled' || v.status === 'Closed-Unfilled') return false;
+  return true;
+};
 
 // -----------------------------------------------------------------
 // Validation rules — one rule per logical field key. Group keys
@@ -306,7 +313,7 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/vacancies')
+    fetch('/api/vacancies', { cache: 'no-store' })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch vacancies');
         return res.json();
@@ -708,12 +715,12 @@ export const FormWizard: React.FC<FormWizardProps> = ({ onSubmitSuccess }) => {
 
         {/* Grid Vacancies */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
-          {vacancies.filter((v) => !v.archived).length === 0 ? (
+          {vacancies.filter(isVacancyActive).length === 0 ? (
             <div className="col-span-1 md:col-span-2 text-center py-12 bg-white/5 border border-white/10 rounded-[--radius-bento] p-6 text-white font-semibold">
               Belum ada lowongan aktif yang terbuka saat ini.
             </div>
           ) : (
-            vacancies.filter((v) => !v.archived).map((vac, idx) => {
+            vacancies.filter(isVacancyActive).map((vac, idx) => {
               return (
                 <div 
                   key={idx} 

@@ -1,0 +1,229 @@
+[
+  {
+    "namaLengkap": "Ahmad Fajar",
+    "emailPribadi": "ahmad.fajar@example.com",
+    "noTelp": "081299998888",
+    "nomorKtp": "3372010101950003",
+    "jabatanDituju": "CEO & Founder Personal Assistant",
+    "sumberInfoLowongan": "LinkedIn",
+    "keteranganSumber": "",
+    "id": "APP-4B2A4DEA",
+    "submissionDate": "2026-11-04T04:27:16.219Z",
+    "status": "Pending",
+    "lastUpdated": "2026-11-04T04:27:16.219Z"
+  },
+  {
+    "id": "APP-7A2B9C1D",
+    "submissionDate": "2026-11-01T08:30:00.000Z",
+    "status": "Reviewed",
+    "lastUpdated": "2026-11-02T10:15:00.000Z",
+    "namaLengkap": "Budi Santoso",
+    "tempatLahir": "Surakarta",
+    "tanggalLahir": "1998-05-14",
+    "kewarganegaraan": "Indonesia",
+    "alamatTinggal": "Jl. Slamet Riyadi No. 120, Surakarta",
+    "alamatKtp": "Jl. Slamet Riyadi No. 120, Surakarta",
+    "alamatKtpSama": true,
+    "emailPribadi": "budi.santoso@gmail.com",
+    "noTelp": "081234567890",
+    "jenisKelamin": "Laki-laki",
+    "nomorKtp": "3372011405980001",
+    "simC": true,
+    "noSimC": "980512345678",
+    "simA": false,
+    "noSimA": "",
+    "agama": "Islam",
+    "golonganDarah": "O",
+    "statusPernikahan": "Single",
+    "tanggalStatusPernikahan": "",
+    "namaPasangan": "",
+    "pekerjaanPasangan": "",
+    "anak": [],
+    "namaOrtu": "Hadi Santoso",
+    "pekerjaanOrtu": "Wiraswasta",
+    "anakKe": "1",
+    "jumlahSaudara": "2",
+    "pendidikanFormal": [
+      {
+        "dari": "2016",
+        "sampai": "2020",
+        "sekolah": "Universitas Sebelas Maret",
+        "jurusan": "Manajemen Bisnis",
+        "kota": "Surakarta",
+        "ijazah": "Ya"
+      }
+    ],
+    "kursus": [
+      {
+        "bidang": "Digital Marketing & Ads",
+        "lamanya": "3 Bulan",
+        "tempat": "Purwadhika"
+      }
+    ],
+    "pengalamanKerja": [
+      {
+        "perusahaan": "PT Maju Digital",
+        "dari": "2021",
+        "sampai": "2023",
+        "jabatan": "Marketing Executive",
+        "gaji": "Rp 4.500.000",
+        "alasanPindah": "Mencari jenjang karir lebih luas"
+      }
+    ],
+    "referensiPerusahaan": [
+      {
+        "perusahaan": "PT Maju Digital",
+        "kontak": "Iwan Hendrawan",
+        "telp": "081398765432",
+        "hubungan": "Atasan Langsung"
+      }
+    ],
+    "jobdeskTerakhir": "Merancang kampanye digital, evaluasi performa iklan, dan kolaborasi dengan tim konten.",
+    "jabatanDituju": "Digital Marketer Specialist",
+    "lingkunganKerja": "Dinamis, kolaboratif, berorientasi target dan hasil.",
+    "citaCita": "Menjadi Head of Marketing di perusahaan berkembang pesat.",
+    "kesulitanKeputusan": "Memilih prioritas saat beberapa kampanye berjalan bersamaan dengan tenggat waktu ketat.",
+    "hobby": "Fotografi, mendengarkan podcast bisnis",
+    "waktuLuang": "Membaca buku dan berolahraga pagi",
+    "pernahKeLuarNegeri": "Tidak",
+    "detailKunjunganLuarNegeri": "",
+    "organisasi": [
+      {
+        "nama": "BEM Fakultas Ekonomi UNS",
+        "periode": "2018 - 2019",
+        "jabatan": "Koordinator Departemen Humas",
+        "keterangan": "Mengelola relasi sponsorship dan media partner"
+      }
+    ],
+    "kekuatanDiri": "Analitis, komunikatif, cepat beradaptasi dengan alat digital baru.",
+    "kelemahanDiri": "Terkadang terlalu perfeksionis terhadap detail visual kampanye.",
+    "gajiDiinginkan": "Rp 5.000.000 - Rp 6.000.000",
+    "fasilitasDiharapkan": "BPJS Kesehatan & Ketenagakerjaan, tunjangan komunikasi.",
+    "dapatMulaiBekerja": "Segera (1 minggu setelah penawaran)",
+    "kendaraanDimiliki": "Sepeda Motor Pribadi",
+    "pernahSakitKeras": "Tidak",
+    "detailSakitKeras": "",
+    "gangguanJasmani": "Tidak ada",
+    "kesehatanKeluargaBaik": "Ya",
+    "detailKesehatanKeluarga": "Keluarga dalam kondisi sehat",
+    "alamatMediaSosial": "linkedin.com/in/budisantoso-demo",
+    "sumberInfoLowongan": "Instagram",
+    "keteranganSumber": "",
+    "referensiKontak": [
+      {
+        "nama": "Agus Pratama",
+        "hubungan": "Rekan Kerja / Mentor",
+        "telp": "081287654321"
+      }
+    ],
+    "kotaTgl": "Surakarta, 1 November 2026",
+    "namaTerang": "Budi Santoso"
+  },
+  {
+    "id": "APP-4C8E2F01",
+    "submissionDate": "2026-11-02T09:15:00.000Z",
+    "status": "Interview HR",
+    "lastUpdated": "2026-11-03T14:00:00.000Z",
+    "namaLengkap": "Siti Rahmawati",
+    "tempatLahir": "Yogyakarta",
+    "tanggalLahir": "1999-06-25",
+    "kewarganegaraan": "Indonesia",
+    "alamatTinggal": "Jl. Kaliurang KM 5, Yogyakarta",
+    "alamatKtp": "Jl. Kaliurang KM 5, Yogyakarta",
+    "alamatKtpSama": true,
+    "emailPribadi": "siti.rahmawati@gmail.com",
+    "noTelp": "081398761234",
+    "jenisKelamin": "Perempuan",
+    "nomorKtp": "3372025506990002",
+    "simC": true,
+    "noSimC": "990623456789",
+    "simA": true,
+    "noSimA": "990698765432",
+    "agama": "Islam",
+    "golonganDarah": "A",
+    "statusPernikahan": "Single",
+    "tanggalStatusPernikahan": "",
+    "namaPasangan": "",
+    "pekerjaanPasangan": "",
+    "anak": [],
+    "namaOrtu": "Ahmad Subagyo",
+    "pekerjaanOrtu": "PNS",
+    "anakKe": "2",
+    "jumlahSaudara": "3",
+    "pendidikanFormal": [
+      {
+        "dari": "2017",
+        "sampai": "2021",
+        "sekolah": "Universitas Gadjah Mada",
+        "jurusan": "Administrasi Publik",
+        "kota": "Yogyakarta",
+        "ijazah": "Ya"
+      }
+    ],
+    "kursus": [
+      {
+        "bidang": "Executive Office Administration",
+        "lamanya": "2 Bulan",
+        "tempat": "Lembaga Bahasa & Manajemen LIA"
+      }
+    ],
+    "pengalamanKerja": [
+      {
+        "perusahaan": "PT Solusi Nusantara",
+        "dari": "2021",
+        "sampai": "2024",
+        "jabatan": "Administrative Assistant",
+        "gaji": "Rp 4.000.000",
+        "alasanPindah": "Ingin berkembang di peran executive assistant"
+      }
+    ],
+    "referensiPerusahaan": [
+      {
+        "perusahaan": "PT Solusi Nusantara",
+        "kontak": "Ratna Dewi",
+        "telp": "081122334455",
+        "hubungan": "Manager HRD"
+      }
+    ],
+    "jobdeskTerakhir": "Manajemen korespondensi, penjadwalan meeting, travel arrangement, dan dokumentasi administrasi proyek.",
+    "jabatanDituju": "Personal Assistant",
+    "lingkunganKerja": "Profesional, terstruktur, disiplin waktu, dan menghargai inisiatif.",
+    "citaCita": "Menjadi Head of Executive Office Operations.",
+    "kesulitanKeputusan": "Menyeimbangkan urgensi permintaan antar divisi dengan agenda pimpinan.",
+    "hobby": "Membaca literatur manajemen, berkebun",
+    "waktuLuang": "Mengikuti webinar produktivitas",
+    "pernahKeLuarNegeri": "Tidak",
+    "detailKunjunganLuarNegeri": "",
+    "organisasi": [
+      {
+        "nama": "Himpunan Mahasiswa Administrasi UGM",
+        "periode": "2019 - 2020",
+        "jabatan": "Sekretaris Umum",
+        "keterangan": "Mengatur arsip dan notulensi seluruh rapat pengurus"
+      }
+    ],
+    "kekuatanDiri": "Teliti, rapi, terorganisir tinggi, menjaga kerahasiaan data.",
+    "kelemahanDiri": "Kadang merasa perlu memastikan kembali berkali-kali sebelum menyerahkan laporan.",
+    "gajiDiinginkan": "Rp 4.500.000 - Rp 5.500.000",
+    "fasilitasDiharapkan": "BPJS Kesehatan, laptop kantor.",
+    "dapatMulaiBekerja": "2 minggu setelah offering",
+    "kendaraanDimiliki": "Mobil & Sepeda Motor",
+    "pernahSakitKeras": "Tidak",
+    "detailSakitKeras": "",
+    "gangguanJasmani": "Tidak ada",
+    "kesehatanKeluargaBaik": "Ya",
+    "detailKesehatanKeluarga": "Keluarga sehat walafiat",
+    "alamatMediaSosial": "linkedin.com/in/sitirahmawati-demo",
+    "sumberInfoLowongan": "LinkedIn",
+    "keteranganSumber": "",
+    "referensiKontak": [
+      {
+        "nama": "Dina Astuti",
+        "hubungan": "Senior Colleague",
+        "telp": "081299887766"
+      }
+    ],
+    "kotaTgl": "Yogyakarta, 2 November 2026",
+    "namaTerang": "Siti Rahmawati"
+  }
+]

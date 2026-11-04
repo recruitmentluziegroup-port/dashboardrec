@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Briefcase, Plus, Trash2, Save, RefreshCw, Layers, MapPin, DollarSign, ListChecks, Check, X } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Save, RefreshCw, Layers, MapPin, DollarSign, ListChecks, Check, X, Eye, EyeOff } from 'lucide-react';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { useToast, ConfirmDialog } from './ui/Toast';
 
@@ -11,6 +11,15 @@ interface Vacancy {
   description: string;
   requirements: string[];
   archived?: boolean;
+  status?: string;
+  priority?: string;
+  user?: string;
+  recruiter?: string;
+  tanggalDibuka?: string;
+  tanggalTerakhir?: string;
+  tanggalSelesai?: string;
+  jumlah?: string;
+  gender?: string;
 }
 
 interface VacancyManagerProps {
@@ -37,6 +46,10 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   const [activeTab, setActiveTab] = useState<number | null>(null);
   const [pendingDeleteIdx, setPendingDeleteIdx] = useState<number | null>(null);
   const toast = useToast();
+
+  const isItemArchived = (v: Vacancy) => {
+    return v.archived === true || String(v.archived).toLowerCase() === 'true' || v.status === 'Closed-Filled' || v.status === 'Closed-Unfilled';
+  };
 
   // Sync with prop when edit mode is first clicked
   const startEditing = () => {
@@ -66,6 +79,48 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
     setLocalVacancies(updated);
   };
 
+  // Toggle active / archived state.
+  // Activating (archived: false) ALWAYS sets status: 'Open' so it immediately shows up in candidate portal!
+  // Archiving (archived: true) sets status: 'Closed-Filled'.
+  const handleToggleArchive = async (index: number) => {
+    if (isEditingList) {
+      const current = localVacancies[index];
+      const currentlyArchived = isItemArchived(current);
+      const willBeArchived = !currentlyArchived;
+      const updated = [...localVacancies];
+      updated[index] = {
+        ...current,
+        archived: willBeArchived,
+        status: willBeArchived ? 'Closed-Filled' : 'Open'
+      };
+      setLocalVacancies(updated);
+      toast('info', willBeArchived
+        ? `Lowongan "${current.title}" ditandai untuk diarsipkan (klik Terapkan Perubahan untuk menyimpan).`
+        : `Lowongan "${current.title}" diaktifkan (klik Terapkan Perubahan untuk menyimpan).`);
+    } else {
+      const current = vacancies[index];
+      const currentlyArchived = isItemArchived(current);
+      const willBeArchived = !currentlyArchived;
+      const updated = vacancies.map((v, i) =>
+        i === index
+          ? {
+              ...v,
+              archived: willBeArchived,
+              status: willBeArchived ? 'Closed-Filled' : 'Open'
+            }
+          : v
+      );
+      try {
+        await onSave(updated);
+        toast('success', willBeArchived
+          ? `Lowongan "${current.title}" berhasil diarsipkan.`
+          : `Lowongan "${current.title}" berhasil diaktifkan dan langsung tayang di menu pelamar!`);
+      } catch {
+        toast('error', 'Gagal memperbarui status lowongan.');
+      }
+    }
+  };
+
   const addVacancy = () => {
     const newVac: Vacancy = {
       title: 'Posisi Baru',
@@ -73,7 +128,11 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
       location: 'Kota / Hub kerja',
       salary: 'Rentang Gaji',
       description: 'Deskripsi pekerjaan singkat di sini...',
-      requirements: ['Persyaratan Utama 1']
+      requirements: ['Persyaratan Utama 1'],
+      archived: false,
+      status: 'Open',
+      priority: 'Normal',
+      jumlah: '1'
     };
     const updated = [...localVacancies, newVac];
     setLocalVacancies(updated);
@@ -96,10 +155,15 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
       toast('error', 'Nama Posisi / Jabatan tidak boleh kosong.');
       return;
     }
-    const cleaned = localVacancies.map(v => ({
-      ...v,
-      requirements: v.requirements.map(r => r.trim()).filter(r => r.length > 0)
-    }));
+    const cleaned = localVacancies.map(v => {
+      const isArchived = isItemArchived(v);
+      return {
+        ...v,
+        archived: isArchived,
+        status: isArchived ? (v.status === 'Closed-Unfilled' ? 'Closed-Unfilled' : 'Closed-Filled') : 'Open',
+        requirements: v.requirements.map(r => r.trim()).filter(r => r.length > 0)
+      };
+    });
     await onSave(cleaned);
     setIsEditingList(false);
   };
@@ -108,6 +172,7 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
   const displayList = isEditingList ? localVacancies : vacancies;
   const selectedIdx = activeTab !== null ? activeTab : (displayList.length > 0 ? 0 : null);
   const selectedVacancy = selectedIdx !== null ? displayList[selectedIdx] : null;
+  const selectedIsArchived = selectedVacancy ? isItemArchived(selectedVacancy) : false;
 
   return (
     <div className="bg-white rounded-2xl border border-editorial-border shadow-xl overflow-hidden font-sans berkas-stripe" id="vacancy-manager-card">
@@ -135,11 +200,11 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
             <h2 className="text-xl font-black tracking-tight leading-none text-white">Kelola Lowongan Aktif</h2>
           </div>
           <p className="text-xs text-stone-300 font-medium">
-            Atur dan rombak formasi jabatan pendaftaran yang sedang dibuka saat ini untuk masuk langsung ke sistem portal pelamar.
+            Atur formasi jabatan lowongan kerja. Posisi yang berstatus <strong>Aktif</strong> otomatis muncul di menu pelamar.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative z-10">
           <button
             onClick={onRefresh}
             className="p-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all border border-white/20 cursor-pointer"
@@ -220,21 +285,25 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              {displayList.map((vac, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => setActiveTab(idx)}
-                  className={`p-3 rounded-xl border transition-all cursor-pointer text-left flex items-start justify-between space-x-3 ${
-                    selectedIdx === idx
-                      ? 'bg-brand-50 border-brand-200 text-editorial-navy shadow-xs ring-1 ring-brand-100'
-                      : 'bg-white hover:bg-stone-100 border-editorial-border text-stone-700'
-                  }`}
-                >
+              {displayList.map((vac, idx) => {
+                const isArchived = isItemArchived(vac);
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setActiveTab(idx)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer text-left flex items-start justify-between space-x-3 ${
+                      selectedIdx === idx
+                        ? 'bg-brand-50 border-brand-200 text-editorial-navy shadow-xs ring-1 ring-brand-100'
+                        : 'bg-white hover:bg-stone-100 border-editorial-border text-stone-700'
+                    }`}
+                  >
                     <div className="space-y-1 truncate flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 min-w-0">
                         <span className="text-xs font-black truncate leading-tight block">{vac.title || '(Tanpa Nama)'}</span>
-                        {vac.archived && (
+                        {isArchived ? (
                           <span className="shrink-0 text-[10px] bg-amber-100 text-amber-800 border border-amber-200 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">Arsip</span>
+                        ) : (
+                          <span className="shrink-0 text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200 font-extrabold px-1.5 py-0.2 rounded uppercase tracking-wider">Aktif</span>
                         )}
                       </div>
                       <span className="text-[10px] font-semibold text-stone-500 block truncate">{vac.category || 'Belum diisi'}</span>
@@ -247,20 +316,21 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                         ) : null;
                       })()}
                     </div>
-                  {isEditingList && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPendingDeleteIdx(idx);
-                      }}
-                      className="p-1 bg-stone-50 hover:bg-rose-50 text-stone-500 hover:text-rose-600 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
-                      title="Hapus Lowongan"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                    {isEditingList && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPendingDeleteIdx(idx);
+                        }}
+                        className="p-1 bg-stone-50 hover:bg-rose-50 text-stone-500 hover:text-rose-600 rounded-md transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center cursor-pointer"
+                        title="Hapus Lowongan"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -305,42 +375,54 @@ export const VacancyManager: React.FC<VacancyManagerProps> = ({
                   )}
 
                   {/* Status & Archival Control Panel */}
-                  <div className="mt-4 p-3 bg-stone-50 border border-stone-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
-                    <div className="flex items-center space-x-2.5">
-                      <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${selectedVacancy.archived ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+                  <div className="mt-4 p-4 bg-stone-50 border border-stone-200 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
+                    <div className="flex items-center space-x-3">
+                      <span className={`h-3 w-3 rounded-full shrink-0 ${selectedIsArchived ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                       <div>
-                        <p className="text-xs font-black text-stone-900">
-                          Status: {selectedVacancy.archived ? 'Diarsipkan' : 'Aktif / Terbuka'}
-                        </p>
-                        <p className="text-[10px] text-stone-500 font-semibold leading-normal">
-                          {selectedVacancy.archived 
-                            ? 'Posisinya disembunyikan dari daftar lowongan dan portal lamaran.' 
-                            : 'Posisinya tampil di portal agar pelamar dapat mendaftar langsung.'}
+                        <div className="flex items-center space-x-2">
+                          <p className="text-xs font-black text-stone-900">
+                            Status: {selectedIsArchived ? 'Diarsipkan (Nonaktif)' : 'Aktif / Terbuka'}
+                          </p>
+                          {selectedIsArchived ? (
+                            <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                              Tidak Tayang di Pelamar
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                              Tayang di Menu Pelamar
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-500 font-medium leading-normal mt-0.5">
+                          {selectedIsArchived 
+                            ? 'Posisinya disembunyikan dari daftar portal lamaran pelamar. Klik "Aktifkan Lowongan" untuk menayangkannya kembali.' 
+                            : 'Posisinya aktif dan tampil di halaman formulir pelamar agar kandidat dapat langsung memilih dan melamar.'}
                         </p>
                       </div>
                     </div>
-                    {isEditingList ? (
-                      <button
-                        type="button"
-                        onClick={() => handleFieldChange(selectedIdx!, 'archived', !selectedVacancy.archived)}
-                        className={`text-xs font-bold px-3.5 py-1.5 rounded-lg border shadow-xs transition-all cursor-pointer ${
-                          selectedVacancy.archived 
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600' 
-                            : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200'
-                        }`}
-                      >
-                        {selectedVacancy.archived ? 'Buka Lowongan ini' : 'Arsipkan Lowongan ini'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="text-stone-500 bg-stone-100 border border-stone-200 text-xs font-semibold px-3.5 py-1.5 rounded-lg cursor-not-allowed opacity-75 animate-fade-in"
-                        title="Klik 'Edit Formasi Lowongan' di atas terlebih dahulu untuk mengubah status arsip"
-                      >
-                        {selectedVacancy.archived ? 'Buka Lowongan ini' : 'Arsipkan Lowongan ini'}
-                      </button>
-                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleArchive(selectedIdx!)}
+                      disabled={loading}
+                      className={`text-xs font-bold px-4 py-2 rounded-xl border shadow-xs transition-all cursor-pointer shrink-0 flex items-center space-x-1.5 ${
+                        selectedIsArchived 
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-emerald-600/20' 
+                          : 'bg-white hover:bg-amber-50 text-amber-800 border-amber-300'
+                      }`}
+                    >
+                      {selectedIsArchived ? (
+                        <>
+                          <Check className="h-3.5 w-3.5" />
+                          <span>Aktifkan Lowongan ini</span>
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="h-3.5 w-3.5" />
+                          <span>Arsipkan Lowongan ini</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
 

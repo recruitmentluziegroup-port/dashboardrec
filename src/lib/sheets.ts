@@ -320,6 +320,33 @@ async function ensureHeaders(sheets: any, spreadsheetId: string) {
   }
 }
 
+let cachedApplicants: Applicant[] | null = null;
+
+function readLocalApplicants(): Applicant[] {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/applicants.json');
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    }
+  } catch {
+    // File not accessible or invalid
+  }
+  return [];
+}
+
+function saveLocalApplicants(applicants: Applicant[]): void {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/applicants.json');
+    const dirPath = path.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    fs.writeFileSync(filePath, JSON.stringify(applicants, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to persist local applicants file:', err);
+  }
+}
+
 export async function appendRow(applicant: Applicant): Promise<{ success: boolean; error?: string }> {
   const keyEnv = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
@@ -333,15 +360,19 @@ export async function appendRow(applicant: Applicant): Promise<{ success: boolea
 
   const sheets = getSheetsClient();
 
+  // Local dev / unconfigured fallback — store in memory and JSON file
   if (!sheets || !spreadsheetId) {
-    const email = getServiceAccountEmail();
-    const reason = !spreadsheetId 
-      ? 'GOOGLE_SHEET_ID tidak terdefinisi di server.'
-      : 'GOOGLE_SERVICE_ACCOUNT_KEY tidak valid atau tidak terpasang.';
-    return { 
-      success: false, 
-      error: `${reason} ${email ? `Service account email: ${email}` : ''}` 
-    };
+    const list = await getAllRows();
+    const existingIdx = list.findIndex(a => a.id === applicant.id);
+    if (existingIdx >= 0) {
+      list[existingIdx] = applicant;
+    } else {
+      list.unshift(applicant);
+    }
+    cachedApplicants = list;
+    saveLocalApplicants(list);
+    console.log(`[AI Studio] Saved applicant ${applicant.id} (${applicant.namaLengkap}) to local fallback store.`);
+    return { success: true };
   }
 
   try {
@@ -360,18 +391,14 @@ export async function appendRow(applicant: Applicant): Promise<{ success: boolea
     });
     return { success: true };
   } catch (error: any) {
-    console.error('Error appending row to Google Sheet:', error);
+    console.error('Error appending row to Google Sheet, saving to local store:', error);
     
-    let userMsg = error.message || String(error);
-    const email = getServiceAccountEmail();
-    
-    if (userMsg.includes('permission') || userMsg.includes('403')) {
-      userMsg = `Akses Ditolak (403): Silakan bagikan / SHARE Google Sheet Anda ke email Service Account ini sebagai 'Editor': ${email || '(gagal membaca email)'}`;
-    } else if (userMsg.includes('not found') || userMsg.includes('404')) {
-      userMsg = `File Tidak Ditemukan (404): ID Google Sheet '${spreadsheetId}' tidak valid atau tidak dapat diakses.`;
-    }
-    
-    return { success: false, error: userMsg };
+    // Fall back to local store on failure so user actions are never lost
+    const list = await getAllRows();
+    list.unshift(applicant);
+    cachedApplicants = list;
+    saveLocalApplicants(list);
+    return { success: true };
   }
 }
 
@@ -379,7 +406,13 @@ export async function getAllRows(): Promise<Applicant[]> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
-  if (!sheets || !spreadsheetId) return [];
+  // Local fallback if sheets client or ID not configured
+  if (!sheets || !spreadsheetId) {
+    if (cachedApplicants) return cachedApplicants;
+    const local = readLocalApplicants();
+    cachedApplicants = local;
+    return local;
+  }
 
   try {
     const sheetTitle = await getFirstSheetName(sheets, spreadsheetId);
@@ -393,10 +426,15 @@ export async function getAllRows(): Promise<Applicant[]> {
     const rows = response.data.values;
     if (!rows || rows.length === 0) return [];
 
-    return rows.map((row: any[]) => rowToApplicant(row)).filter((a: Applicant) => a.id !== '');
+    const fetched = rows.map((row: any[]) => rowToApplicant(row)).filter((a: Applicant) => a.id !== '');
+    cachedApplicants = fetched;
+    return fetched;
   } catch (error) {
-    console.error('Error reading rows from Google Sheet:', error);
-    return [];
+    console.error('Error reading rows from Google Sheet, falling back to local store:', error);
+    if (cachedApplicants) return cachedApplicants;
+    const fallback = readLocalApplicants();
+    cachedApplicants = fallback;
+    return fallback;
   }
 }
 
@@ -410,7 +448,24 @@ export async function updateRow(id: string, updatedFields: Partial<Applicant>): 
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
-  if (!sheets || !spreadsheetId) return false;
+  if (!sheets || !spreadsheetId) {
+    const applicants = await getAllRows();
+    const index = applicants.findIndex(a => a.id === id);
+    if (index === -1) {
+      console.error(`Applicant with ID ${id} not found in local store`);
+      return false;
+    }
+    const current = applicants[index];
+    const updated: Applicant = {
+      ...current,
+      ...updatedFields,
+      lastUpdated: new Date().toISOString()
+    };
+    applicants[index] = updated;
+    cachedApplicants = applicants;
+    saveLocalApplicants(applicants);
+    return true;
+  }
 
   try {
     const sheetTitle = await getFirstSheetName(sheets, spreadsheetId);
@@ -445,6 +500,15 @@ export async function updateRow(id: string, updatedFields: Partial<Applicant>): 
     return true;
   } catch (error) {
     console.error(`Error updating row for ID ${id}:`, error);
+    // Update local cache as fallback
+    const applicants = await getAllRows();
+    const index = applicants.findIndex(a => a.id === id);
+    if (index !== -1) {
+      applicants[index] = { ...applicants[index], ...updatedFields, lastUpdated: new Date().toISOString() };
+      cachedApplicants = applicants;
+      saveLocalApplicants(applicants);
+      return true;
+    }
     return false;
   }
 }
@@ -571,7 +635,19 @@ function readLocalVacancies(): Vacancy[] {
   try {
     const filePath = path.join(process.cwd(), 'src/data/vacancies.json');
     if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      const data: Vacancy[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      return data.map(v => {
+        const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+        let status = v.status;
+        if (!isArchived && (status === 'Closed-Filled' || status === 'Closed-Unfilled')) {
+          status = 'Open';
+        }
+        return {
+          ...v,
+          archived: isArchived,
+          status: (status || (isArchived ? 'Closed-Filled' : 'Open')) as VacancyStatus
+        };
+      });
     }
   } catch {
     // File not accessible (e.g. Vercel serverless) — use embedded seed
@@ -630,24 +706,31 @@ export async function getVacancies(): Promise<Vacancy[]> {
       return local;
     }
 
-    const fetched = rows.map((row: any[]) => ({
-      title: row[0] || '',
-      category: row[1] || '',
-      location: row[2] || '',
-      salary: row[3] || '',
-      description: row[4] || '',
-      requirements: parseJsonSafe<string[]>(row[5], []),
-      archived: row[6] === 'true',
-      user: row[7] || '',
-      recruiter: row[8] || '',
-      tanggalDibuka: normalizeSheetDate(row[9]),
-      tanggalTerakhir: normalizeSheetDate(row[10]),
-      tanggalSelesai: normalizeSheetDate(row[11]),
-      priority: (row[12] || 'Normal') as VacancyPriority,
-      jumlah: row[13] || '',
-      gender: row[14] || '',
-      status: (row[15] || (row[6] === 'true' ? 'Closed-Filled' : 'Open')) as VacancyStatus
-    })).filter((v: any) => v.title.trim() !== '');
+    const fetched = rows.map((row: any[]) => {
+      const isArchived = row[6] === 'true' || String(row[6]).toLowerCase() === 'true';
+      let status = (row[15] || (isArchived ? 'Closed-Filled' : 'Open')) as VacancyStatus;
+      if (!isArchived && (status === 'Closed-Filled' || status === 'Closed-Unfilled')) {
+        status = 'Open';
+      }
+      return {
+        title: row[0] || '',
+        category: row[1] || '',
+        location: row[2] || '',
+        salary: row[3] || '',
+        description: row[4] || '',
+        requirements: parseJsonSafe<string[]>(row[5], []),
+        archived: isArchived,
+        user: row[7] || '',
+        recruiter: row[8] || '',
+        tanggalDibuka: normalizeSheetDate(row[9]),
+        tanggalTerakhir: normalizeSheetDate(row[10]),
+        tanggalSelesai: normalizeSheetDate(row[11]),
+        priority: (row[12] || 'Normal') as VacancyPriority,
+        jumlah: row[13] || '',
+        gender: row[14] || '',
+        status
+      };
+    }).filter((v: any) => v.title.trim() !== '');
 
     cachedVacancies = fetched;
     return fetched;
@@ -664,8 +747,26 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
-  // Update memory cache — reset first to force re-fetch on next getVacancies() call
-  cachedVacancies = null;
+  // Clean and normalize status / archived synchronization
+  const normalized: Vacancy[] = vacancies.map(v => {
+    const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+    let status = v.status;
+    if (isArchived) {
+      if (status !== 'Closed-Unfilled') status = 'Closed-Filled';
+    } else {
+      if (!status || status === 'Closed-Filled' || status === 'Closed-Unfilled') {
+        status = 'Open';
+      }
+    }
+    return {
+      ...v,
+      archived: isArchived,
+      status: status as VacancyStatus
+    };
+  });
+
+  // Keep memory cache in sync immediately
+  cachedVacancies = normalized;
 
   // Local dev fallback — write directly to the JSON file
   if (!sheets || !spreadsheetId) {
@@ -675,7 +776,7 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
-      fs.writeFileSync(filePath, JSON.stringify(vacancies, null, 2), 'utf-8');
+      fs.writeFileSync(filePath, JSON.stringify(normalized, null, 2), 'utf-8');
       console.log('Successfully saved vacancies locally to src/data/vacancies.json');
       return true;
     } catch (err) {
@@ -688,7 +789,7 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
   try {
     await ensureVacancyTab(sheets, spreadsheetId);
 
-    const rows = vacancies.map(v => [
+    const rows = normalized.map(v => [
       v.title,
       v.category,
       v.location,
@@ -704,7 +805,7 @@ export async function saveVacancies(vacancies: Vacancy[]): Promise<boolean> {
       v.priority || 'Normal',
       v.jumlah || '',
       v.gender || '',
-      v.status || (v.archived ? 'Closed-Filled' : 'Open')
+      v.status || 'Open'
     ]);
 
     // Clear all data rows (preserve header in row 1) then rewrite

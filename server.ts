@@ -230,8 +230,15 @@ app.use(express.json({ limit: '10mb' }));
   // PUBLIC: active (non-archived, non-closed) vacancies only — what candidates see
   app.get('/api/vacancies', async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       const all = await getVacancies();
-      res.json(all.filter((v: any) => v.archived !== true && v.status !== 'Closed-Filled' && v.status !== 'Closed-Unfilled'));
+      const active = all.filter((v: any) => {
+        const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+        if (isArchived) return false;
+        if (v.status === 'Closed-Filled' || v.status === 'Closed-Unfilled') return false;
+        return true;
+      });
+      res.json(active);
     } catch (error) {
       console.error('Error reading vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil data lowongan pekerjaan.' });

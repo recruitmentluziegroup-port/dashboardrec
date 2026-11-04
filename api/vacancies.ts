@@ -137,13 +137,20 @@ async function getVacancies(): Promise<any[]> {
       cachedVacancies = cachedVacancies || SEED_VACANCIES;
       return cachedVacancies;
     }
-    cachedVacancies = rows.map((row) => ({
-      title: row[0] || '', category: row[1] || '', location: row[2] || '', salary: row[3] || '',
-      description: row[4] || '', requirements: parseJsonSafe<string[]>(row[5], []), archived: row[6] === 'true',
-      user: row[7] || '', recruiter: row[8] || '', tanggalDibuka: row[9] || '', tanggalTerakhir: row[10] || '',
-      tanggalSelesai: row[11] || '', priority: row[12] || 'Normal', jumlah: row[13] || '', gender: row[14] || '',
-      status: row[15] || (row[6] === 'true' ? 'Closed-Filled' : 'Open'),
-    })).filter((v) => v.title.trim() !== '');
+    cachedVacancies = rows.map((row) => {
+      const isArchived = row[6] === 'true' || String(row[6]).toLowerCase() === 'true';
+      let status = row[15] || (isArchived ? 'Closed-Filled' : 'Open');
+      if (!isArchived && (status === 'Closed-Filled' || status === 'Closed-Unfilled')) {
+        status = 'Open';
+      }
+      return {
+        title: row[0] || '', category: row[1] || '', location: row[2] || '', salary: row[3] || '',
+        description: row[4] || '', requirements: parseJsonSafe<string[]>(row[5], []), archived: isArchived,
+        user: row[7] || '', recruiter: row[8] || '', tanggalDibuka: row[9] || '', tanggalTerakhir: row[10] || '',
+        tanggalSelesai: row[11] || '', priority: row[12] || 'Normal', jumlah: row[13] || '', gender: row[14] || '',
+        status,
+      };
+    }).filter((v) => v.title.trim() !== '');
     return cachedVacancies;
   } catch {
     if (cachedVacancies) return cachedVacancies;
@@ -154,7 +161,15 @@ async function getVacancies(): Promise<any[]> {
 
 async function saveVacanciesInternal(vacancies: any[]): Promise<boolean> {
   await ensureVacancyTab();
-  const rows = vacancies.map((v) => [v.title, v.category, v.location, v.salary, v.description, JSON.stringify(v.requirements || []), v.archived ? 'true' : 'false', v.user || '', v.recruiter || '', v.tanggalDibuka || '', v.tanggalTerakhir || '', v.tanggalSelesai || '', v.priority || 'Normal', v.jumlah || '', v.gender || '', v.status || (v.archived ? 'Closed-Filled' : 'Open')]);
+  const rows = vacancies.map((v) => {
+    const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+    const status = isArchived ? (v.status === 'Closed-Unfilled' ? 'Closed-Unfilled' : 'Closed-Filled') : 'Open';
+    return [
+      v.title, v.category, v.location, v.salary, v.description, JSON.stringify(v.requirements || []),
+      isArchived ? 'true' : 'false', v.user || '', v.recruiter || '', v.tanggalDibuka || '', v.tanggalTerakhir || '',
+      v.tanggalSelesai || '', v.priority || 'Normal', v.jumlah || '', v.gender || '', status
+    ];
+  });
   await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A2:P')}:clear`, { method: 'POST' });
   if (rows.length > 0) {
     await sheetsFetch(`/values/${encodeURIComponent(VACANCY_TAB + '!A2')}?valueInputOption=RAW`, { method: 'PUT', body: JSON.stringify({ values: rows }) });
@@ -166,8 +181,14 @@ async function saveVacanciesInternal(vacancies: any[]): Promise<boolean> {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') return res.status(405).end();
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const all = await getVacancies();
-    return res.json(all.filter((v: any) => v.archived !== true && v.status !== 'Closed-Filled' && v.status !== 'Closed-Unfilled'));
+    return res.json(all.filter((v: any) => {
+      const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+      if (isArchived) return false;
+      if (v.status === 'Closed-Filled' || v.status === 'Closed-Unfilled') return false;
+      return true;
+    }));
   } catch (e: any) {
     return res.status(500).json({ error: e?.message || 'Gagal mengambil data lowongan.' });
   }

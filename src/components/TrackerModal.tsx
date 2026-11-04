@@ -50,7 +50,12 @@ export const TrackerModal: React.FC<TrackerModalProps> = ({
   // Synced positions — only non-archived vacancies are selectable so that
   // "Tinjau" (positionFilter by title) always finds the portal applicants.
   const activeVacancies = useMemo(
-    () => (vacancies || []).filter((v) => !v.archived && String(v.title || '').trim() !== ''),
+    () => (vacancies || []).filter((v) => {
+      const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
+      if (isArchived) return false;
+      if (v.status === 'Closed-Filled' || v.status === 'Closed-Unfilled') return false;
+      return String(v.title || '').trim() !== '';
+    }),
     [vacancies]
   );
   const knownTitle = activeVacancies.some(
