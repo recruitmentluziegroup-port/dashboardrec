@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock } from 'lucide-react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock, FileBarChart } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
@@ -8,6 +8,7 @@ import { TrackerTable } from './TrackerTable';
 import { TrackerModal } from './TrackerModal';
 import { CalendarAgenda } from './CalendarAgenda';
 import { InterviewModal } from './InterviewModal';
+import { LaporanHarian } from './LaporanHarian';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { AdminSkeleton } from './dashboard/AdminSkeleton';
 import { BerkasIdChip } from './dashboard/BerkasIdChip';
@@ -63,9 +64,9 @@ interface AdminPanelProps {
   adminEmail: string;
 }
 
-type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar';
+type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar' | 'laporan';
 
-const VALID_TABS: AdminTab[] = ['dashboard', 'list', 'vacancies', 'tracker', 'calendar'];
+const VALID_TABS: AdminTab[] = ['dashboard', 'list', 'vacancies', 'tracker', 'calendar', 'laporan'];
 
 // Deep-link (?tab=&status=&id=&q=&pos=&sort=) — shareable + refresh-safe admin state
 function readAdminParams(): { tab: AdminTab; id: string | null; q: string; status: string; pos: string; sort: 'newest' | 'oldest' | 'name' } {
@@ -897,7 +898,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
   const selectedCandidate = candidates.find(c => c.id === selectedId);
 
   // Quick tabs toggles referencing recruit screenshot
-  const handleNavTabClick = (mode: 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar') => {
+  const handleNavTabClick = (mode: AdminTab) => {
     setSelectedId(null); // clear individual view to show overview
     setIsPrintMode(false);
     setViewMode(mode);
@@ -935,7 +936,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             <button
               onClick={() => handleNavTabClick('list')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies')
+                (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies' && viewMode !== 'laporan')
                   ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
@@ -975,6 +976,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             >
               <CalendarDays className="h-4 w-4" />
               <span>Agenda</span>
+            </button>
+            <button
+              onClick={() => handleNavTabClick('laporan')}
+              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                viewMode === 'laporan'
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              <FileBarChart className="h-4 w-4" />
+              <span>Laporan Harian</span>
             </button>
           </div>
         </div>
@@ -1136,10 +1148,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 space-y-4 md:space-y-0">
               <div className="flex items-center space-x-4 lg:hidden">
                 {/* Responsive View Switches on small viewports */}
-                <div className="flex items-center space-x-1 bg-stone-200/50 p-1.5 rounded-xl">
+                <div className="flex items-center space-x-1 bg-stone-200/50 p-1.5 rounded-xl overflow-x-auto max-w-full">
                   <button
                     onClick={() => setViewMode('dashboard')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
                       viewMode === 'dashboard' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
@@ -1147,7 +1159,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
                       viewMode === 'list' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
@@ -1155,7 +1167,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </button>
                   <button
                     onClick={() => setViewMode('vacancies')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
                       viewMode === 'vacancies' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
@@ -1163,7 +1175,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </button>
                   <button
                     onClick={() => setViewMode('tracker')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
                       viewMode === 'tracker' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
@@ -1171,17 +1183,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   </button>
                   <button
                     onClick={() => setViewMode('calendar')}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
                       viewMode === 'calendar' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
                     }`}
                   >
                     Agenda
                   </button>
+                  <button
+                    onClick={() => setViewMode('laporan')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
+                      viewMode === 'laporan' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
+                    }`}
+                  >
+                    Laporan
+                  </button>
                 </div>
               </div>
             </div>
 
-            {loading ? (
+            {viewMode === 'laporan' ? (
+              <LaporanHarian />
+            ) : loading ? (
               <AdminSkeleton variant="table" />
             ) : error ? (
               <AdminEmptyState

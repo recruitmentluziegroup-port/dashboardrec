@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 
 const VACANCY_TAB = 'Vacancies';
 const VACANCY_HEADERS = ['Title', 'Category', 'Location', 'Salary', 'Description', 'Requirements (JSON)', 'Archived', 'User', 'Recruiter', 'Tanggal Dibuka', 'Tanggal Terakhir', 'Tanggal Selesai', 'Priority', 'Jumlah', 'Gender', 'Status'];
@@ -271,9 +273,303 @@ function requireAuth(req: VercelRequest, res: VercelResponse): string | null {
   }
 }
 
+// ─── Laporan Rekrutmen Harian (Read-Only) ──────────────────────────────────
+// Dedicated spreadsheet (LAPORAN_SHEET_ID, fallback 1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA).
+// Served via ?store=laporan on GET without exceeding the Hobby 12-function cap.
+
+const DEFAULT_LAPORAN_SHEET_ID = '1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA';
+let cachedLaporan: { data: any; timestamp: number } | null = null;
+const LAPORAN_CACHE_TTL_MS = 60 * 1000;
+let cachedLaporanAccessToken: string | null = null;
+let laporanTokenExpiry = 0;
+
+async function getLaporanAccessToken(): Promise<string | null> {
+  if (cachedLaporanAccessToken && Date.now() < laporanTokenExpiry) return cachedLaporanAccessToken;
+  const creds = parseCredentials();
+  if (!creds) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const assertion = jwt.sign(
+    { iss: creds.client_email, scope: 'https://www.googleapis.com/auth/spreadsheets.readonly', aud: 'https://oauth2.googleapis.com/token', exp: now + 3600, iat: now },
+    creds.private_key,
+    { algorithm: 'RS256' },
+  );
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${encodeURIComponent(assertion)}`,
+  });
+  if (!res.ok) return null;
+  const data = await res.json() as { access_token: string; expires_in: number };
+  cachedLaporanAccessToken = data.access_token;
+  laporanTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return cachedLaporanAccessToken;
+}
+
+async function laporanSheetsFetch<T = any>(pathAndQuery: string): Promise<{ data?: T; status: number; error?: string }> {
+  const spreadsheetId = process.env.LAPORAN_SHEET_ID || DEFAULT_LAPORAN_SHEET_ID;
+  const token = await getLaporanAccessToken();
+  if (!token) return { status: 401, error: 'Failed to obtain access token' };
+  const res = await fetch(`${SHEETS_API}/${spreadsheetId}${pathAndQuery}`, {
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+  });
+  if (res.status === 204) return { status: 204 };
+  const body = await res.json();
+  if (!res.ok) {
+    return { status: res.status, error: body?.error?.message || `Sheets API ${res.status}` };
+  }
+  return { status: res.status, data: body as T };
+}
+
+function cleanLaporanText(v: any): string {
+  if (v === undefined || v === null) return '';
+  return String(v).replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+}
+
+function parseLaporanNum(v: any): number {
+  if (v === undefined || v === null) return 0;
+  const s = cleanLaporanText(v).replace(/[^\d-]/g, '');
+  if (!s) return 0;
+  const n = parseInt(s, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function extractHyperlinkUrl(raw: string): string {
+  if (!raw) return '';
+  const match = raw.match(/=HYPERLINK\(\s*["']([^"']+)["']/i);
+  if (match) return match[1].trim();
+  if (/^https?:\/\//i.test(raw)) return raw.trim();
+  const htmlMatch = raw.match(/<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["']/i);
+  if (htmlMatch) return htmlMatch[1].trim();
+  return '';
+}
+
+function readLocalLaporanFile(): any | null {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/laporan_cache.json');
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.rekap) && Array.isArray(parsed.kandidat)) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+async function readLaporan(forceRefresh = false): Promise<any> {
+  const now = Date.now();
+  if (!forceRefresh && cachedLaporan && now - cachedLaporan.timestamp < LAPORAN_CACHE_TTL_MS) {
+    return cachedLaporan.data;
+  }
+
+  const creds = parseCredentials();
+  if (!creds) {
+    const local = readLocalLaporanFile();
+    if (local) {
+      const payload = {
+        connected: true,
+        fetchedAt: local.fetchedAt || new Date().toISOString(),
+        rekap: local.rekap,
+        legenda: local.legenda,
+        kandidat: local.kandidat,
+      };
+      cachedLaporan = { data: payload, timestamp: now };
+      return payload;
+    }
+    return {
+      connected: false,
+      fetchedAt: new Date().toISOString(),
+      rekap: [],
+      legenda: [],
+      kandidat: [],
+      error: 'Kredensial Service Account belum dikonfigurasi.',
+    };
+  }
+
+  try {
+    // 1. Verify sheet metadata
+    const metaRes = await laporanSheetsFetch<{ sheets?: { properties?: { title?: string } }[] }>('?fields=sheets.properties.title');
+    if (metaRes.status === 403 || metaRes.status === 404) {
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: `Spreadsheet belum dibagikan ke service account. Bagikan sebagai Viewer ke: ${creds.client_email}`,
+      };
+    }
+    if (!metaRes.data) {
+      const local = readLocalLaporanFile();
+      if (local) return { connected: true, fetchedAt: local.fetchedAt || new Date().toISOString(), ...local };
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: metaRes.error || 'Gagal mengakses spreadsheet.',
+      };
+    }
+
+    const titles = (metaRes.data.sheets ?? []).map((s) => s.properties?.title || '');
+    if (!titles.includes('Rekap Harian') || !titles.includes('Detail Kandidat')) {
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: 'Tab "Rekap Harian" atau "Detail Kandidat" tidak ditemukan di spreadsheet.',
+      };
+    }
+
+    // 2. Fetch Rekap Harian
+    const rekapRes = await laporanSheetsFetch<{ values?: string[][] }>(
+      `/values/${encodeURIComponent('Rekap Harian!A1:L')}?valueRenderOption=FORMATTED_VALUE`
+    );
+    const rekapRows = rekapRes.data?.values || [];
+
+    const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+    const rekap: any[] = [];
+    for (let i = 1; i < rekapRows.length; i++) {
+      const row = rekapRows[i];
+      if (!row || row.length === 0) continue;
+      const rawTgl = cleanLaporanText(row[0]);
+      const tgl = normalizeSheetDate(rawTgl);
+      if (!DATE_PATTERN.test(tgl)) continue;
+
+      const cellF = row[5] !== undefined && row[5] !== null ? cleanLaporanText(row[5]) : '';
+      const cellG = row[6] !== undefined && row[6] !== null ? cleanLaporanText(row[6]) : '';
+      const cellH = row[7] !== undefined && row[7] !== null ? cleanLaporanText(row[7]) : '';
+      const cellI = row[8] !== undefined && row[8] !== null ? cleanLaporanText(row[8]) : '';
+      const dinilai = cellF !== '' || cellG !== '' || cellH !== '' || cellI !== '';
+
+      rekap.push({
+        tanggal: tgl,
+        total: parseLaporanNum(row[1]),
+        contentCreator: parseLaporanNum(row[2]),
+        spvMarketing: parseLaporanNum(row[3]),
+        adminInvestasi: parseLaporanNum(row[4]),
+        sesuai: dinilai ? parseLaporanNum(cellF) : 0,
+        kurangSesuai: dinilai ? parseLaporanNum(cellG) : 0,
+        tidakSesuai: dinilai ? parseLaporanNum(cellH) : 0,
+        tidakDiverifikasi: dinilai ? parseLaporanNum(cellI) : 0,
+        dinilai,
+      });
+    }
+
+    // Parse Legenda (K2:L6 - rows 2 to 6, index 1 to 5)
+    const legenda: any[] = [];
+    for (let r = 1; r <= 5 && r < rekapRows.length; r++) {
+      const row = rekapRows[r];
+      if (!row) continue;
+      const status = cleanLaporanText(row[10]);
+      const keterangan = cleanLaporanText(row[11]);
+      if (status) {
+        legenda.push({ status, keterangan });
+      }
+    }
+
+    // 3. Fetch Detail Kandidat
+    const detailRes = await laporanSheetsFetch<{ values?: string[][] }>(
+      `/values/${encodeURIComponent('Detail Kandidat!A1:G')}?valueRenderOption=FORMATTED_VALUE`
+    );
+    const formulaRes = await laporanSheetsFetch<{ values?: string[][] }>(
+      `/values/${encodeURIComponent('Detail Kandidat!H1:H')}?valueRenderOption=FORMULA`
+    );
+
+    const detailRows = detailRes.data?.values || [];
+    const formulaRows = formulaRes.data?.values || [];
+
+    const kandidat: any[] = [];
+    for (let i = 1; i < detailRows.length; i++) {
+      const row = detailRows[i];
+      if (!row || row.length === 0) continue;
+      const rawTgl = cleanLaporanText(row[0]);
+      const tgl = normalizeSheetDate(rawTgl);
+      if (!DATE_PATTERN.test(tgl)) continue;
+
+      const nama = cleanLaporanText(row[1]);
+      const posisi = cleanLaporanText(row[2]);
+      const status = cleanLaporanText(row[3]);
+      const alasan = cleanLaporanText(row[4]);
+      const email = cleanLaporanText(row[5]);
+      const lamaranUlang = cleanLaporanText(row[6]).toLowerCase() === 'ya';
+
+      const fRow = formulaRows[i];
+      const rawFormula = fRow && fRow[0] !== undefined ? cleanLaporanText(fRow[0]) : '';
+      let linkEmail = extractHyperlinkUrl(rawFormula);
+
+      // Stable id: tanggal|email|posisi|nomor baris sheet (1-based: i + 1)
+      const sheetRowNumber = i + 1;
+      const id = `${tgl}|${email}|${posisi}|${sheetRowNumber}`;
+
+      kandidat.push({
+        id,
+        tanggal: tgl,
+        nama,
+        posisi,
+        status,
+        alasan,
+        email,
+        lamaranUlang,
+        linkEmail,
+      });
+    }
+
+    const payload = {
+      connected: true,
+      fetchedAt: new Date().toISOString(),
+      rekap,
+      legenda,
+      kandidat,
+    };
+
+    cachedLaporan = { data: payload, timestamp: now };
+    return payload;
+  } catch (error: any) {
+    const msg = error?.message || String(error);
+    if (msg.includes('403') || msg.includes('404')) {
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: `Spreadsheet belum dibagikan ke service account. Bagikan sebagai Viewer ke: ${creds.client_email}`,
+      };
+    }
+    const local = readLocalLaporanFile();
+    if (local) return { connected: true, fetchedAt: local.fetchedAt || new Date().toISOString(), ...local };
+    return {
+      connected: false,
+      fetchedAt: new Date().toISOString(),
+      rekap: [],
+      legenda: [],
+      kandidat: [],
+      error: `Gagal membaca spreadsheet: ${msg}`,
+    };
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);
   if (!email) return;
+
+  // Read-only Laporan Rekrutmen Harian store — same function, no extra Vercel function.
+  const isLaporan = (req.query as any)?.store === 'laporan';
+  if (isLaporan) {
+    if (req.method !== 'GET') return res.status(405).end();
+    try {
+      const forceRefresh = (req.query as any)?.refresh === '1';
+      const result = await readLaporan(forceRefresh);
+      return res.json(result);
+    } catch (e: any) {
+      return res.status(500).json({ error: e?.message || 'Gagal mengambil data laporan harian.' });
+    }
+  }
 
   // Decoupled Treker Posisi store — same function, no extra Vercel function.
   const isTracker = (req.query as any)?.store === 'trackers';

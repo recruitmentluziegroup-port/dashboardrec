@@ -10,7 +10,7 @@ import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap } from './src/lib/sheets';
+import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap, getLaporan } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant, ApplicationStatus, StatusLabelId, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from './src/types';
 
@@ -303,11 +303,26 @@ app.use(express.json({ limit: '10mb' }));
   // route so Vercel stays at 11 serverless functions.)
   app.get('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      if ((req.query as any)?.store === 'laporan') {
+        const forceRefresh = (req.query as any)?.refresh === '1';
+        return res.json(await getLaporan(forceRefresh));
+      }
       if ((req.query as any)?.store === 'trackers') return res.json(await getTrackers());
       res.json(await getVacancies());
     } catch (error) {
       console.error('Error reading all vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil semua data lowongan.' });
+    }
+  });
+
+  // ADMIN: Laporan Rekrutmen Harian — protected
+  app.get('/api/admin/laporan', authMiddleware, async (req, res) => {
+    try {
+      const forceRefresh = (req.query as any)?.refresh === '1';
+      res.json(await getLaporan(forceRefresh));
+    } catch (error) {
+      console.error('Error reading laporan:', error);
+      res.status(500).json({ error: 'Gagal mengambil data laporan rekrutmen harian.' });
     }
   });
 

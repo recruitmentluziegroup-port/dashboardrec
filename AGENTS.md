@@ -71,6 +71,16 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 - Vacancies are stored in a separate `Vacancies` tab in the same Google Sheet. Local dev fallback reads/writes `src/data/vacancies.json`.
 - The Sheets auth client is a module-level singleton — reused across calls for efficiency.
 
+## Laporan Rekrutmen Harian
+
+- **Spreadsheet ID**: Dibaca dari environment variable `LAPORAN_SHEET_ID` dengan fallback ke `1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA`.
+- **Nama Tab**: Wajib dinamai persis `"Rekap Harian"` dan `"Detail Kandidat"`. Tab dibaca secara read-only.
+- **Endpoint**: Dilayani oleh multi-store endpoint `GET /api/admin/vacancies?store=laporan` di `api/admin/vacancies.ts` (tidak menambah file fungsi Vercel baru) dan `server.ts` untuk dev lokal. Memerlukan autentikasi admin (`Bearer <token>`).
+- **Sifat Data**: Read-only (tanpa operasi tulis/edit/hapus).
+- **Penanganan Kolom F-I (Rekap Harian)**: Sel kosong pada kolom F-I (tanggal 1–4 Oktober 2026) diperlakukan sebagai `dinilai: false` ("Belum dinilai", sebelum penilaian CV dimulai), BUKAN angka 0 penilaian. Dari 5 Oktober 2026 dan seterusnya bernilai angka (`dinilai: true`).
+- **Legenda**: Dibaca secara dinamis dari sel `K2:L6` pada tab "Rekap Harian".
+- **Ekstraksi URL Email**: Menggunakan `valueRenderOption=FORMULA` untuk mengekstrak URL dari formula `=HYPERLINK(...)` pada kolom H tab "Detail Kandidat".
+
 ## Key directories
 
 | Directory | Purpose |

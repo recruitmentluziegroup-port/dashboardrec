@@ -8,10 +8,10 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, CornerDownLeft, LayoutDashboard, ListFilter, Briefcase, TableProperties, CalendarDays, RefreshCw, User } from 'lucide-react';
+import { Search, CornerDownLeft, LayoutDashboard, ListFilter, Briefcase, TableProperties, CalendarDays, RefreshCw, User, FileBarChart } from 'lucide-react';
 import type { Applicant } from '../../types';
 
-type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar';
+type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar' | 'laporan';
 
 interface Command {
   id: string;
@@ -68,6 +68,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       { id: 'tab-vacancies', label: 'Kelola Lowongan', section: 'Navigasi', Icon: Briefcase, run: () => onSwitchTab('vacancies') },
       { id: 'tab-tracker', label: 'Buka Tracker Rekrutmen', section: 'Navigasi', Icon: TableProperties, run: () => onSwitchTab('tracker') },
       { id: 'tab-calendar', label: 'Buka Kalender Wawancara', section: 'Navigasi', Icon: CalendarDays, run: () => onSwitchTab('calendar') },
+      { id: 'tab-laporan', label: 'Buka Laporan Harian', section: 'Navigasi', Icon: FileBarChart, run: () => onSwitchTab('laporan') },
       { id: 'refresh', label: 'Sinkronkan data dari Google Sheet', section: 'Navigasi', Icon: RefreshCw, run: onRefresh },
     ];
     return [...people, ...tabs];

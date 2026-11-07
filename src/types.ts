@@ -238,3 +238,44 @@ export interface ExtendedVacancy {
   gender?: string;
   status?: VacancyStatus;
 }
+
+// ─── Laporan Rekrutmen Harian ──────────────────────────────────────────────
+
+export interface LaporanRekapItem {
+  tanggal: string; // YYYY-MM-DD
+  total: number;
+  contentCreator: number;
+  spvMarketing: number;
+  adminInvestasi: number;
+  sesuai: number;
+  kurangSesuai: number;
+  tidakSesuai: number;
+  tidakDiverifikasi: number;
+  dinilai: boolean;
+}
+
+export interface LaporanLegendaItem {
+  status: string;
+  keterangan: string;
+}
+
+export interface LaporanKandidatItem {
+  id: string; // Deterministic & stable across refreshes
+  tanggal: string; // YYYY-MM-DD
+  nama: string;
+  posisi: string;
+  status: string;
+  alasan: string;
+  email: string;
+  lamaranUlang: boolean;
+  linkEmail: string; // Parsed URL from hyperlink
+}
+
+export interface LaporanHarianResponse {
+  connected: boolean;
+  fetchedAt: string;
+  rekap: LaporanRekapItem[];
+  legenda: LaporanLegendaItem[];
+  kandidat: LaporanKandidatItem[];
+  error?: string;
+}

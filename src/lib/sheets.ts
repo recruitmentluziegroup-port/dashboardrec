@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus } from '../types';
+import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus, LaporanHarianResponse, LaporanRekapItem, LaporanLegendaItem, LaporanKandidatItem } from '../types';
 
 // Columns mapping mapping to Google Sheets. Total 66 columns (BK/BL appended 2026-09;
 // BM/BN appended 2026-10 for the birth-order pair).
@@ -1250,4 +1250,293 @@ export function hasInterviewOverlap(list: Interview[], candidate: Omit<Interview
     const oe = toMin(iv.endTime);
     return s < oe && os < e;
   });
+}
+
+// ─── Laporan Rekrutmen Harian Storage ───────────────────────────────────────
+// Dedicated read-only Google Sheet (LAPORAN_SHEET_ID, fallback 1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA).
+// Two tabs: "Rekap Harian" (daily metrics + legend) and "Detail Kandidat" (candidate records + email link).
+
+const DEFAULT_LAPORAN_SHEET_ID = '1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA';
+let laporanSheetsClient: any = null;
+let cachedLaporan: { data: LaporanHarianResponse; timestamp: number } | null = null;
+const LAPORAN_CACHE_TTL_MS = 60 * 1000;
+
+function cleanLaporanText(v: any): string {
+  if (v === undefined || v === null) return '';
+  return String(v).replace(/[\u200B-\u200D\uFEFF\u00A0]/g, '').trim();
+}
+
+function parseLaporanNum(v: any): number {
+  if (v === undefined || v === null) return 0;
+  const s = cleanLaporanText(v).replace(/[^\d-]/g, '');
+  if (!s) return 0;
+  const n = parseInt(s, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function extractHyperlinkUrl(raw: string): string {
+  if (!raw) return '';
+  const match = raw.match(/=HYPERLINK\(\s*["']([^"']+)["']/i);
+  if (match) return match[1].trim();
+  if (/^https?:\/\//i.test(raw)) return raw.trim();
+  const htmlMatch = raw.match(/<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["']/i);
+  if (htmlMatch) return htmlMatch[1].trim();
+  return '';
+}
+
+function getLaporanSheetsClient() {
+  if (laporanSheetsClient) return laporanSheetsClient;
+
+  const keyEnv = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  if (!keyEnv) return null;
+
+  try {
+    let decodedKey = keyEnv.trim();
+    if (!decodedKey.startsWith('{')) {
+      try {
+        const potentialDecoded = Buffer.from(decodedKey, 'base64').toString('utf8').trim();
+        if (potentialDecoded.startsWith('{')) {
+          decodedKey = potentialDecoded;
+        }
+      } catch {}
+    }
+
+    let credentials;
+    if (decodedKey.startsWith('{')) {
+      credentials = JSON.parse(decodedKey);
+    } else {
+      const cleanedKey = decodedKey.replace(/\\n/g, '\n');
+      credentials = JSON.parse(cleanedKey);
+    }
+
+    if (!credentials.client_email || !credentials.private_key) {
+      return null;
+    }
+
+    // Use read-only scope for Laporan
+    const auth = new google.auth.JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    });
+
+    laporanSheetsClient = google.sheets({ version: 'v4', auth });
+    return laporanSheetsClient;
+  } catch (error) {
+    console.error('Error initializing Laporan Sheets client:', error);
+    return null;
+  }
+}
+
+function readLocalLaporan(): LaporanHarianResponse | null {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/laporan_cache.json');
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.rekap) && Array.isArray(parsed.kandidat)) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+export async function getLaporan(forceRefresh = false): Promise<LaporanHarianResponse> {
+  const now = Date.now();
+  if (!forceRefresh && cachedLaporan && now - cachedLaporan.timestamp < LAPORAN_CACHE_TTL_MS) {
+    return cachedLaporan.data;
+  }
+
+  const spreadsheetId = process.env.LAPORAN_SHEET_ID || DEFAULT_LAPORAN_SHEET_ID;
+  const clientEmail = getServiceAccountEmail();
+  const sheets = getLaporanSheetsClient();
+
+  // Local fallback if no service account credentials
+  if (!sheets) {
+    const local = readLocalLaporan();
+    if (local) {
+      const payload: LaporanHarianResponse = {
+        connected: true,
+        fetchedAt: local.fetchedAt || new Date().toISOString(),
+        rekap: local.rekap,
+        legenda: local.legenda,
+        kandidat: local.kandidat,
+      };
+      cachedLaporan = { data: payload, timestamp: now };
+      return payload;
+    }
+    return {
+      connected: false,
+      fetchedAt: new Date().toISOString(),
+      rekap: [],
+      legenda: [],
+      kandidat: [],
+      error: 'Kredensial Service Account belum dikonfigurasi.',
+    };
+  }
+
+  try {
+    // 1. Verify sheet metadata & check tabs exist
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetTitles: string[] = (meta.data.sheets ?? []).map((s: any) => s.properties?.title || '');
+    if (!sheetTitles.includes('Rekap Harian') || !sheetTitles.includes('Detail Kandidat')) {
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: 'Tab "Rekap Harian" atau "Detail Kandidat" tidak ditemukan di spreadsheet.',
+      };
+    }
+
+    // 2. Fetch Rekap Harian (A1:L with FORMATTED_VALUE)
+    const rekapRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'Rekap Harian'!A1:L`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    const rekapRows: any[][] = rekapRes.data.values || [];
+
+    // Parse Rekap Harian
+    const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+    const rekap: LaporanRekapItem[] = [];
+    for (let i = 1; i < rekapRows.length; i++) {
+      const row = rekapRows[i];
+      if (!row || row.length === 0) continue;
+      const rawTgl = cleanLaporanText(row[0]);
+      const tgl = normalizeSheetDate(rawTgl);
+      if (!DATE_PATTERN.test(tgl)) continue;
+
+      const cellF = row[5] !== undefined && row[5] !== null ? cleanLaporanText(row[5]) : '';
+      const cellG = row[6] !== undefined && row[6] !== null ? cleanLaporanText(row[6]) : '';
+      const cellH = row[7] !== undefined && row[7] !== null ? cleanLaporanText(row[7]) : '';
+      const cellI = row[8] !== undefined && row[8] !== null ? cleanLaporanText(row[8]) : '';
+      const dinilai = cellF !== '' || cellG !== '' || cellH !== '' || cellI !== '';
+
+      rekap.push({
+        tanggal: tgl,
+        total: parseLaporanNum(row[1]),
+        contentCreator: parseLaporanNum(row[2]),
+        spvMarketing: parseLaporanNum(row[3]),
+        adminInvestasi: parseLaporanNum(row[4]),
+        sesuai: dinilai ? parseLaporanNum(cellF) : 0,
+        kurangSesuai: dinilai ? parseLaporanNum(cellG) : 0,
+        tidakSesuai: dinilai ? parseLaporanNum(cellH) : 0,
+        tidakDiverifikasi: dinilai ? parseLaporanNum(cellI) : 0,
+        dinilai,
+      });
+    }
+
+    // Parse Legenda (K2:L6 - rows 2 to 6, index 1 to 5)
+    const legenda: LaporanLegendaItem[] = [];
+    for (let r = 1; r <= 5 && r < rekapRows.length; r++) {
+      const row = rekapRows[r];
+      if (!row) continue;
+      const status = cleanLaporanText(row[10]);
+      const keterangan = cleanLaporanText(row[11]);
+      if (status) {
+        legenda.push({ status, keterangan });
+      }
+    }
+
+    // 3. Fetch Detail Kandidat
+    // Cols A:G with FORMATTED_VALUE
+    const detailRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'Detail Kandidat'!A1:G`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    // Col H with FORMULA for `=HYPERLINK(...)` URL
+    const formulaRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `'Detail Kandidat'!H1:H`,
+      valueRenderOption: 'FORMULA',
+    });
+
+    const detailRows: any[][] = detailRes.data.values || [];
+    const formulaRows: any[][] = formulaRes.data.values || [];
+
+    const kandidat: LaporanKandidatItem[] = [];
+    for (let i = 1; i < detailRows.length; i++) {
+      const row = detailRows[i];
+      if (!row || row.length === 0) continue;
+      const rawTgl = cleanLaporanText(row[0]);
+      const tgl = normalizeSheetDate(rawTgl);
+      if (!DATE_PATTERN.test(tgl)) continue;
+
+      const nama = cleanLaporanText(row[1]);
+      const posisi = cleanLaporanText(row[2]);
+      const status = cleanLaporanText(row[3]);
+      const alasan = cleanLaporanText(row[4]);
+      const email = cleanLaporanText(row[5]);
+      const lamaranUlang = cleanLaporanText(row[6]).toLowerCase() === 'ya';
+
+      const fRow = formulaRows[i];
+      const rawFormula = fRow && fRow[0] !== undefined ? cleanLaporanText(fRow[0]) : '';
+      let linkEmail = extractHyperlinkUrl(rawFormula);
+
+      // Stable id: tanggal|email|posisi|nomor baris sheet (1-based: i + 1)
+      const sheetRowNumber = i + 1;
+      const id = `${tgl}|${email}|${posisi}|${sheetRowNumber}`;
+
+      kandidat.push({
+        id,
+        tanggal: tgl,
+        nama,
+        posisi,
+        status,
+        alasan,
+        email,
+        lamaranUlang,
+        linkEmail,
+      });
+    }
+
+    const payload: LaporanHarianResponse = {
+      connected: true,
+      fetchedAt: new Date().toISOString(),
+      rekap,
+      legenda,
+      kandidat,
+    };
+
+    cachedLaporan = { data: payload, timestamp: now };
+    return payload;
+  } catch (error: any) {
+    const status = error?.code || error?.status || error?.response?.status;
+    const msg = error?.message || String(error);
+    if (status === 403 || status === 404 || msg.includes('403') || msg.includes('404') || msg.includes('permission') || msg.includes('notFound')) {
+      return {
+        connected: false,
+        fetchedAt: new Date().toISOString(),
+        rekap: [],
+        legenda: [],
+        kandidat: [],
+        error: `Spreadsheet belum dibagikan ke service account. Bagikan sebagai Viewer ke: ${clientEmail || '(email service account)'}`,
+      };
+    }
+
+    console.error('Error fetching Laporan from Sheets, checking fallback:', error);
+    const local = readLocalLaporan();
+    if (local) {
+      return {
+        connected: true,
+        fetchedAt: local.fetchedAt || new Date().toISOString(),
+        rekap: local.rekap,
+        legenda: local.legenda,
+        kandidat: local.kandidat,
+      };
+    }
+
+    return {
+      connected: false,
+      fetchedAt: new Date().toISOString(),
+      rekap: [],
+      legenda: [],
+      kandidat: [],
+      error: `Gagal membaca spreadsheet: ${msg}`,
+    };
+  }
 }
