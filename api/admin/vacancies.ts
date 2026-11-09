@@ -554,9 +554,586 @@ async function readLaporan(forceRefresh = false): Promise<any> {
   }
 }
 
+// ─── Budget Iklan Lowongan Kerja Store ───────────────────────────────────────
+const BUDGET_TAB = 'BudgetIklan';
+const BUDGET_HEADERS = [
+  'ID',
+  'Tanggal Mulai',
+  'Tanggal Selesai',
+  'Posisi (JSON)',
+  'Channel',
+  'Nama Media/Mitra',
+  'Jenis Biaya',
+  'Biaya (Rp)',
+  'Jumlah Postingan',
+  'Link Postingan',
+  'Kode Lacak',
+  'Catatan',
+  'Dibuat Oleh',
+  'Dibuat Pada',
+  'Diubah Pada',
+  'Diarsipkan',
+];
+
+const VALID_BUDGET_CHANNELS = [
+  'Instagram',
+  'TikTok',
+  'LinkedIn',
+  'JobStreet',
+  'Glints/Portal Lain',
+  'Google/Website Luzie',
+  'WhatsApp/Grup Komunitas',
+  'Teman/Keluarga/Karyawan Luzie',
+  'Kampus/Job Fair',
+  'Lainnya',
+];
+
+interface BudgetIklan {
+  id: string;
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  posisi: string[];
+  channel: string;
+  namaMedia: string;
+  jenisBiaya: 'Berbayar' | 'Gratis' | 'Barter';
+  biaya: number;
+  jumlahPostingan: number;
+  linkPostingan: string;
+  kodeLacak: string;
+  catatan: string;
+  dibuatOleh: string;
+  dibuatPada: string;
+  diubahPada: string;
+  diarsipkan: boolean;
+}
+
+let cachedBudget: { data: BudgetIklan[]; timestamp: number } | null = null;
+
+function sanitizeForSheet(val: any): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (/^[=+\-@]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
+
+function unescapeFromSheet(val: any): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (str.startsWith("'") && /^[=+\-@]/.test(str.slice(1))) {
+    return str.slice(1);
+  }
+  return str;
+}
+
+function generateBudgetId(): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `BDG-${ts}-${rand}`;
+}
+
+function validateBudgetPayload(data: any): string | null {
+  if (!data || typeof data !== 'object') {
+    return 'Data iklan tidak valid.';
+  }
+
+  // posisi: minimal 1 posisi, tiap item teks tidak kosong
+  if (!Array.isArray(data.posisi) || data.posisi.length === 0) {
+    return 'Posisi wajib diisi minimal 1 lowongan kerja.';
+  }
+  for (const p of data.posisi) {
+    if (typeof p !== 'string' || p.trim() === '') {
+      return 'Setiap posisi lowongan tidak boleh berupa teks kosong.';
+    }
+  }
+
+  // channel: wajib salah satu dari SUMBER_OPTIONS
+  const channel = String(data.channel || '').trim();
+  if (!VALID_BUDGET_CHANNELS.includes(channel)) {
+    return `Channel tidak valid. Harus salah satu dari: ${VALID_BUDGET_CHANNELS.join(', ')}.`;
+  }
+
+  // namaMedia: wajib, maksimal 100 karakter, trim
+  const namaMedia = String(data.namaMedia || '').trim();
+  if (!namaMedia) {
+    return 'Nama Media/Mitra wajib diisi.';
+  }
+  if (namaMedia.length > 100) {
+    return 'Nama Media/Mitra maksimal 100 karakter.';
+  }
+
+  // jenisBiaya: Berbayar/Gratis/Barter
+  const jenisBiaya = String(data.jenisBiaya || '').trim();
+  if (!['Berbayar', 'Gratis', 'Barter'].includes(jenisBiaya)) {
+    return 'Jenis biaya harus salah satu dari: Berbayar, Gratis, atau Barter.';
+  }
+
+  // biaya: bilangan bulat >= 0 dan <= 1.000.000.000
+  const rawBiaya = Number(data.biaya);
+  if (isNaN(rawBiaya) || !Number.isInteger(rawBiaya) || rawBiaya < 0 || rawBiaya > 1_000_000_000) {
+    return 'Biaya harus berupa bilangan bulat antara Rp 0 s.d. Rp 1.000.000.000.';
+  }
+
+  if (jenisBiaya === 'Gratis' && rawBiaya !== 0) {
+    return 'Untuk jenis biaya Gratis, nominal biaya harus Rp 0.';
+  }
+  if (jenisBiaya === 'Berbayar' && rawBiaya <= 0) {
+    return 'Untuk jenis biaya Berbayar, nominal biaya harus lebih besar dari Rp 0.';
+  }
+
+  // jumlahPostingan: bilangan bulat >= 1
+  const rawPostingan = Number(data.jumlahPostingan);
+  if (isNaN(rawPostingan) || !Number.isInteger(rawPostingan) || rawPostingan < 1) {
+    return 'Jumlah postingan harus berupa bilangan bulat minimal 1.';
+  }
+
+  // tanggalMulai dan tanggalSelesai: format YYYY-MM-DD, selesai >= mulai
+  const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+  const tglMulai = String(data.tanggalMulai || '').trim();
+  const tglSelesai = String(data.tanggalSelesai || '').trim();
+  if (!DATE_PATTERN.test(tglMulai) || !DATE_PATTERN.test(tglSelesai)) {
+    return 'Format tanggal mulai dan tanggal selesai harus YYYY-MM-DD.';
+  }
+  if (tglSelesai < tglMulai) {
+    return 'Tanggal selesai tidak boleh mendahului tanggal mulai.';
+  }
+
+  // linkPostingan: kosong atau diawali http(s)://
+  const link = String(data.linkPostingan || '').trim();
+  if (link && !/^https?:\/\//i.test(link)) {
+    return 'Link postingan harus berupa URL yang diawali http:// atau https://.';
+  }
+
+  // kodeLacak maks 50 karakter, catatan maks 500
+  const kodeLacak = String(data.kodeLacak || '').trim();
+  if (kodeLacak.length > 50) {
+    return 'Kode lacak maksimal 50 karakter.';
+  }
+
+  const catatan = String(data.catatan || '').trim();
+  if (catatan.length > 500) {
+    return 'Catatan maksimal 500 karakter.';
+  }
+
+  return null;
+}
+
+function parseBudgetRow(row: any[]): BudgetIklan | null {
+  const id = unescapeFromSheet(row[0] || '').trim();
+  if (!id) return null;
+
+  const rawMulai = unescapeFromSheet(row[1] || '');
+  const rawSelesai = unescapeFromSheet(row[2] || '');
+  const tanggalMulai = normalizeSheetDate(rawMulai);
+  const tanggalSelesai = normalizeSheetDate(rawSelesai);
+
+  const rawPosisi = row[3];
+  let posisi: string[] = [];
+  if (typeof rawPosisi === 'string') {
+    try {
+      const parsed = JSON.parse(rawPosisi);
+      if (Array.isArray(parsed)) {
+        posisi = parsed.map((p) => String(p).trim()).filter(Boolean);
+      }
+    } catch {
+      posisi = [];
+    }
+  } else if (Array.isArray(rawPosisi)) {
+    posisi = rawPosisi.map((p) => String(p).trim()).filter(Boolean);
+  }
+
+  const channel = unescapeFromSheet(row[4] || '').trim();
+  const namaMedia = unescapeFromSheet(row[5] || '').trim();
+  const rawJenis = unescapeFromSheet(row[6] || '').trim();
+  const jenisBiaya: 'Berbayar' | 'Gratis' | 'Barter' =
+    rawJenis === 'Gratis' || rawJenis === 'Barter' ? rawJenis : 'Berbayar';
+
+  const rawBiayaStr = String(row[7] ?? '').replace(/[^0-9]/g, '');
+  const biaya = rawBiayaStr ? parseInt(rawBiayaStr, 10) : 0;
+
+  const rawPostinganStr = String(row[8] ?? '').replace(/[^0-9]/g, '');
+  const jumlahPostingan = rawPostinganStr ? Math.max(1, parseInt(rawPostinganStr, 10)) : 1;
+
+  const linkPostingan = unescapeFromSheet(row[9] || '').trim();
+  const kodeLacak = unescapeFromSheet(row[10] || '').trim();
+  const catatan = unescapeFromSheet(row[11] || '').trim();
+  const dibuatOleh = unescapeFromSheet(row[12] || '').trim();
+  const dibuatPada = unescapeFromSheet(row[13] || '').trim();
+  const diubahPada = unescapeFromSheet(row[14] || '').trim();
+
+  const rawArsip = String(row[15] ?? '').trim().toUpperCase();
+  const diarsipkan = rawArsip === 'TRUE' || rawArsip === '1' || rawArsip === 'YA';
+
+  return {
+    id,
+    tanggalMulai,
+    tanggalSelesai,
+    posisi,
+    channel,
+    namaMedia,
+    jenisBiaya,
+    biaya,
+    jumlahPostingan,
+    linkPostingan,
+    kodeLacak,
+    catatan,
+    dibuatOleh,
+    dibuatPada,
+    diubahPada,
+    diarsipkan,
+  };
+}
+
+function budgetItemToRow(item: BudgetIklan): any[] {
+  return [
+    sanitizeForSheet(item.id),
+    sanitizeForSheet(item.tanggalMulai),
+    sanitizeForSheet(item.tanggalSelesai),
+    JSON.stringify(item.posisi || []),
+    sanitizeForSheet(item.channel),
+    sanitizeForSheet(item.namaMedia),
+    sanitizeForSheet(item.jenisBiaya),
+    item.biaya,
+    item.jumlahPostingan,
+    sanitizeForSheet(item.linkPostingan),
+    sanitizeForSheet(item.kodeLacak),
+    sanitizeForSheet(item.catatan),
+    sanitizeForSheet(item.dibuatOleh),
+    sanitizeForSheet(item.dibuatPada),
+    sanitizeForSheet(item.diubahPada),
+    item.diarsipkan ? 'TRUE' : 'FALSE',
+  ];
+}
+
+function readLocalBudgetFile(): BudgetIklan[] {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/budget.json');
+    if (!fs.existsSync(filePath)) return [];
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalBudgetFile(items: BudgetIklan[]): boolean {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/budget.json');
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(items, null, 2), 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureBudgetTab(): Promise<void> {
+  const meta = await sheetsFetch<{ sheets?: { properties?: { title?: string } }[] }>('?fields=sheets.properties.title');
+  if ((meta.sheets ?? []).some((s) => s.properties?.title === BUDGET_TAB)) return;
+  await sheetsFetch(':batchUpdate', {
+    method: 'POST',
+    body: JSON.stringify({ requests: [{ addSheet: { properties: { title: BUDGET_TAB } } }] }),
+  });
+  await sheetsFetch(
+    `/values/${encodeURIComponent(BUDGET_TAB + '!A1:P1')}?valueInputOption=RAW`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ values: [BUDGET_HEADERS] }),
+    }
+  );
+}
+
+async function readBudgets(forceRefresh = false): Promise<{ connected: boolean; items: BudgetIklan[]; error?: string }> {
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const creds = parseCredentials();
+  if (!creds || !spreadsheetId) {
+    const local = readLocalBudgetFile();
+    return {
+      connected: false,
+      items: local,
+      error: 'Kredensial Service Account belum dikonfigurasi.',
+    };
+  }
+
+  const now = Date.now();
+  if (!forceRefresh && cachedBudget && now - cachedBudget.timestamp < 60000) {
+    return { connected: true, items: cachedBudget.data };
+  }
+
+  try {
+    await ensureBudgetTab();
+    const res = await sheetsFetch<{ values?: any[][] }>(
+      `/values/${encodeURIComponent(BUDGET_TAB + '!A2:P')}?valueRenderOption=FORMATTED_VALUE`
+    );
+    const rows = res.values || [];
+    const items: BudgetIklan[] = [];
+    for (const row of rows) {
+      if (!row || row.length === 0) continue;
+      const parsed = parseBudgetRow(row);
+      if (parsed) items.push(parsed);
+    }
+    cachedBudget = { data: items, timestamp: now };
+    return { connected: true, items };
+  } catch (error: any) {
+    const local = readLocalBudgetFile();
+    return {
+      connected: false,
+      items: local,
+      error: error?.message || 'Gagal membaca data budget iklan dari Google Sheets.',
+    };
+  }
+}
+
+async function createBudget(data: any, adminEmail: string): Promise<BudgetIklan> {
+  const validationError = validateBudgetPayload(data);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const nowIso = new Date().toISOString();
+  const item: BudgetIklan = {
+    id: generateBudgetId(),
+    tanggalMulai: String(data.tanggalMulai).trim(),
+    tanggalSelesai: String(data.tanggalSelesai).trim(),
+    posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+    channel: String(data.channel).trim(),
+    namaMedia: String(data.namaMedia).trim(),
+    jenisBiaya: data.jenisBiaya,
+    biaya: Number(data.biaya) || 0,
+    jumlahPostingan: Number(data.jumlahPostingan) || 1,
+    linkPostingan: String(data.linkPostingan || '').trim(),
+    kodeLacak: String(data.kodeLacak || '').trim(),
+    catatan: String(data.catatan || '').trim(),
+    dibuatOleh: adminEmail || 'Admin',
+    dibuatPada: nowIso,
+    diubahPada: nowIso,
+    diarsipkan: false,
+  };
+
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const creds = parseCredentials();
+
+  if (!creds || !spreadsheetId) {
+    const items = readLocalBudgetFile();
+    items.unshift(item);
+    writeLocalBudgetFile(items);
+    cachedBudget = null;
+    return item;
+  }
+
+  await ensureBudgetTab();
+  const rowValues = budgetItemToRow(item);
+  await sheetsFetch(
+    `/values/${encodeURIComponent(BUDGET_TAB + '!A:P')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ values: [rowValues] }),
+    }
+  );
+
+  cachedBudget = null;
+  return item;
+}
+
+async function updateBudget(id: string, data: any): Promise<BudgetIklan> {
+  if (!id || typeof id !== 'string') {
+    throw new Error('ID iklan wajib dicantumkan.');
+  }
+
+  const validationError = validateBudgetPayload(data);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const creds = parseCredentials();
+
+  if (!creds || !spreadsheetId) {
+    const items = readLocalBudgetFile();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx === -1) throw new Error(`Iklan dengan ID ${id} tidak ditemukan.`);
+    const existing = items[idx];
+    const updated: BudgetIklan = {
+      ...existing,
+      tanggalMulai: String(data.tanggalMulai).trim(),
+      tanggalSelesai: String(data.tanggalSelesai).trim(),
+      posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+      channel: String(data.channel).trim(),
+      namaMedia: String(data.namaMedia).trim(),
+      jenisBiaya: data.jenisBiaya,
+      biaya: Number(data.biaya) || 0,
+      jumlahPostingan: Number(data.jumlahPostingan) || 1,
+      linkPostingan: String(data.linkPostingan || '').trim(),
+      kodeLacak: String(data.kodeLacak || '').trim(),
+      catatan: String(data.catatan || '').trim(),
+      diarsipkan: data.diarsipkan !== undefined ? Boolean(data.diarsipkan) : existing.diarsipkan,
+      diubahPada: new Date().toISOString(),
+    };
+    items[idx] = updated;
+    writeLocalBudgetFile(items);
+    cachedBudget = null;
+    return updated;
+  }
+
+  await ensureBudgetTab();
+
+  const colRes = await sheetsFetch<{ values?: string[][] }>(
+    `/values/${encodeURIComponent(BUDGET_TAB + '!A:A')}?valueRenderOption=FORMATTED_VALUE`
+  );
+  const rows = colRes.values || [];
+  let rowIndex = -1;
+  for (let i = 1; i < rows.length; i++) {
+    const cellId = unescapeFromSheet(rows[i]?.[0] || '').trim();
+    if (cellId === id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    throw new Error(`Iklan dengan ID ${id} tidak ditemukan di spreadsheet.`);
+  }
+
+  const rowRes = await sheetsFetch<{ values?: any[][] }>(
+    `/values/${encodeURIComponent(BUDGET_TAB + `!A${rowIndex}:P${rowIndex}`)}?valueRenderOption=FORMATTED_VALUE`
+  );
+  const currentRow = rowRes.values?.[0] || [];
+  const currentParsed = parseBudgetRow(currentRow);
+
+  const nowIso = new Date().toISOString();
+  const updatedItem: BudgetIklan = {
+    id,
+    tanggalMulai: String(data.tanggalMulai).trim(),
+    tanggalSelesai: String(data.tanggalSelesai).trim(),
+    posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+    channel: String(data.channel).trim(),
+    namaMedia: String(data.namaMedia).trim(),
+    jenisBiaya: data.jenisBiaya,
+    biaya: Number(data.biaya) || 0,
+    jumlahPostingan: Number(data.jumlahPostingan) || 1,
+    linkPostingan: String(data.linkPostingan || '').trim(),
+    kodeLacak: String(data.kodeLacak || '').trim(),
+    catatan: String(data.catatan || '').trim(),
+    dibuatOleh: currentParsed?.dibuatOleh || 'Admin',
+    dibuatPada: currentParsed?.dibuatPada || nowIso,
+    diubahPada: nowIso,
+    diarsipkan: data.diarsipkan !== undefined ? Boolean(data.diarsipkan) : (currentParsed ? currentParsed.diarsipkan : false),
+  };
+
+  const rowValues = budgetItemToRow(updatedItem);
+  await sheetsFetch(
+    `/values/${encodeURIComponent(BUDGET_TAB + `!A${rowIndex}:P${rowIndex}`)}?valueInputOption=RAW`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ values: [rowValues] }),
+    }
+  );
+
+  cachedBudget = null;
+  return updatedItem;
+}
+
+async function archiveBudget(id: string): Promise<boolean> {
+  if (!id || typeof id !== 'string') {
+    throw new Error('ID iklan wajib dicantumkan.');
+  }
+
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  const creds = parseCredentials();
+
+  if (!creds || !spreadsheetId) {
+    const items = readLocalBudgetFile();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx === -1) throw new Error(`Iklan dengan ID ${id} tidak ditemukan.`);
+    items[idx].diarsipkan = true;
+    items[idx].diubahPada = new Date().toISOString();
+    writeLocalBudgetFile(items);
+    cachedBudget = null;
+    return true;
+  }
+
+  await ensureBudgetTab();
+
+  const colRes = await sheetsFetch<{ values?: string[][] }>(
+    `/values/${encodeURIComponent(BUDGET_TAB + '!A:A')}?valueRenderOption=FORMATTED_VALUE`
+  );
+  const rows = colRes.values || [];
+  let rowIndex = -1;
+  for (let i = 1; i < rows.length; i++) {
+    const cellId = unescapeFromSheet(rows[i]?.[0] || '').trim();
+    if (cellId === id) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    throw new Error(`Iklan dengan ID ${id} tidak ditemukan di spreadsheet.`);
+  }
+
+  const nowIso = new Date().toISOString();
+  await sheetsFetch(
+    `/values/${encodeURIComponent(BUDGET_TAB + `!O${rowIndex}:P${rowIndex}`)}?valueInputOption=RAW`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ values: [[sanitizeForSheet(nowIso), 'TRUE']] }),
+    }
+  );
+
+  cachedBudget = null;
+  return true;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const email = requireAuth(req, res);
   if (!email) return;
+
+  // Budget Iklan Lowongan Kerja store — same function, no extra Vercel function.
+  const isBudget = (req.query as any)?.store === 'budget';
+  if (isBudget) {
+    if (req.method === 'GET') {
+      try {
+        const forceRefresh = (req.query as any)?.refresh === '1';
+        const result = await readBudgets(forceRefresh);
+        return res.json(result);
+      } catch (e: any) {
+        return res.status(500).json({ error: e?.message || 'Gagal mengambil data budget iklan.' });
+      }
+    }
+
+    if (req.method === 'POST') {
+      try {
+        const item = await createBudget(req.body, email);
+        return res.status(201).json({ success: true, item });
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || 'Gagal menambah data budget iklan.' });
+      }
+    }
+
+    if (req.method === 'PUT') {
+      try {
+        const id = String((req.query as any)?.id || req.body?.id || '');
+        const item = await updateBudget(id, req.body);
+        return res.json({ success: true, item });
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || 'Gagal mengubah data budget iklan.' });
+      }
+    }
+
+    if (req.method === 'DELETE') {
+      try {
+        const id = String((req.query as any)?.id || '');
+        await archiveBudget(id);
+        return res.json({ success: true, message: 'Iklan berhasil diarsipkan.' });
+      } catch (e: any) {
+        return res.status(400).json({ error: e?.message || 'Gagal mengarsipkan data budget iklan.' });
+      }
+    }
+
+    return res.status(405).end();
+  }
 
   // Read-only Laporan Rekrutmen Harian store — same function, no extra Vercel function.
   const isLaporan = (req.query as any)?.store === 'laporan';

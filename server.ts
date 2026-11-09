@@ -10,7 +10,7 @@ import React from 'react';
 import { renderToStream } from '@react-pdf/renderer';
 import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap, getLaporan } from './src/lib/sheets';
+import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap, getLaporan, getBudgets, createBudget, updateBudget, archiveBudget } from './src/lib/sheets';
 import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant, ApplicationStatus, StatusLabelId, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from './src/types';
 
@@ -303,6 +303,10 @@ app.use(express.json({ limit: '10mb' }));
   // route so Vercel stays at 11 serverless functions.)
   app.get('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      if ((req.query as any)?.store === 'budget') {
+        const forceRefresh = (req.query as any)?.refresh === '1';
+        return res.json(await getBudgets(forceRefresh));
+      }
       if ((req.query as any)?.store === 'laporan') {
         const forceRefresh = (req.query as any)?.refresh === '1';
         return res.json(await getLaporan(forceRefresh));
@@ -329,6 +333,11 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: persist vacancy changes (archived flag included) — protected
   app.post('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      if ((req.query as any)?.store === 'budget') {
+        const adminEmail = (req as any).admin?.email || 'recruitmentluziegroup@gmail.com';
+        const item = await createBudget(req.body, adminEmail);
+        return res.status(201).json({ success: true, item });
+      }
       if ((req.query as any)?.store === 'trackers') {
         const trackers = req.body;
         if (!Array.isArray(trackers)) {
@@ -349,9 +358,79 @@ app.use(express.json({ limit: '10mb' }));
       const ok = await saveVacancies(vacancies);
       if (!ok) return res.status(500).json({ error: 'Gagal menyimpan perubahan lowongan.' });
       res.json({ success: true, message: 'Lowongan pekerjaan berhasil disimpan.' });
-    } catch (error) {
-      console.error('Error saving vacancies:', error);
-      res.status(500).json({ error: 'Gagal merubah rincian lowongan ke server.' });
+    } catch (error: any) {
+      console.error('Error saving vacancies / budget:', error);
+      res.status(400).json({ error: error?.message || 'Gagal merubah rincian lowongan ke server.' });
+    }
+  });
+
+  // ADMIN: update vacancy / budget — protected
+  app.put('/api/admin/vacancies', authMiddleware, async (req, res) => {
+    try {
+      if ((req.query as any)?.store === 'budget') {
+        const id = String((req.query as any)?.id || req.body?.id || '');
+        const item = await updateBudget(id, req.body);
+        return res.json({ success: true, item });
+      }
+      return res.status(400).json({ error: 'Store tidak didukung untuk metode PUT.' });
+    } catch (error: any) {
+      console.error('Error updating budget:', error);
+      res.status(400).json({ error: error?.message || 'Gagal mengubah data budget iklan.' });
+    }
+  });
+
+  // ADMIN: archive budget — protected
+  app.delete('/api/admin/vacancies', authMiddleware, async (req, res) => {
+    try {
+      if ((req.query as any)?.store === 'budget') {
+        const id = String((req.query as any)?.id || '');
+        await archiveBudget(id);
+        return res.json({ success: true, message: 'Iklan berhasil diarsipkan.' });
+      }
+      return res.status(400).json({ error: 'Store tidak didukung untuk metode DELETE.' });
+    } catch (error: any) {
+      console.error('Error archiving budget:', error);
+      res.status(400).json({ error: error?.message || 'Gagal mengarsipkan data budget iklan.' });
+    }
+  });
+
+  // ADMIN: direct Budget Iklan routes (convenience aliases for local dev) — protected
+  app.get('/api/admin/budget', authMiddleware, async (req, res) => {
+    try {
+      const forceRefresh = (req.query as any)?.refresh === '1';
+      res.json(await getBudgets(forceRefresh));
+    } catch (e: any) {
+      res.status(500).json({ error: e?.message || 'Gagal mengambil data budget iklan.' });
+    }
+  });
+
+  app.post('/api/admin/budget', authMiddleware, async (req, res) => {
+    try {
+      const adminEmail = (req as any).admin?.email || 'recruitmentluziegroup@gmail.com';
+      const item = await createBudget(req.body, adminEmail);
+      res.status(201).json({ success: true, item });
+    } catch (e: any) {
+      res.status(400).json({ error: e?.message || 'Gagal menambah data budget iklan.' });
+    }
+  });
+
+  app.put('/api/admin/budget/:id?', authMiddleware, async (req, res) => {
+    try {
+      const id = String(req.params.id || (req.query as any)?.id || req.body?.id || '');
+      const item = await updateBudget(id, req.body);
+      res.json({ success: true, item });
+    } catch (e: any) {
+      res.status(400).json({ error: e?.message || 'Gagal mengubah data budget iklan.' });
+    }
+  });
+
+  app.delete('/api/admin/budget/:id?', authMiddleware, async (req, res) => {
+    try {
+      const id = String(req.params.id || (req.query as any)?.id || '');
+      await archiveBudget(id);
+      res.json({ success: true, message: 'Iklan berhasil diarsipkan.' });
+    } catch (e: any) {
+      res.status(400).json({ error: e?.message || 'Gagal mengarsipkan data budget iklan.' });
     }
   });
 

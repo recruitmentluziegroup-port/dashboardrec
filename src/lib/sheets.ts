@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus, LaporanHarianResponse, LaporanRekapItem, LaporanLegendaItem, LaporanKandidatItem } from '../types';
+import { Applicant, ApplicationStatus, Interview, VacancyPriority, VacancyStatus, LaporanHarianResponse, LaporanRekapItem, LaporanLegendaItem, LaporanKandidatItem, BudgetIklan, BudgetIklanResponse, SUMBER_OPTIONS } from '../types';
 
 // Columns mapping mapping to Google Sheets. Total 66 columns (BK/BL appended 2026-09;
 // BM/BN appended 2026-10 for the birth-order pair).
@@ -1539,4 +1539,542 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
       error: `Gagal membaca spreadsheet: ${msg}`,
     };
   }
+}
+
+// ─── Budget Iklan Lowongan Kerja Storage ────────────────────────────────────
+// Dedicated tab "BudgetIklan" in the primary recruitment Google Sheet (GOOGLE_SHEET_ID).
+// Fallback local file: src/data/budget.json.
+
+export const BUDGET_TAB = 'BudgetIklan';
+export const BUDGET_HEADERS = [
+  'ID',
+  'Tanggal Mulai',
+  'Tanggal Selesai',
+  'Posisi (JSON)',
+  'Channel',
+  'Nama Media/Mitra',
+  'Jenis Biaya',
+  'Biaya (Rp)',
+  'Jumlah Postingan',
+  'Link Postingan',
+  'Kode Lacak',
+  'Catatan',
+  'Dibuat Oleh',
+  'Dibuat Pada',
+  'Diubah Pada',
+  'Diarsipkan',
+];
+
+export const VALID_BUDGET_CHANNELS = [
+  'Instagram',
+  'TikTok',
+  'LinkedIn',
+  'JobStreet',
+  'Glints/Portal Lain',
+  'Google/Website Luzie',
+  'WhatsApp/Grup Komunitas',
+  'Teman/Keluarga/Karyawan Luzie',
+  'Kampus/Job Fair',
+  'Lainnya',
+];
+
+let cachedBudget: { data: BudgetIklan[]; timestamp: number } | null = null;
+const BUDGET_CACHE_TTL_MS = 60 * 1000;
+
+function sanitizeForSheet(val: any): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (/^[=+\-@]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
+
+function unescapeFromSheet(val: any): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val);
+  if (str.startsWith("'") && /^[=+\-@]/.test(str.slice(1))) {
+    return str.slice(1);
+  }
+  return str;
+}
+
+function generateBudgetId(): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `BDG-${ts}-${rand}`;
+}
+
+export function validateBudgetPayload(data: any): string | null {
+  if (!data || typeof data !== 'object') {
+    return 'Data iklan tidak valid.';
+  }
+
+  // posisi: minimal 1 posisi, tiap item teks tidak kosong
+  if (!Array.isArray(data.posisi) || data.posisi.length === 0) {
+    return 'Posisi wajib diisi minimal 1 lowongan kerja.';
+  }
+  for (const p of data.posisi) {
+    if (typeof p !== 'string' || p.trim() === '') {
+      return 'Setiap posisi lowongan tidak boleh berupa teks kosong.';
+    }
+  }
+
+  // channel: wajib salah satu dari VALID_BUDGET_CHANNELS / SUMBER_OPTIONS
+  const channel = String(data.channel || '').trim();
+  if (!VALID_BUDGET_CHANNELS.includes(channel)) {
+    return `Channel tidak valid. Harus salah satu dari: ${VALID_BUDGET_CHANNELS.join(', ')}.`;
+  }
+
+  // namaMedia: wajib, maksimal 100 karakter, trim
+  const namaMedia = String(data.namaMedia || '').trim();
+  if (!namaMedia) {
+    return 'Nama Media/Mitra wajib diisi.';
+  }
+  if (namaMedia.length > 100) {
+    return 'Nama Media/Mitra maksimal 100 karakter.';
+  }
+
+  // jenisBiaya: Berbayar/Gratis/Barter
+  const jenisBiaya = String(data.jenisBiaya || '').trim();
+  if (!['Berbayar', 'Gratis', 'Barter'].includes(jenisBiaya)) {
+    return 'Jenis biaya harus salah satu dari: Berbayar, Gratis, atau Barter.';
+  }
+
+  // biaya: bilangan bulat >= 0 dan <= 1.000.000.000
+  const rawBiaya = Number(data.biaya);
+  if (isNaN(rawBiaya) || !Number.isInteger(rawBiaya) || rawBiaya < 0 || rawBiaya > 1_000_000_000) {
+    return 'Biaya harus berupa bilangan bulat antara Rp 0 s.d. Rp 1.000.000.000.';
+  }
+
+  if (jenisBiaya === 'Gratis' && rawBiaya !== 0) {
+    return 'Untuk jenis biaya Gratis, nominal biaya harus Rp 0.';
+  }
+  if (jenisBiaya === 'Berbayar' && rawBiaya <= 0) {
+    return 'Untuk jenis biaya Berbayar, nominal biaya harus lebih besar dari Rp 0.';
+  }
+
+  // jumlahPostingan: bilangan bulat >= 1
+  const rawPostingan = Number(data.jumlahPostingan);
+  if (isNaN(rawPostingan) || !Number.isInteger(rawPostingan) || rawPostingan < 1) {
+    return 'Jumlah postingan harus berupa bilangan bulat minimal 1.';
+  }
+
+  // tanggalMulai dan tanggalSelesai: format YYYY-MM-DD, selesai >= mulai
+  const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+  const tglMulai = String(data.tanggalMulai || '').trim();
+  const tglSelesai = String(data.tanggalSelesai || '').trim();
+  if (!DATE_PATTERN.test(tglMulai) || !DATE_PATTERN.test(tglSelesai)) {
+    return 'Format tanggal mulai dan tanggal selesai harus YYYY-MM-DD.';
+  }
+  if (tglSelesai < tglMulai) {
+    return 'Tanggal selesai tidak boleh mendahului tanggal mulai.';
+  }
+
+  // linkPostingan: kosong atau diawali http(s)://
+  const link = String(data.linkPostingan || '').trim();
+  if (link && !/^https?:\/\//i.test(link)) {
+    return 'Link postingan harus berupa URL yang diawali http:// atau https://.';
+  }
+
+  // kodeLacak maks 50 karakter, catatan maks 500
+  const kodeLacak = String(data.kodeLacak || '').trim();
+  if (kodeLacak.length > 50) {
+    return 'Kode lacak maksimal 50 karakter.';
+  }
+
+  const catatan = String(data.catatan || '').trim();
+  if (catatan.length > 500) {
+    return 'Catatan maksimal 500 karakter.';
+  }
+
+  return null;
+}
+
+function parseBudgetRow(row: any[]): BudgetIklan | null {
+  const id = unescapeFromSheet(row[0] || '').trim();
+  if (!id) return null;
+
+  const rawMulai = unescapeFromSheet(row[1] || '');
+  const rawSelesai = unescapeFromSheet(row[2] || '');
+  const tanggalMulai = normalizeSheetDate(rawMulai);
+  const tanggalSelesai = normalizeSheetDate(rawSelesai);
+
+  const rawPosisi = row[3];
+  let posisi: string[] = [];
+  if (typeof rawPosisi === 'string') {
+    try {
+      const parsed = JSON.parse(rawPosisi);
+      if (Array.isArray(parsed)) {
+        posisi = parsed.map((p) => String(p).trim()).filter(Boolean);
+      }
+    } catch {
+      posisi = [];
+    }
+  } else if (Array.isArray(rawPosisi)) {
+    posisi = rawPosisi.map((p) => String(p).trim()).filter(Boolean);
+  }
+
+  const channel = unescapeFromSheet(row[4] || '').trim();
+  const namaMedia = unescapeFromSheet(row[5] || '').trim();
+  const rawJenis = unescapeFromSheet(row[6] || '').trim();
+  const jenisBiaya: 'Berbayar' | 'Gratis' | 'Barter' =
+    rawJenis === 'Gratis' || rawJenis === 'Barter' ? rawJenis : 'Berbayar';
+
+  const rawBiayaStr = String(row[7] ?? '').replace(/[^0-9]/g, '');
+  const biaya = rawBiayaStr ? parseInt(rawBiayaStr, 10) : 0;
+
+  const rawPostinganStr = String(row[8] ?? '').replace(/[^0-9]/g, '');
+  const jumlahPostingan = rawPostinganStr ? Math.max(1, parseInt(rawPostinganStr, 10)) : 1;
+
+  const linkPostingan = unescapeFromSheet(row[9] || '').trim();
+  const kodeLacak = unescapeFromSheet(row[10] || '').trim();
+  const catatan = unescapeFromSheet(row[11] || '').trim();
+  const dibuatOleh = unescapeFromSheet(row[12] || '').trim();
+  const dibuatPada = unescapeFromSheet(row[13] || '').trim();
+  const diubahPada = unescapeFromSheet(row[14] || '').trim();
+
+  const rawArsip = String(row[15] ?? '').trim().toUpperCase();
+  const diarsipkan = rawArsip === 'TRUE' || rawArsip === '1' || rawArsip === 'YA';
+
+  return {
+    id,
+    tanggalMulai,
+    tanggalSelesai,
+    posisi,
+    channel,
+    namaMedia,
+    jenisBiaya,
+    biaya,
+    jumlahPostingan,
+    linkPostingan,
+    kodeLacak,
+    catatan,
+    dibuatOleh,
+    dibuatPada,
+    diubahPada,
+    diarsipkan,
+  };
+}
+
+function budgetItemToRow(item: BudgetIklan): any[] {
+  return [
+    sanitizeForSheet(item.id),
+    sanitizeForSheet(item.tanggalMulai),
+    sanitizeForSheet(item.tanggalSelesai),
+    JSON.stringify(item.posisi || []),
+    sanitizeForSheet(item.channel),
+    sanitizeForSheet(item.namaMedia),
+    sanitizeForSheet(item.jenisBiaya),
+    item.biaya,
+    item.jumlahPostingan,
+    sanitizeForSheet(item.linkPostingan),
+    sanitizeForSheet(item.kodeLacak),
+    sanitizeForSheet(item.catatan),
+    sanitizeForSheet(item.dibuatOleh),
+    sanitizeForSheet(item.dibuatPada),
+    sanitizeForSheet(item.diubahPada),
+    item.diarsipkan ? 'TRUE' : 'FALSE',
+  ];
+}
+
+function readLocalBudget(): BudgetIklan[] {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/budget.json');
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch {}
+  return [];
+}
+
+function writeLocalBudget(items: BudgetIklan[]): boolean {
+  try {
+    const filePath = path.join(process.cwd(), 'src/data/budget.json');
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(items, null, 2), 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureBudgetTab(sheets: any, spreadsheetId: string): Promise<void> {
+  try {
+    const meta = await sheets.spreadsheets.get({ spreadsheetId });
+    const exists = (meta.data.sheets ?? []).some(
+      (s: any) => s.properties?.title === BUDGET_TAB
+    );
+    if (!exists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: { requests: [{ addSheet: { properties: { title: BUDGET_TAB } } }] }
+      });
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${BUDGET_TAB}!A1:P1`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [BUDGET_HEADERS] }
+      });
+    }
+  } catch (error) {
+    console.error('Error ensuring BudgetIklan tab:', error);
+  }
+}
+
+export async function getBudgets(forceRefresh = false): Promise<BudgetIklanResponse> {
+  const now = Date.now();
+  if (!forceRefresh && cachedBudget && now - cachedBudget.timestamp < BUDGET_CACHE_TTL_MS) {
+    return { connected: true, items: cachedBudget.data };
+  }
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheets || !spreadsheetId) {
+    const local = readLocalBudget();
+    cachedBudget = { data: local, timestamp: now };
+    return {
+      connected: false,
+      items: local,
+      error: 'Kredensial Service Account belum dikonfigurasi.',
+    };
+  }
+
+  try {
+    await ensureBudgetTab(sheets, spreadsheetId);
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${BUDGET_TAB}!A2:P`,
+      valueRenderOption: 'FORMATTED_VALUE',
+    });
+    const rows: any[][] = res.data.values || [];
+    const items: BudgetIklan[] = [];
+    for (const row of rows) {
+      if (!row || row.length === 0) continue;
+      const parsed = parseBudgetRow(row);
+      if (parsed) items.push(parsed);
+    }
+
+    cachedBudget = { data: items, timestamp: now };
+    return { connected: true, items };
+  } catch (error: any) {
+    console.error('Error fetching Budget from Sheets, checking fallback:', error);
+    const local = readLocalBudget();
+    return {
+      connected: false,
+      items: local,
+      error: error?.message || 'Gagal membaca data budget iklan dari Google Sheets.',
+    };
+  }
+}
+
+export async function createBudget(data: any, adminEmail: string): Promise<BudgetIklan> {
+  const validationError = validateBudgetPayload(data);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const nowIso = new Date().toISOString();
+  const item: BudgetIklan = {
+    id: generateBudgetId(),
+    tanggalMulai: String(data.tanggalMulai).trim(),
+    tanggalSelesai: String(data.tanggalSelesai).trim(),
+    posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+    channel: String(data.channel).trim(),
+    namaMedia: String(data.namaMedia).trim(),
+    jenisBiaya: data.jenisBiaya,
+    biaya: Number(data.biaya) || 0,
+    jumlahPostingan: Number(data.jumlahPostingan) || 1,
+    linkPostingan: String(data.linkPostingan || '').trim(),
+    kodeLacak: String(data.kodeLacak || '').trim(),
+    catatan: String(data.catatan || '').trim(),
+    dibuatOleh: adminEmail || 'Admin',
+    dibuatPada: nowIso,
+    diubahPada: nowIso,
+    diarsipkan: false,
+  };
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheets || !spreadsheetId) {
+    const items = readLocalBudget();
+    items.unshift(item);
+    writeLocalBudget(items);
+    cachedBudget = null;
+    return item;
+  }
+
+  await ensureBudgetTab(sheets, spreadsheetId);
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!A:P`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [budgetItemToRow(item)] },
+  });
+
+  cachedBudget = null;
+  return item;
+}
+
+export async function updateBudget(id: string, data: any): Promise<BudgetIklan> {
+  if (!id || typeof id !== 'string') {
+    throw new Error('ID iklan wajib dicantumkan.');
+  }
+
+  const validationError = validateBudgetPayload(data);
+  if (validationError) {
+    throw new Error(validationError);
+  }
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheets || !spreadsheetId) {
+    const items = readLocalBudget();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx === -1) throw new Error(`Iklan dengan ID ${id} tidak ditemukan.`);
+    const existing = items[idx];
+    const updated: BudgetIklan = {
+      ...existing,
+      tanggalMulai: String(data.tanggalMulai).trim(),
+      tanggalSelesai: String(data.tanggalSelesai).trim(),
+      posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+      channel: String(data.channel).trim(),
+      namaMedia: String(data.namaMedia).trim(),
+      jenisBiaya: data.jenisBiaya,
+      biaya: Number(data.biaya) || 0,
+      jumlahPostingan: Number(data.jumlahPostingan) || 1,
+      linkPostingan: String(data.linkPostingan || '').trim(),
+      kodeLacak: String(data.kodeLacak || '').trim(),
+      catatan: String(data.catatan || '').trim(),
+      diarsipkan: data.diarsipkan !== undefined ? Boolean(data.diarsipkan) : existing.diarsipkan,
+      diubahPada: new Date().toISOString(),
+    };
+    items[idx] = updated;
+    writeLocalBudget(items);
+    cachedBudget = null;
+    return updated;
+  }
+
+  await ensureBudgetTab(sheets, spreadsheetId);
+
+  // Find row by column A
+  const colRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!A:A`,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+  const rows: any[][] = colRes.data.values || [];
+  let rowIndex = -1;
+  for (let i = 1; i < rows.length; i++) {
+    const cellId = unescapeFromSheet(rows[i]?.[0] || '').trim();
+    if (cellId === id) {
+      rowIndex = i + 1; // 1-based index
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    throw new Error(`Iklan dengan ID ${id} tidak ditemukan di spreadsheet.`);
+  }
+
+  // Get current row to preserve dibuatOleh, dibuatPada, diarsipkan
+  const rowRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!A${rowIndex}:P${rowIndex}`,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+  const currentRow = rowRes.data.values?.[0] || [];
+  const currentParsed = parseBudgetRow(currentRow);
+
+  const nowIso = new Date().toISOString();
+  const updatedItem: BudgetIklan = {
+    id,
+    tanggalMulai: String(data.tanggalMulai).trim(),
+    tanggalSelesai: String(data.tanggalSelesai).trim(),
+    posisi: (data.posisi as string[]).map((p) => String(p).trim()).filter(Boolean),
+    channel: String(data.channel).trim(),
+    namaMedia: String(data.namaMedia).trim(),
+    jenisBiaya: data.jenisBiaya,
+    biaya: Number(data.biaya) || 0,
+    jumlahPostingan: Number(data.jumlahPostingan) || 1,
+    linkPostingan: String(data.linkPostingan || '').trim(),
+    kodeLacak: String(data.kodeLacak || '').trim(),
+    catatan: String(data.catatan || '').trim(),
+    dibuatOleh: currentParsed?.dibuatOleh || 'Admin',
+    dibuatPada: currentParsed?.dibuatPada || nowIso,
+    diubahPada: nowIso,
+    diarsipkan: data.diarsipkan !== undefined ? Boolean(data.diarsipkan) : (currentParsed ? currentParsed.diarsipkan : false),
+  };
+
+  // Update ONLY row rowIndex range A:P
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!A${rowIndex}:P${rowIndex}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [budgetItemToRow(updatedItem)] },
+  });
+
+  cachedBudget = null;
+  return updatedItem;
+}
+
+export async function archiveBudget(id: string): Promise<boolean> {
+  if (!id || typeof id !== 'string') {
+    throw new Error('ID iklan wajib dicantumkan.');
+  }
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+
+  if (!sheets || !spreadsheetId) {
+    const items = readLocalBudget();
+    const idx = items.findIndex((i) => i.id === id);
+    if (idx === -1) throw new Error(`Iklan dengan ID ${id} tidak ditemukan.`);
+    items[idx].diarsipkan = true;
+    items[idx].diubahPada = new Date().toISOString();
+    writeLocalBudget(items);
+    cachedBudget = null;
+    return true;
+  }
+
+  await ensureBudgetTab(sheets, spreadsheetId);
+
+  // Find row by column A
+  const colRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!A:A`,
+    valueRenderOption: 'FORMATTED_VALUE',
+  });
+  const rows: any[][] = colRes.data.values || [];
+  let rowIndex = -1;
+  for (let i = 1; i < rows.length; i++) {
+    const cellId = unescapeFromSheet(rows[i]?.[0] || '').trim();
+    if (cellId === id) {
+      rowIndex = i + 1; // 1-based index
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    throw new Error(`Iklan dengan ID ${id} tidak ditemukan di spreadsheet.`);
+  }
+
+  const nowIso = new Date().toISOString();
+  // Update ONLY O{rowIndex}:P{rowIndex}
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${BUDGET_TAB}!O${rowIndex}:P${rowIndex}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[sanitizeForSheet(nowIso), 'TRUE']] },
+  });
+
+  cachedBudget = null;
+  return true;
 }

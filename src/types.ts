@@ -279,3 +279,32 @@ export interface LaporanHarianResponse {
   kandidat: LaporanKandidatItem[];
   error?: string;
 }
+
+// ─── Budget Iklan Lowongan Kerja ──────────────────────────────────────────
+
+export type JenisBiayaIklan = 'Berbayar' | 'Gratis' | 'Barter';
+
+export interface BudgetIklan {
+  id: string;
+  tanggalMulai: string; // YYYY-MM-DD
+  tanggalSelesai: string; // YYYY-MM-DD
+  posisi: string[];
+  channel: string; // Salah satu dari SUMBER_OPTIONS
+  namaMedia: string;
+  jenisBiaya: JenisBiayaIklan;
+  biaya: number; // Rupiah bulat
+  jumlahPostingan: number;
+  linkPostingan: string;
+  kodeLacak: string;
+  catatan: string;
+  dibuatOleh: string;
+  dibuatPada: string; // ISO 8601
+  diubahPada: string; // ISO 8601
+  diarsipkan: boolean;
+}
+
+export interface BudgetIklanResponse {
+  connected: boolean;
+  items: BudgetIklan[];
+  error?: string;
+}

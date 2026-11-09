@@ -1,0 +1,82 @@
+[
+  {
+    "id": "BDG-MW8NB0ZQ-HVM",
+    "tanggalMulai": "2026-11-01",
+    "tanggalSelesai": "2026-11-30",
+    "posisi": [
+      "SPV Marketing Biro Umrah"
+    ],
+    "channel": "LinkedIn",
+    "namaMedia": "LinkedIn Talent Ad",
+    "jenisBiaya": "Berbayar",
+    "biaya": 1200000,
+    "jumlahPostingan": 1,
+    "linkPostingan": "",
+    "kodeLacak": "",
+    "catatan": "",
+    "dibuatOleh": "recruitmentluziegroup@gmail.com",
+    "dibuatPada": "2026-11-09T02:31:59.942Z",
+    "diubahPada": "2026-11-09T02:31:59.951Z",
+    "diarsipkan": false
+  },
+  {
+    "id": "BDG-MW8N9ONC-CWA",
+    "tanggalMulai": "2026-12-01",
+    "tanggalSelesai": "2026-12-15",
+    "posisi": [
+      "Content Creator"
+    ],
+    "channel": "Instagram",
+    "namaMedia": "@infoloker.id (Revisi)",
+    "jenisBiaya": "Berbayar",
+    "biaya": 800000,
+    "jumlahPostingan": 3,
+    "linkPostingan": "https://instagram.com/p/abc12345",
+    "kodeLacak": "IG-DEC-01",
+    "catatan": "Duplikat untuk periode Desember",
+    "dibuatOleh": "recruitmentluziegroup@gmail.com",
+    "dibuatPada": "2026-11-09T02:30:57.288Z",
+    "diubahPada": "2026-11-09T02:30:57.288Z",
+    "diarsipkan": false
+  },
+  {
+    "id": "BDG-MW8N9ON3-IJ2",
+    "tanggalMulai": "2026-11-05",
+    "tanggalSelesai": "2026-11-12",
+    "posisi": [
+      "SPV Marketing Biro Umrah"
+    ],
+    "channel": "WhatsApp/Grup Komunitas",
+    "namaMedia": "Grup Loker Alumni UGM",
+    "jenisBiaya": "Gratis",
+    "biaya": 0,
+    "jumlahPostingan": 1,
+    "linkPostingan": "",
+    "kodeLacak": "WA-ALUMNI",
+    "catatan": "Broadcast gratis dari anggota grup",
+    "dibuatOleh": "recruitmentluziegroup@gmail.com",
+    "dibuatPada": "2026-11-09T02:30:57.279Z",
+    "diubahPada": "2026-11-09T02:30:57.296Z",
+    "diarsipkan": true
+  },
+  {
+    "id": "BDG-MW8N9OMY-EXY",
+    "tanggalMulai": "2026-11-01",
+    "tanggalSelesai": "2026-11-15",
+    "posisi": [
+      "Content Creator"
+    ],
+    "channel": "Instagram",
+    "namaMedia": "@infoloker.id (Revisi)",
+    "jenisBiaya": "Berbayar",
+    "biaya": 800000,
+    "jumlahPostingan": 3,
+    "linkPostingan": "https://instagram.com/p/abc12345",
+    "kodeLacak": "IG-NOV-01-REV",
+    "catatan": "Tambahan 1 story",
+    "dibuatOleh": "recruitmentluziegroup@gmail.com",
+    "dibuatPada": "2026-11-09T02:30:57.274Z",
+    "diubahPada": "2026-11-09T02:30:57.285Z",
+    "diarsipkan": false
+  }
+]

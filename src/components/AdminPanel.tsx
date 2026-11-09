@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock, FileBarChart } from 'lucide-react';
+import { Search, ChevronDown, Download, Check, X, Edit2, LogOut, LayoutDashboard, ListFilter, User, FileText, ArrowLeft, RefreshCw, Calendar, Eye, Briefcase, Plus, Trash2, Save, Printer, TableProperties, CalendarDays, Inbox, CloudOff, MoreHorizontal, Clock, FileBarChart, Megaphone } from 'lucide-react';
 import { Applicant, ApplicationStatus, Anak, PendidikanFormal, Kursus, PengalamanKerja, ReferensiPerusahaan, Organisasi, ReferensiKontak } from '../types';
 import { AdminDashboard } from './AdminDashboard';
 import { VacancyManager } from './VacancyManager';
@@ -9,6 +9,7 @@ import { TrackerModal } from './TrackerModal';
 import { CalendarAgenda } from './CalendarAgenda';
 import { InterviewModal } from './InterviewModal';
 import { LaporanHarian } from './LaporanHarian';
+import { BudgetIklan } from './BudgetIklan';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
 import { AdminSkeleton } from './dashboard/AdminSkeleton';
 import { BerkasIdChip } from './dashboard/BerkasIdChip';
@@ -64,9 +65,9 @@ interface AdminPanelProps {
   adminEmail: string;
 }
 
-type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar' | 'laporan';
+type AdminTab = 'dashboard' | 'list' | 'vacancies' | 'tracker' | 'calendar' | 'laporan' | 'budget';
 
-const VALID_TABS: AdminTab[] = ['dashboard', 'list', 'vacancies', 'tracker', 'calendar', 'laporan'];
+const VALID_TABS: AdminTab[] = ['dashboard', 'list', 'vacancies', 'tracker', 'calendar', 'laporan', 'budget'];
 
 // Deep-link (?tab=&status=&id=&q=&pos=&sort=) — shareable + refresh-safe admin state
 function readAdminParams(): { tab: AdminTab; id: string | null; q: string; status: string; pos: string; sort: 'newest' | 'oldest' | 'name' } {
@@ -936,7 +937,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             <button
               onClick={() => handleNavTabClick('list')}
               className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies' && viewMode !== 'laporan')
+                (viewMode === 'list' && !selectedId) || (selectedId && viewMode !== 'vacancies' && viewMode !== 'laporan' && viewMode !== 'budget')
                   ? 'bg-brand-50 text-brand-700'
                   : 'text-stone-500 hover:text-stone-900'
               }`}
@@ -987,6 +988,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
             >
               <FileBarChart className="h-4 w-4" />
               <span>Laporan Harian</span>
+            </button>
+            <button
+              onClick={() => handleNavTabClick('budget')}
+              className={`flex items-center space-x-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                viewMode === 'budget'
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              <Megaphone className="h-4 w-4" />
+              <span>Budget Iklan</span>
             </button>
           </div>
         </div>
@@ -1197,12 +1209,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onLogout, adminEmail }) 
                   >
                     Laporan
                   </button>
+                  <button
+                    onClick={() => setViewMode('budget')}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all shrink-0 ${
+                      viewMode === 'budget' ? 'bg-white text-brand-700 shadow-xs' : 'text-stone-600'
+                    }`}
+                  >
+                    Budget Iklan
+                  </button>
                 </div>
               </div>
             </div>
 
             {viewMode === 'laporan' ? (
               <LaporanHarian />
+            ) : viewMode === 'budget' ? (
+              <BudgetIklan applicants={candidates} />
             ) : loading ? (
               <AdminSkeleton variant="table" />
             ) : error ? (
