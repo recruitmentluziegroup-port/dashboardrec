@@ -81,6 +81,40 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 - **Legenda**: Dibaca secara dinamis dari sel `K2:L6` pada tab "Rekap Harian".
 - **Ekstraksi URL Email**: Menggunakan `valueRenderOption=FORMULA` untuk mengekstrak URL dari formula `=HYPERLINK(...)` pada kolom H tab "Detail Kandidat".
 
+## Budget Iklan Lowongan Kerja
+
+- **Spreadsheet Tab**: Disimpan pada tab `"BudgetIklan"` di Google Spreadsheet utama (`GOOGLE_SHEET_ID`). Bila tab belum ada, sistem membuatnya otomatis (`ensureBudgetTab`). Dev lokal fallback membaca/menulis `src/data/budget.json`.
+- **Skema Kolom (A–P, Urutan Tetap — Jangan Diubah)**:
+  - `A`: ID (`BDG-<timestamp>-<random>`)
+  - `B`: Tanggal Mulai (`YYYY-MM-DD`)
+  - `C`: Tanggal Selesai (`YYYY-MM-DD`)
+  - `D`: Posisi (JSON array string, mis. `["Content Creator", "Staff Admin"]`)
+  - `E`: Channel (wajib dari taksonomi `SUMBER_OPTIONS`)
+  - `F`: Nama Media/Mitra
+  - `G`: Jenis Biaya (`Berbayar` | `Gratis` | `Barter`)
+  - `H`: Biaya (Rp integer bulat $\ge 0$)
+  - `I`: Jumlah Postingan (integer $\ge 1$)
+  - `J`: Link Postingan (`http(s)://...`)
+  - `K`: Kode Lacak (opsional, maks 50 karakter)
+  - `L`: Catatan (opsional, maks 500 karakter)
+  - `M`: Dibuat Oleh (email admin)
+  - `N`: Dibuat Pada (ISO 8601)
+  - `O`: Diubah Pada (ISO 8601)
+  - `P`: Diarsipkan (`TRUE` | `FALSE`, soft delete)
+- **Endpoint**: Dilayani oleh endpoint `api/admin/vacancies.ts?store=budget` (GET, POST, PUT, DELETE) di Vercel tanpa menambah file fungsi serverless baru, dan `server.ts` pada dev lokal. Memerlukan autentikasi admin (`Bearer <token>`).
+- **Definisi Metrik**:
+  - *Pelamar Masuk*: Dihitung dari baris di tab pelamar dengan `submissionDate` (zona Asia/Jakarta) pada bulan terkait.
+  * *Kandidat Potensial*: Berstatus `Reviewed`, `Interview HR`, `Interview User`, atau `Accepted`.
+  * *Tidak Potensial*: Berstatus `Rejected`.
+  * *Diterima*: Berstatus `Accepted`.
+  * *Pending*: Pelamar baru yang belum diproses/dinilai.
+  - *Alokasi Lintas Bulan*: Iklan yang berjalan melintasi batas bulan dibagi harian secara proporsional berdasarkan jumlah hari kalender di masing-masing bulan. Untuk iklan multi-posisi, biaya dibagi rata ke tiap posisi. Total alokasi selalu sama persis dengan total biaya input.
+  - *Atribusi Media*: Atribusi langsung diprioritaskan bila `keteranganSumber` atau `kodeLacak` pada pendaftaran cocok dengan media/kode iklan. Sisanya dialokasikan proporsional berdasarkan biaya iklan di channel + divisi lowongan tersebut.
+- **Lokasi Konstanta**: Terpusat di `src/lib/budget-analytics.ts` (`POTENSIAL_STATUSES`, `TIDAK_POTENSIAL_STATUSES`, `DITERIMA_STATUSES`, `TIMEZONE`, `BOBOT_SKOR_MITRA`, `AMBANG_DATA_CUKUP`).
+- **Keterbatasan Sistem**:
+  - *Status Snapshot*: Metrik mencerminkan status kandidat saat ini di database rekrutmen. Jika kandidat baru berstatus Pending kemudian diubah menjadi Reviewed oleh tim HR, metrik efisiensi dan rasio potensial akan otomatis meningkat.
+  * *Atribusi Estimasi*: Pelamar yang hanya memilih channel (mis. "Instagram") tanpa menyebutkan nama akun media atau kode lacak spesifik diatribusikan secara estimasi proporsional biaya. Formulir pendaftaran disarankan selalu mendorong pelamar mengisi keterangan detail asal info lowongan.
+
 ## Key directories
 
 | Directory | Purpose |

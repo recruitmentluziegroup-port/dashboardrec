@@ -8,6 +8,7 @@
  */
 
 import { BudgetIklan } from '../types';
+export type { BudgetIklan };
 
 // ─── KONSTANTA GLOBAL ANALITIK ───────────────────────────────────────────────
 // Mudah disesuaikan bila kebijakan tahapan seleksi atau formula skoring berubah.

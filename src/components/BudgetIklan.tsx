@@ -20,6 +20,7 @@ import { BudgetTable } from './budget/BudgetTable';
 import { BudgetModal } from './budget/BudgetModal';
 import { AnalisisBulanan } from './budget/AnalisisBulanan';
 import { PerbandinganTren } from './budget/PerbandinganTren';
+import { RekomendasiMitra } from './budget/RekomendasiMitra';
 
 export interface BudgetIklanProps {
   applicants?: Applicant[];
@@ -638,23 +639,16 @@ export const BudgetIklan: React.FC<BudgetIklanProps> = ({ applicants = [] }) => 
           />
         )
       ) : (
-        /* Placeholder for sub-tab: Rekomendasi Mitra */
-        <div className="bg-white rounded-2xl border border-editorial-border shadow-xs p-10 text-center space-y-3">
-          <div className="h-12 w-12 rounded-2xl bg-brand-50 text-brand-700 flex items-center justify-center mx-auto">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <h3 className="font-serif font-black text-lg text-stone-900">
-            Rekomendasi Mitra & Loker Terbaik
-          </h3>
-          <p className="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">
-            Algoritma skoring kelayakan mitra dan rekomendasi kanal lowongan kerja terbaik sedang disiapkan pada bagian berikutnya.
-          </p>
-          <div className="pt-2">
-            <span className="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-stone-100 text-stone-600 border border-stone-200">
-              Segera Hadir
-            </span>
-          </div>
-        </div>
+        loading ? (
+          <AdminSkeleton variant="cards" />
+        ) : (
+          <RekomendasiMitra
+            items={items}
+            applicants={applicants}
+            knownPositions={allAvailablePositions}
+            onGoToInput={() => setSubTab('input')}
+          />
+        )
       )}
 
       {/* ─── Add / Edit / Duplicate Modal ─────────────────────────────────── */}
