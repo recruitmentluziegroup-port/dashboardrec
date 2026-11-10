@@ -97,6 +97,14 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
       let cmp = 0;
       if (sortField === 'tanggal') {
         cmp = a.tanggal.localeCompare(b.tanggal);
+        if (cmp === 0) {
+          // Tie-break by sheet row number: smaller row number is higher up in the sheet (more recent)
+          const rowA = parseInt(a.id.split('|')[3] || '0', 10);
+          const rowB = parseInt(b.id.split('|')[3] || '0', 10);
+          if (rowA && rowB) {
+            cmp = rowB - rowA;
+          }
+        }
       } else if (sortField === 'nama') {
         cmp = (a.nama || '').localeCompare(b.nama || '');
       } else if (sortField === 'posisi') {
@@ -106,6 +114,19 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
       } else if (sortField === 'status') {
         cmp = (a.status || '').localeCompare(b.status || '');
       }
+
+      // Secondary tie-break by date and row number if non-date sort values are equal
+      if (cmp === 0 && sortField !== 'tanggal') {
+        cmp = a.tanggal.localeCompare(b.tanggal);
+        if (cmp === 0) {
+          const rowA = parseInt(a.id.split('|')[3] || '0', 10);
+          const rowB = parseInt(b.id.split('|')[3] || '0', 10);
+          if (rowA && rowB) {
+            cmp = rowB - rowA;
+          }
+        }
+      }
+
       return sortOrder === 'asc' ? cmp : -cmp;
     });
   }, [candidates, sortField, sortOrder]);
