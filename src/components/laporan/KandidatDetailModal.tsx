@@ -11,6 +11,7 @@ import {
   FileText,
   Clock,
   ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import { AdminModal } from '../dashboard/AdminModal';
 import { LaporanKandidatItem } from '../../types';
@@ -185,7 +186,7 @@ export const KandidatDetailModal: React.FC<KandidatDetailModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-stone-200/60 text-xs">
             <div className="flex items-center gap-2 text-stone-700">
               <Briefcase className="h-3.5 w-3.5 text-stone-400 shrink-0" />
-              <span>Posisi:</span>
+              <span>Posisi Dilamar:</span>
               <strong className="text-stone-900 font-bold">{kandidat.posisi}</strong>
             </div>
             <div className="flex items-center gap-2 text-stone-700">
@@ -195,6 +196,13 @@ export const KandidatDetailModal: React.FC<KandidatDetailModalProps> = ({
                 {formatIndoFullDate(kandidat.tanggal)}
               </span>
             </div>
+            {kandidat.rekomendasiPosisi && (
+              <div className="col-span-1 sm:col-span-2 flex items-center gap-2 p-2.5 bg-brand-50 border border-brand-200 rounded-lg text-xs">
+                <Sparkles className="h-4 w-4 text-brand-600 shrink-0" />
+                <span className="text-brand-800 font-medium">Rekomendasi Posisi:</span>
+                <strong className="text-brand-950 font-bold text-xs sm:text-sm">{kandidat.rekomendasiPosisi}</strong>
+              </div>
+            )}
           </div>
         </div>
 

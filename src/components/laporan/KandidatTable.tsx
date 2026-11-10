@@ -10,6 +10,7 @@ import {
   Repeat,
   Eye,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { LaporanKandidatItem } from '../../types';
 
@@ -21,7 +22,7 @@ interface KandidatTableProps {
   pageSize?: number;
 }
 
-type SortField = 'tanggal' | 'nama' | 'posisi' | 'status';
+type SortField = 'tanggal' | 'nama' | 'posisi' | 'status' | 'rekomendasiPosisi';
 type SortOrder = 'asc' | 'desc';
 
 function formatShortIndoDate(isoDate: string): string {
@@ -100,6 +101,8 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
         cmp = (a.nama || '').localeCompare(b.nama || '');
       } else if (sortField === 'posisi') {
         cmp = (a.posisi || '').localeCompare(b.posisi || '');
+      } else if (sortField === 'rekomendasiPosisi') {
+        cmp = (a.rekomendasiPosisi || '').localeCompare(b.rekomendasiPosisi || '');
       } else if (sortField === 'status') {
         cmp = (a.status || '').localeCompare(b.status || '');
       }
@@ -174,6 +177,15 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
                 </th>
                 <th className="py-3 px-4 w-72">Alasan / Bukti</th>
                 <th className="py-3 px-3">Email</th>
+                <th
+                  onClick={() => handleSort('rekomendasiPosisi')}
+                  className="py-3 px-3 cursor-pointer hover:bg-stone-200/50 transition-colors select-none whitespace-nowrap"
+                >
+                  <div className="flex items-center gap-1">
+                    <span>Rekomendasi Posisi</span>
+                    {renderSortIcon('rekomendasiPosisi')}
+                  </div>
+                </th>
                 <th className="py-3 px-3 text-center whitespace-nowrap">Ulang</th>
                 <th className="py-3 px-4 text-center whitespace-nowrap">Aksi</th>
               </tr>
@@ -181,7 +193,7 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
             <tbody className="divide-y divide-stone-100">
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs text-stone-400 font-bold italic">
+                  <td colSpan={9} className="py-12 text-center text-xs text-stone-400 font-bold italic">
                     Tidak ada kandidat yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
@@ -260,6 +272,18 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
                       {/* Email */}
                       <td className="py-3 px-3 whitespace-nowrap font-mono text-[11px] text-stone-600">
                         {k.email || '—'}
+                      </td>
+
+                      {/* Rekomendasi Posisi */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        {k.rekomendasiPosisi ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-brand-50 text-brand-900 border border-brand-200">
+                            <Sparkles className="h-2.5 w-2.5 text-brand-600 shrink-0" />
+                            <span>{k.rekomendasiPosisi}</span>
+                          </span>
+                        ) : (
+                          <span className="text-stone-300 font-mono text-[11px]">—</span>
+                        )}
                       </td>
 
                       {/* Lamaran Ulang */}
@@ -370,6 +394,15 @@ export const KandidatTable: React.FC<KandidatTableProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Rekomendasi Posisi (if available) */}
+                {k.rekomendasiPosisi && (
+                  <div className="flex items-center gap-1.5 text-xs bg-brand-50/70 border border-brand-200/60 rounded-xl px-2.5 py-1 text-brand-900">
+                    <Sparkles className="h-3 w-3 text-brand-600 shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700">Rekomendasi:</span>
+                    <span className="font-semibold text-xs text-brand-950 truncate">{k.rekomendasiPosisi}</span>
+                  </div>
+                )}
 
                 {/* Alasan / Bukti */}
                 {k.alasan ? (

@@ -63,7 +63,7 @@ export const KandidatFilterBar: React.FC<KandidatFilterBarProps> = ({
             type="text"
             value={filter.search}
             onChange={(e) => onFilterChange({ search: e.target.value })}
-            placeholder="Cari nama, email, alasan..."
+            placeholder="Cari nama, email, alasan, rekomendasi..."
             className="w-full pl-9 pr-8 py-2 text-xs bg-stone-50 border border-editorial-border rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-700 font-medium text-stone-800 placeholder-stone-400"
           />
           {filter.search && (

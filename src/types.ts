@@ -268,6 +268,7 @@ export interface LaporanKandidatItem {
   alasan: string;
   email: string;
   lamaranUlang: boolean;
+  rekomendasiPosisi?: string; // Kolom Rekomendasi Posisi dari spreadsheet
   linkEmail: string; // Parsed URL from hyperlink
 }
 

@@ -15,6 +15,7 @@ export function exportKandidatToCsv(candidates: LaporanKandidatItem[], filenameS
     'Alasan / Bukti',
     'Email Pengirim',
     'Lamaran Ulang',
+    'Rekomendasi Posisi',
     'Link Email',
   ];
 
@@ -29,6 +30,7 @@ export function exportKandidatToCsv(candidates: LaporanKandidatItem[], filenameS
       escapeCsvCell(k.alasan || '-'),
       escapeCsvCell(k.email),
       escapeCsvCell(k.lamaranUlang ? 'Ya' : 'Tidak'),
+      escapeCsvCell(k.rekomendasiPosisi || '-'),
       escapeCsvCell(k.linkEmail || ''),
     ];
     csvRows.push(row.join(','));

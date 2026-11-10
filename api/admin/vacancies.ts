@@ -473,15 +473,27 @@ async function readLaporan(forceRefresh = false): Promise<any> {
     }
 
     // 3. Fetch Detail Kandidat
+    // Cols A:I with FORMATTED_VALUE (Col H is Rekomendasi Posisi, Col I is Link Email)
     const detailRes = await laporanSheetsFetch<{ values?: string[][] }>(
-      `/values/${encodeURIComponent('Detail Kandidat!A1:G')}?valueRenderOption=FORMATTED_VALUE`
+      `/values/${encodeURIComponent('Detail Kandidat!A1:I')}?valueRenderOption=FORMATTED_VALUE`
     );
+    // Cols H:I with FORMULA for `=HYPERLINK(...)` URL
     const formulaRes = await laporanSheetsFetch<{ values?: string[][] }>(
-      `/values/${encodeURIComponent('Detail Kandidat!H1:H')}?valueRenderOption=FORMULA`
+      `/values/${encodeURIComponent('Detail Kandidat!H1:I')}?valueRenderOption=FORMULA`
     );
 
     const detailRows = detailRes.data?.values || [];
     const formulaRows = formulaRes.data?.values || [];
+
+    // Detect if column H is Rekomendasi Posisi or legacy Link Email
+    const headerRow = detailRows[0] || [];
+    const headerH = cleanLaporanText(headerRow[7] || '').toLowerCase();
+    const headerI = cleanLaporanText(headerRow[8] || '').toLowerCase();
+    const hasRekomendasiCol =
+      headerH.includes('rekomendasi') ||
+      headerI.includes('email') ||
+      headerI.includes('link') ||
+      headerRow.length >= 9;
 
     const kandidat: any[] = [];
     for (let i = 1; i < detailRows.length; i++) {
@@ -499,8 +511,30 @@ async function readLaporan(forceRefresh = false): Promise<any> {
       const lamaranUlang = cleanLaporanText(row[6]).toLowerCase() === 'ya';
 
       const fRow = formulaRows[i];
-      const rawFormula = fRow && fRow[0] !== undefined ? cleanLaporanText(fRow[0]) : '';
-      let linkEmail = extractHyperlinkUrl(rawFormula);
+      const fColH = fRow && fRow[0] !== undefined ? cleanLaporanText(fRow[0]) : '';
+      const fColI = fRow && fRow[1] !== undefined ? cleanLaporanText(fRow[1]) : '';
+      const rawColH = cleanLaporanText(row[7] || '');
+      const rawColI = cleanLaporanText(row[8] || '');
+
+      let rekomendasiPosisi = '';
+      let linkEmail = '';
+
+      if (hasRekomendasiCol) {
+        // Guard: if rawColH is actually a hyperlink formula, fallback to linkEmail
+        if (rawColH.toLowerCase().startsWith('=hyperlink') || /^https?:\/\//i.test(rawColH)) {
+          linkEmail = extractHyperlinkUrl(rawColH);
+          rekomendasiPosisi = '';
+        } else {
+          rekomendasiPosisi = rawColH;
+          linkEmail =
+            extractHyperlinkUrl(fColI) ||
+            extractHyperlinkUrl(rawColI) ||
+            extractHyperlinkUrl(fColH);
+        }
+      } else {
+        // Legacy layout (Col H is Link Email)
+        linkEmail = extractHyperlinkUrl(fColH) || extractHyperlinkUrl(rawColH);
+      }
 
       // Stable id: tanggal|email|posisi|nomor baris sheet (1-based: i + 1)
       const sheetRowNumber = i + 1;
@@ -515,6 +549,7 @@ async function readLaporan(forceRefresh = false): Promise<any> {
         alasan,
         email,
         lamaranUlang,
+        rekomendasiPosisi: rekomendasiPosisi || undefined,
         linkEmail,
       });
     }

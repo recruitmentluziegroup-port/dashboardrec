@@ -79,7 +79,7 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 - **Sifat Data**: Read-only (tanpa operasi tulis/edit/hapus).
 - **Penanganan Kolom F-I (Rekap Harian)**: Sel kosong pada kolom F-I (tanggal 1–4 Oktober 2026) diperlakukan sebagai `dinilai: false` ("Belum dinilai", sebelum penilaian CV dimulai), BUKAN angka 0 penilaian. Dari 5 Oktober 2026 dan seterusnya bernilai angka (`dinilai: true`).
 - **Legenda**: Dibaca secara dinamis dari sel `K2:L6` pada tab "Rekap Harian".
-- **Ekstraksi URL Email**: Menggunakan `valueRenderOption=FORMULA` untuk mengekstrak URL dari formula `=HYPERLINK(...)` pada kolom H tab "Detail Kandidat".
+- **Detail Kandidat (Kolom A–I)**: A: Tanggal, B: Nama Kandidat, C: Posisi Dilamar, D: Status Pengalaman, E: Alasan/Bukti, F: Email Pengirim, G: Lamaran Ulang, H: Rekomendasi Posisi, I: Link Email (`=HYPERLINK(...)`). Ekstraksi URL email menggunakan `valueRenderOption=FORMULA` dengan fallback otomatis untuk kompatibilitas data lama.
 
 ## Budget Iklan Lowongan Kerja
 

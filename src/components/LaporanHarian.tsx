@@ -339,12 +339,13 @@ export const LaporanHarian: React.FC = () => {
     const ulangOnly = kandidatFilter.hanyaUlang;
 
     return kandidatList.filter((k) => {
-      // 1. Text search: nama, email, alasan (case-insensitive)
+      // 1. Text search: nama, email, alasan, rekomendasi posisi (case-insensitive)
       if (q) {
         const nama = (k.nama || '').toLowerCase();
         const email = (k.email || '').toLowerCase();
         const alasan = (k.alasan || '').toLowerCase();
-        if (!nama.includes(q) && !email.includes(q) && !alasan.includes(q)) {
+        const rekomendasi = (k.rekomendasiPosisi || '').toLowerCase();
+        if (!nama.includes(q) && !email.includes(q) && !alasan.includes(q) && !rekomendasi.includes(q)) {
           return false;
         }
       }
