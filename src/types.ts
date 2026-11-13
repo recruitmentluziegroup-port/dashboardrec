@@ -272,12 +272,35 @@ export interface LaporanKandidatItem {
   linkEmail: string; // Parsed URL from hyperlink
 }
 
+export interface LaporanPsikotesItem {
+  id: string;
+  no: string;
+  tanggalSubmit: string; // e.g. "2026-11-12 13:59"
+  nama: string;
+  email: string;
+  noHp: string;
+  posisi: string;
+  kelengkapan: string;
+  skorD: number;
+  skorI: number;
+  skorS: number;
+  skorC: number;
+  gayaDominan: string;
+  gayaPendukung: string;
+  aspekTertinggi: string;
+  aspekTerendah: string;
+  catatan: string;
+  isUjiCoba: boolean;
+}
+
 export interface LaporanHarianResponse {
   connected: boolean;
   fetchedAt: string;
   rekap: LaporanRekapItem[];
   legenda: LaporanLegendaItem[];
   kandidat: LaporanKandidatItem[];
+  psikotes?: LaporanPsikotesItem[];
+  psikotesPanduan?: string[];
   error?: string;
 }
 

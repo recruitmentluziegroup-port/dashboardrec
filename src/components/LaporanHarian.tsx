@@ -9,10 +9,11 @@ import {
   CheckCircle2,
   Clock,
   ShieldAlert,
+  ClipboardList,
 } from 'lucide-react';
 import { AdminSkeleton } from './dashboard/AdminSkeleton';
 import { AdminEmptyState } from './dashboard/AdminEmptyState';
-import { LaporanHarianResponse, LaporanRekapItem, LaporanKandidatItem, LaporanLegendaItem } from '../types';
+import { LaporanHarianResponse, LaporanRekapItem, LaporanKandidatItem, LaporanLegendaItem, LaporanPsikotesItem } from '../types';
 
 import { RekapFilterBar, DatePreset } from './laporan/RekapFilterBar';
 import { RekapKpiCards } from './laporan/RekapKpiCards';
@@ -26,6 +27,7 @@ import { KandidatFilterBar, KandidatFilterState } from './laporan/KandidatFilter
 import { KandidatTable } from './laporan/KandidatTable';
 import { KandidatDetailModal } from './laporan/KandidatDetailModal';
 import { exportKandidatToCsv } from './laporan/kandidatCsvExport';
+import { PsikotesView } from './laporan/PsikotesView';
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA/edit';
 
@@ -46,11 +48,14 @@ function formatJakartaTime(isoString?: string): string {
   }
 }
 
-function getInitialSubTab(): 'rekap' | 'detail' {
+type LaporanSubTab = 'rekap' | 'detail' | 'psikotes';
+
+function getInitialSubTab(): LaporanSubTab {
   if (typeof window === 'undefined') return 'rekap';
   const params = new URLSearchParams(window.location.search);
   const sub = params.get('sub');
-  return sub === 'detail' ? 'detail' : 'rekap';
+  if (sub === 'detail' || sub === 'psikotes') return sub;
+  return 'rekap';
 }
 
 function getInitialParam(key: string, defaultVal = ''): string {
@@ -64,7 +69,7 @@ export const LaporanHarian: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [subTab, setSubTab] = useState<'rekap' | 'detail'>(getInitialSubTab);
+  const [subTab, setSubTab] = useState<LaporanSubTab>(getInitialSubTab);
 
   // Rekap Period filter states
   const [fromDate, setFromDate] = useState<string>(() => getInitialParam('from'));
@@ -158,7 +163,7 @@ export const LaporanHarian: React.FC = () => {
   }, []);
 
   // Handle sub-tab changes
-  const handleSubTabChange = (newSub: 'rekap' | 'detail') => {
+  const handleSubTabChange = (newSub: LaporanSubTab) => {
     setSubTab(newSub);
     updateUrlParam('sub', newSub);
   };
@@ -166,6 +171,8 @@ export const LaporanHarian: React.FC = () => {
   const rekapList: LaporanRekapItem[] = data?.rekap || [];
   const kandidatList: LaporanKandidatItem[] = data?.kandidat || [];
   const legendaList: LaporanLegendaItem[] = data?.legenda || [];
+  const psikotesList: LaporanPsikotesItem[] = data?.psikotes || [];
+  const psikotesPanduan: string[] = data?.psikotesPanduan || [];
 
   // Restore candidate modal from URL if detailId is present on load/fetch
   useEffect(() => {
@@ -184,7 +191,8 @@ export const LaporanHarian: React.FC = () => {
   useEffect(() => {
     const onPop = () => {
       const p = new URLSearchParams(window.location.search);
-      setSubTab(p.get('sub') === 'detail' ? 'detail' : 'rekap');
+      const subParam = p.get('sub');
+      setSubTab(subParam === 'detail' || subParam === 'psikotes' ? subParam : 'rekap');
 
       const f = p.get('from') || '';
       const t = p.get('to') || '';
@@ -528,10 +536,10 @@ export const LaporanHarian: React.FC = () => {
       )}
 
       {/* Sub-tab Navigation */}
-      <div className="flex items-center gap-2 border-b border-editorial-border pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-editorial-border pb-2">
         <button
           onClick={() => handleSubTabChange('rekap')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             subTab === 'rekap'
               ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
@@ -552,7 +560,7 @@ export const LaporanHarian: React.FC = () => {
 
         <button
           onClick={() => handleSubTabChange('detail')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             subTab === 'detail'
               ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs'
               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
@@ -567,6 +575,27 @@ export const LaporanHarian: React.FC = () => {
               }`}
             >
               {kandidatList.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => handleSubTabChange('psikotes')}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+            subTab === 'psikotes'
+              ? 'bg-brand-50 text-brand-700 border border-brand-200 shadow-2xs'
+              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+          }`}
+        >
+          <ClipboardList className="h-3.5 w-3.5" />
+          <span>Ringkasan Psikotes</span>
+          {psikotesList.length > 0 && (
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                subTab === 'psikotes' ? 'bg-brand-700 text-white' : 'bg-stone-200 text-stone-700'
+              }`}
+            >
+              {psikotesList.length}
             </span>
           )}
         </button>
@@ -628,7 +657,7 @@ export const LaporanHarian: React.FC = () => {
             <RekapLegendaPanel legenda={legendaList} />
           </div>
         )
-      ) : (
+      ) : subTab === 'detail' ? (
         /* Sub-tab 2: Detail Kandidat */
         kandidatList.length === 0 ? (
           <AdminEmptyState
@@ -672,6 +701,9 @@ export const LaporanHarian: React.FC = () => {
             />
           </div>
         )
+      ) : (
+        /* Sub-tab 3: Ringkasan Psikotes */
+        <PsikotesView items={psikotesList} panduan={psikotesPanduan} />
       )}
     </div>
   );

@@ -1362,6 +1362,8 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
         rekap: local.rekap,
         legenda: local.legenda,
         kandidat: local.kandidat,
+        psikotes: Array.isArray(local.psikotes) ? local.psikotes : [],
+        psikotesPanduan: Array.isArray(local.psikotesPanduan) ? local.psikotesPanduan : [],
       };
       cachedLaporan = { data: payload, timestamp: now };
       return payload;
@@ -1372,6 +1374,8 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
       rekap: [],
       legenda: [],
       kandidat: [],
+      psikotes: [],
+      psikotesPanduan: [],
       error: 'Kredensial Service Account belum dikonfigurasi.',
     };
   }
@@ -1527,12 +1531,84 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
       });
     }
 
+    // 4. Fetch Ringkasan Psikotes (optional tab)
+    const psikotes: any[] = [];
+    const psikotesPanduan: string[] = [];
+    if (sheetTitles.includes('Ringkasan Psikotes')) {
+      try {
+        const psikoRes = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `'Ringkasan Psikotes'!A1:R`,
+          valueRenderOption: 'FORMATTED_VALUE',
+        });
+        const psikoRows: any[][] = psikoRes.data.values || [];
+        for (let i = 1; i < psikoRows.length; i++) {
+          const row = psikoRows[i];
+          if (!row || row.length === 0) continue;
+
+          const ket = cleanLaporanText(row[17]);
+          if (ket) {
+            psikotesPanduan.push(ket);
+          }
+
+          const no = cleanLaporanText(row[0]);
+          const tanggalSubmit = cleanLaporanText(row[1]);
+          const nama = cleanLaporanText(row[2]);
+          const email = cleanLaporanText(row[3]);
+          const noHp = cleanLaporanText(row[4]);
+          const posisi = cleanLaporanText(row[5]);
+          const kelengkapan = cleanLaporanText(row[6]);
+
+          if (!nama && !email && !tanggalSubmit) continue;
+
+          const skorD = parseLaporanNum(row[7]);
+          const skorI = parseLaporanNum(row[8]);
+          const skorS = parseLaporanNum(row[9]);
+          const skorC = parseLaporanNum(row[10]);
+          const gayaDominan = cleanLaporanText(row[11]);
+          const gayaPendukung = cleanLaporanText(row[12]);
+          const aspekTertinggi = cleanLaporanText(row[13]);
+          const aspekTerendah = cleanLaporanText(row[14]);
+          const catatan = cleanLaporanText(row[15]);
+          const isUjiCoba = catatan.toLowerCase().includes('indikasi uji coba');
+
+          const sheetRowNumber = i + 1;
+          const id = `${tanggalSubmit}|${email || nama}|${posisi}|${sheetRowNumber}`;
+
+          psikotes.push({
+            id,
+            no: no || String(psikotes.length + 1),
+            tanggalSubmit,
+            nama,
+            email,
+            noHp,
+            posisi,
+            kelengkapan,
+            skorD,
+            skorI,
+            skorS,
+            skorC,
+            gayaDominan,
+            gayaPendukung,
+            aspekTertinggi,
+            aspekTerendah,
+            catatan,
+            isUjiCoba,
+          });
+        }
+      } catch (err) {
+        console.warn('Optional Ringkasan Psikotes fetch skipped:', err);
+      }
+    }
+
     const payload: LaporanHarianResponse = {
       connected: true,
       fetchedAt: new Date().toISOString(),
       rekap,
       legenda,
       kandidat,
+      psikotes,
+      psikotesPanduan,
     };
 
     cachedLaporan = { data: payload, timestamp: now };
@@ -1547,6 +1623,8 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
         rekap: [],
         legenda: [],
         kandidat: [],
+        psikotes: [],
+        psikotesPanduan: [],
         error: `Spreadsheet belum dibagikan ke service account. Bagikan sebagai Viewer ke: ${clientEmail || '(email service account)'}`,
       };
     }
@@ -1560,6 +1638,8 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
         rekap: local.rekap,
         legenda: local.legenda,
         kandidat: local.kandidat,
+        psikotes: Array.isArray(local.psikotes) ? local.psikotes : [],
+        psikotesPanduan: Array.isArray(local.psikotesPanduan) ? local.psikotesPanduan : [],
       };
     }
 
@@ -1569,6 +1649,8 @@ export async function getLaporan(forceRefresh = false): Promise<LaporanHarianRes
       rekap: [],
       legenda: [],
       kandidat: [],
+      psikotes: [],
+      psikotesPanduan: [],
       error: `Gagal membaca spreadsheet: ${msg}`,
     };
   }

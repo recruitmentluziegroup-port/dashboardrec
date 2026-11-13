@@ -74,12 +74,13 @@ Vacancies Vercel functions (`api/admin/vacancies.ts`, `api/vacancies.ts`) are se
 ## Laporan Rekrutmen Harian
 
 - **Spreadsheet ID**: Dibaca dari environment variable `LAPORAN_SHEET_ID` dengan fallback ke `1ef0gwvtYYMbOMG6Pt7D2rBnMJ2MTdnpaKrZsaP9B9TA`.
-- **Nama Tab**: Wajib dinamai persis `"Rekap Harian"` dan `"Detail Kandidat"`. Tab dibaca secara read-only.
-- **Endpoint**: Dilayani oleh multi-store endpoint `GET /api/admin/vacancies?store=laporan` di `api/admin/vacancies.ts` (tidak menambah file fungsi Vercel baru) dan `server.ts` untuk dev lokal. Memerlukan autentikasi admin (`Bearer <token>`).
+- **Nama Tab**: Wajib dinamai persis `"Rekap Harian"` dan `"Detail Kandidat"`, serta tab opsional `"Ringkasan Psikotes"`. Seluruh tab dibaca secara read-only.
+- **Endpoint**: Dilayani oleh multi-store endpoint `GET /api/admin/vacancies?store=laporan` di `api/admin/vacancies.ts` (tidak menambah file fungsi Vercel baru) dan `server.ts` untuk dev lokal (mengimpor modul berat seperti `sheets`/`pdf`/`vite` secara lazy agar port 3000 langsung terikat). Memerlukan autentikasi admin (`Bearer <token>`).
 - **Sifat Data**: Read-only (tanpa operasi tulis/edit/hapus).
 - **Penanganan Kolom F-I (Rekap Harian)**: Sel kosong pada kolom F-I (tanggal 1–4 Oktober 2026) diperlakukan sebagai `dinilai: false` ("Belum dinilai", sebelum penilaian CV dimulai), BUKAN angka 0 penilaian. Dari 5 Oktober 2026 dan seterusnya bernilai angka (`dinilai: true`).
 - **Legenda**: Dibaca secara dinamis dari sel `K2:L6` pada tab "Rekap Harian".
 - **Detail Kandidat (Kolom A–I)**: A: Tanggal, B: Nama Kandidat, C: Posisi Dilamar, D: Status Pengalaman, E: Alasan/Bukti, F: Email Pengirim, G: Lamaran Ulang, H: Rekomendasi Posisi, I: Link Email (`=HYPERLINK(...)`). Ekstraksi URL email menggunakan `valueRenderOption=FORMULA` dengan fallback otomatis untuk kompatibilitas data lama.
+- **Ringkasan Psikotes (Kolom A–P + Kolom R)**: Tab opsional (dibaca bila ada di spreadsheet) mencakup A: No, B: Tanggal & Jam Submit (WIB), C: Nama Lengkap, D: Email, E: No. HP/WA, F: Posisi Dilamar, G: Kelengkapan Jawaban, H–K: Skor D/I/S/C, L–M: Gaya Dominan & Pendukung (DISC), N–O: Aspek Tertinggi & Terendah (PAPI Kostick), P: Catatan, serta Kolom R (`KETERANGAN SINGKAT`) sebagai `psikotesPanduan`. Baris tanpa nama/email/tanggal (khusus baris keterangan) diabaikan dari daftar kandidat.
 
 ## Budget Iklan Lowongan Kerja
 

@@ -2,17 +2,39 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import express from 'express';
+import http from 'http';
 import path from 'path';
-import fs from 'fs';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import React from 'react';
-import { renderToStream } from '@react-pdf/renderer';
-import { createServer as createViteServer } from 'vite';
 
-import { appendRow, getAllRows, getRowById, updateRow, getVacancies, saveVacancies, getTrackers, saveTrackers, getInterviews, appendInterview, updateInterview, deleteInterview, hasInterviewOverlap, getLaporan, getBudgets, createBudget, updateBudget, archiveBudget } from './src/lib/sheets';
-import { MyPdfDocument } from './src/lib/pdf';
 import { Applicant, ApplicationStatus, StatusLabelId, SUMBER_OPTIONS, SUMBER_WARRANTS_KETERANGAN } from './src/types';
+
+// Lazy-load heavy Google Sheets / PDF / Vite modules so Express binds port 3000 immediately (<300ms)
+let sheetsPromise: Promise<typeof import('./src/lib/sheets')> | null = null;
+function getSheets() {
+  if (!sheetsPromise) {
+    sheetsPromise = import('./src/lib/sheets');
+  }
+  return sheetsPromise;
+}
+
+let pdfPromise: Promise<{
+  renderToStream: typeof import('@react-pdf/renderer').renderToStream;
+  MyPdfDocument: typeof import('./src/lib/pdf').MyPdfDocument;
+}> | null = null;
+function getPdfModules() {
+  if (!pdfPromise) {
+    pdfPromise = Promise.all([
+      import('@react-pdf/renderer'),
+      import('./src/lib/pdf'),
+    ]).then(([renderer, pdf]) => ({
+      renderToStream: renderer.renderToStream,
+      MyPdfDocument: pdf.MyPdfDocument,
+    }));
+  }
+  return pdfPromise;
+}
 
 const app = express();
 const PORT = 3000;
@@ -231,6 +253,7 @@ app.use(express.json({ limit: '10mb' }));
   app.get('/api/vacancies', async (req, res) => {
     try {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      const { getVacancies } = await getSheets();
       const all = await getVacancies();
       const active = all.filter((v: any) => {
         const isArchived = v.archived === true || String(v.archived).toLowerCase() === 'true';
@@ -271,6 +294,7 @@ app.use(express.json({ limit: '10mb' }));
 
     // 3. Look up applicant and verify last 4 digits of KTP
     try {
+      const { getRowById } = await getSheets();
       const applicant = await getRowById(id);
       if (!applicant) {
         return res.status(404).json({ error: 'Data lamaran tidak ditemukan atau verifikasi tidak cocok.' });
@@ -303,16 +327,17 @@ app.use(express.json({ limit: '10mb' }));
   // route so Vercel stays at 11 serverless functions.)
   app.get('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      const sheets = await getSheets();
       if ((req.query as any)?.store === 'budget') {
         const forceRefresh = (req.query as any)?.refresh === '1';
-        return res.json(await getBudgets(forceRefresh));
+        return res.json(await sheets.getBudgets(forceRefresh));
       }
       if ((req.query as any)?.store === 'laporan') {
         const forceRefresh = (req.query as any)?.refresh === '1';
-        return res.json(await getLaporan(forceRefresh));
+        return res.json(await sheets.getLaporan(forceRefresh));
       }
-      if ((req.query as any)?.store === 'trackers') return res.json(await getTrackers());
-      res.json(await getVacancies());
+      if ((req.query as any)?.store === 'trackers') return res.json(await sheets.getTrackers());
+      res.json(await sheets.getVacancies());
     } catch (error) {
       console.error('Error reading all vacancies:', error);
       res.status(500).json({ error: 'Gagal mengambil semua data lowongan.' });
@@ -322,6 +347,7 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: Laporan Rekrutmen Harian — protected
   app.get('/api/admin/laporan', authMiddleware, async (req, res) => {
     try {
+      const { getLaporan } = await getSheets();
       const forceRefresh = (req.query as any)?.refresh === '1';
       res.json(await getLaporan(forceRefresh));
     } catch (error) {
@@ -333,9 +359,10 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: persist vacancy changes (archived flag included) — protected
   app.post('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
+      const sheets = await getSheets();
       if ((req.query as any)?.store === 'budget') {
         const adminEmail = (req as any).admin?.email || 'recruitmentluziegroup@gmail.com';
-        const item = await createBudget(req.body, adminEmail);
+        const item = await sheets.createBudget(req.body, adminEmail);
         return res.status(201).json({ success: true, item });
       }
       if ((req.query as any)?.store === 'trackers') {
@@ -345,7 +372,7 @@ app.use(express.json({ limit: '10mb' }));
         }
         const trackErr = validateTrackers(trackers);
         if (trackErr) return res.status(400).json({ error: trackErr });
-        const trackOk = await saveTrackers(trackers);
+        const trackOk = await sheets.saveTrackers(trackers);
         if (!trackOk) return res.status(500).json({ error: 'Gagal menyimpan data tracker.' });
         return res.json({ success: true, message: 'Data tracker berhasil disimpan.' });
       }
@@ -355,7 +382,7 @@ app.use(express.json({ limit: '10mb' }));
       }
       const err = validateVacancies(vacancies);
       if (err) return res.status(400).json({ error: err });
-      const ok = await saveVacancies(vacancies);
+      const ok = await sheets.saveVacancies(vacancies);
       if (!ok) return res.status(500).json({ error: 'Gagal menyimpan perubahan lowongan.' });
       res.json({ success: true, message: 'Lowongan pekerjaan berhasil disimpan.' });
     } catch (error: any) {
@@ -368,6 +395,7 @@ app.use(express.json({ limit: '10mb' }));
   app.put('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
       if ((req.query as any)?.store === 'budget') {
+        const { updateBudget } = await getSheets();
         const id = String((req.query as any)?.id || req.body?.id || '');
         const item = await updateBudget(id, req.body);
         return res.json({ success: true, item });
@@ -383,6 +411,7 @@ app.use(express.json({ limit: '10mb' }));
   app.delete('/api/admin/vacancies', authMiddleware, async (req, res) => {
     try {
       if ((req.query as any)?.store === 'budget') {
+        const { archiveBudget } = await getSheets();
         const id = String((req.query as any)?.id || '');
         await archiveBudget(id);
         return res.json({ success: true, message: 'Iklan berhasil diarsipkan.' });
@@ -397,6 +426,7 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: direct Budget Iklan routes (convenience aliases for local dev) — protected
   app.get('/api/admin/budget', authMiddleware, async (req, res) => {
     try {
+      const { getBudgets } = await getSheets();
       const forceRefresh = (req.query as any)?.refresh === '1';
       res.json(await getBudgets(forceRefresh));
     } catch (e: any) {
@@ -406,6 +436,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.post('/api/admin/budget', authMiddleware, async (req, res) => {
     try {
+      const { createBudget } = await getSheets();
       const adminEmail = (req as any).admin?.email || 'recruitmentluziegroup@gmail.com';
       const item = await createBudget(req.body, adminEmail);
       res.status(201).json({ success: true, item });
@@ -416,6 +447,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.put('/api/admin/budget/:id?', authMiddleware, async (req, res) => {
     try {
+      const { updateBudget } = await getSheets();
       const id = String(req.params.id || (req.query as any)?.id || req.body?.id || '');
       const item = await updateBudget(id, req.body);
       res.json({ success: true, item });
@@ -426,6 +458,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.delete('/api/admin/budget/:id?', authMiddleware, async (req, res) => {
     try {
+      const { archiveBudget } = await getSheets();
       const id = String(req.params.id || (req.query as any)?.id || '');
       await archiveBudget(id);
       res.json({ success: true, message: 'Iklan berhasil diarsipkan.' });
@@ -437,6 +470,7 @@ app.use(express.json({ limit: '10mb' }));
   // ADMIN: interview scheduling — protected
   app.get('/api/admin/interviews', authMiddleware, async (req, res) => {
     try {
+      const { getInterviews } = await getSheets();
       let list = await getInterviews();
       const { date, interviewer, applicantId } = req.query as any;
       if (date) list = list.filter((iv) => iv.date === String(date));
@@ -453,6 +487,7 @@ app.use(express.json({ limit: '10mb' }));
     try {
       const err = validateInterviewBody(req.body);
       if (err) return res.status(400).json({ error: err });
+      const { getInterviews, hasInterviewOverlap, appendInterview } = await getSheets();
       const list = await getInterviews();
       if (hasInterviewOverlap(list, req.body)) {
         return res.status(409).json({ error: 'Pewawancara sudah memiliki jadwal lain pada waktu tersebut.' });
@@ -467,6 +502,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.get('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
     try {
+      const { getInterviews } = await getSheets();
       const list = await getInterviews();
       const found = list.find((iv) => iv.id === req.params.id);
       if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
@@ -479,6 +515,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.patch('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
     try {
+      const { getInterviews, hasInterviewOverlap, updateInterview } = await getSheets();
       const list = await getInterviews();
       const found = list.find((iv) => iv.id === req.params.id);
       if (!found) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
@@ -498,6 +535,7 @@ app.use(express.json({ limit: '10mb' }));
 
   app.delete('/api/admin/interviews/:id', authMiddleware, async (req, res) => {
     try {
+      const { deleteInterview } = await getSheets();
       const ok = await deleteInterview(req.params.id);
       if (!ok) return res.status(404).json({ error: 'Jadwal tidak ditemukan.' });
       res.json({ success: true });
@@ -548,6 +586,7 @@ app.use(express.json({ limit: '10mb' }));
         lastUpdated: timestamp,
       };
 
+      const { appendRow } = await getSheets();
       const result = await appendRow(newApplicant);
       if (!result.success) {
         return res.status(500).json({ error: result.error || 'Gagal mengunggah formulir lamaran kerja ke Google Sheets. Periksa konfigurasi API server.' });
@@ -629,6 +668,7 @@ app.use(express.json({ limit: '10mb' }));
   // 5. PROTECTED: Get all applications
   app.get('/api/admin/applications', authMiddleware, async (req, res) => {
     try {
+      const { getAllRows } = await getSheets();
       const list = await getAllRows();
       res.json({ data: list });
     } catch (error) {
@@ -640,6 +680,7 @@ app.use(express.json({ limit: '10mb' }));
   app.get('/api/admin/applications/:id', authMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
+      const { getRowById } = await getSheets();
       const applicant = await getRowById(id);
 
       if (!applicant) {
@@ -658,6 +699,7 @@ app.use(express.json({ limit: '10mb' }));
       const { id } = req.params;
       const fieldsToUpdate = req.body;
 
+      const { updateRow } = await getSheets();
       const success = await updateRow(id, fieldsToUpdate);
       if (!success) {
         return res.status(500).json({ error: 'Gagal mengupdate lembar baris Google Sheets.' });
@@ -673,6 +715,7 @@ app.use(express.json({ limit: '10mb' }));
   app.get('/api/admin/export/:id', authMiddleware, async (req, res) => {
     try {
       const { id } = req.params;
+      const { getRowById } = await getSheets();
       const applicant = await getRowById(id);
 
       if (!applicant) {
@@ -683,6 +726,7 @@ app.use(express.json({ limit: '10mb' }));
       res.setHeader('Content-Disposition', `attachment; filename="data_personal_${id}_${applicant.namaLengkap.replace(/\s+/g, '_')}.pdf"`);
 
       // Generate the React-PDF document stream server-side
+      const { renderToStream, MyPdfDocument } = await getPdfModules();
       const pdfNode = React.createElement(MyPdfDocument, { applicant });
       const stream = await renderToStream(pdfNode);
 
@@ -697,14 +741,36 @@ app.use(express.json({ limit: '10mb' }));
   // Mounting Vite Server (Dev) or Serving Production Build (Dist)
   // -------------------------------------------------------------
   async function initViteAndListen() {
-    if (process.env.NODE_ENV !== 'production' && process.env.VERCEL !== '1') {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: 'spa',
+    if (process.env.VERCEL === '1') {
+      return;
+    }
+
+    const httpServer = http.createServer(app);
+
+    if (process.env.NODE_ENV !== 'production') {
+      const viteReady = import('vite').then(({ createServer }) =>
+        createServer({
+          server: {
+            middlewareMode: true,
+            hmr: process.env.DISABLE_HMR === 'true' ? false : { server: httpServer },
+          },
+          appType: 'spa',
+        })
+      );
+
+      viteReady
+        .then(() => console.log('Vite middleware mounted successfully (development mode).'))
+        .catch((err) => console.error('Vite initialization error:', err));
+
+      app.use(async (req, res, next) => {
+        try {
+          const vite = await viteReady;
+          return vite.middlewares(req, res, next);
+        } catch (err) {
+          return next(err);
+        }
       });
-      app.use(vite.middlewares);
-      console.log('Vite middleware mounted successfully (development mode).');
-    } else if (process.env.VERCEL !== '1') {
+    } else {
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
       app.get('*', (req, res) => {
@@ -713,11 +779,13 @@ app.use(express.json({ limit: '10mb' }));
       console.log('Serving built static directory in production:', distPath);
     }
 
-    if (process.env.VERCEL !== '1') {
-      app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server fully operational on http://0.0.0.0:${PORT}`);
-      });
-    }
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server fully operational on http://0.0.0.0:${PORT}`);
+      // Warm up Sheets module in background after port 3000 is open
+      setTimeout(() => {
+        void getSheets();
+      }, 50);
+    });
   }
 
   initViteAndListen();
